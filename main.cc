@@ -16,11 +16,22 @@ int main(int argc, const char * argv[]) {
 //    p.*v = L"test";
     
     auto n1 = typeid(&Person::first_name).name();
+
+	auto r1 = typeid(&Person::first_name).raw_name();
+    auto r2 = typeid(&Person::last_name).raw_name();
+
+	auto h1 = typeid(&Person::first_name).raw_name();
+	auto h2 = typeid(&Person::last_name).raw_name();
+
     auto n2 = typeid(&Person::last_name).name();
     auto n3 = typeid(&Person::age).name();
     auto n4 = typeid(&Person::salary).name();
-    
+
+#if !defined(_WIN32) && !defined(WIN32)
     Database::Initialize("/Users/nemesis/Desktop/sample.db");
+#else
+    Database::Initialize("D:/sample.db");
+#endif
     auto temp = Database::FetchAll<Person>();
     std::cout << "Hello, World!\n";
     return 0;
