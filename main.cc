@@ -6,6 +6,7 @@
 //
 
 #include <iostream>
+
 #include "database.h"
 #include "pet.h"
 #include "person.h"
@@ -16,12 +17,6 @@ int main(int argc, const char * argv[]) {
 //    p.*v = L"test";
     
     auto n1 = typeid(&Person::first_name).name();
-
-	auto r1 = typeid(&Person::first_name).raw_name();
-    auto r2 = typeid(&Person::last_name).raw_name();
-
-	auto h1 = typeid(&Person::first_name).raw_name();
-	auto h2 = typeid(&Person::last_name).raw_name();
 
     auto n2 = typeid(&Person::last_name).name();
     auto n3 = typeid(&Person::age).name();
