@@ -6,9 +6,9 @@
 //
 
 #include <iostream>
-#include "database.hpp"
-#include "pet.hpp"
-#include "person.hpp"
+#include "database.h"
+#include "pet.h"
+#include "person.h"
 
 int main(int argc, const char * argv[]) {
     Person p;
@@ -20,8 +20,8 @@ int main(int argc, const char * argv[]) {
     auto n3 = typeid(&Person::age).name();
     auto n4 = typeid(&Person::salary).name();
     
-    Database::initialize("/Users/nemesis/Desktop/sample.db");
-    auto temp = Database::fetchAll<Person>();
+    Database::Initialize("/Users/nemesis/Desktop/sample.db");
+    auto temp = Database::FetchAll<Person>();
     std::cout << "Hello, World!\n";
     return 0;
 }
