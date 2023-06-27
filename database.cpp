@@ -8,12 +8,14 @@
 #include <stdio.h>
 #include <stdexcept>
 #include <numeric>
+#include <memory>
+
 #include "database.hpp"
 #include "sqlite3.h"
 
 int register_int_value_callback() {
     _value_callback_mapping[SQLITE_INTEGER] = [](sqlite3_stmt *stmt,int col) {
-        return (void*)std::make_shared<int>(sqlite3_column_int(stmt, col)).get();
+        return static_cast<void*>(std::make_shared<int>(sqlite3_column_int(stmt, col)).get());
     };
     return SQLITE_INTEGER;
 }
@@ -21,7 +23,7 @@ static int int_value_mapping = register_int_value_callback();
 
 int register_float_value_callback() {
     _value_callback_mapping[SQLITE_FLOAT] = [](sqlite3_stmt *stmt,int col) {
-        return (void*)(std::make_shared<double>(sqlite3_column_double(stmt, col)).get());
+        return static_cast<void*>(std::make_shared<double>(sqlite3_column_double(stmt, col)).get());
     };
     return SQLITE_FLOAT;
 }

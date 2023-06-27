@@ -2,9 +2,10 @@
 #define _REFLECTIONINTERNALS_
 
 #include <vector>
-#include <set>
 #include <map>
 #include <string>
+#include <functional>
+
 #include "reflection_export.def"
 
 #if !defined(_WIN32) && !defined(WIN32)
