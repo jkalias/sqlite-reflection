@@ -74,12 +74,9 @@ typedef uint16_t kWchar;
 #endif
 
 // ------------ string conversion/formatting/handling
-std::wstring kFromLatin1(const std::string& latin1string);
-std::string kToLatin1(const std::wstring& widestring);
 std::wstring kFromUtf8(const std::string& utf8string);
 std::string kToUtf8(const std::wstring& widestring);
 std::wstring kFromkWchar(const kWchar* s);
-std::wstring ktoRTFW(const std::wstring& data);
 void kAssign(std::wstring& wStringData, const kWchar* r);
 
 char* kitoa(int32_t i, char* s, size_t maxLen, int dummy_radix);
