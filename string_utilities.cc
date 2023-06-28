@@ -9,11 +9,11 @@ double StringUtilities::Double(const std::wstring& s) {
 	return cross_platform::ToDouble(s.data());
 }
 
-std::string StringUtilities::ToMultibyte(const std::wstring& s) {
+std::string StringUtilities::ToUtf8(const std::wstring& s) {
 	return cross_platform::ToUtf8(s);
 }
 
-std::wstring StringUtilities::FromMultibyte(const char* content) {
+std::wstring StringUtilities::FromUtf8(const char* content) {
 	if (content == nullptr) {
 		return L"";
 	}

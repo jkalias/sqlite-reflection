@@ -171,7 +171,7 @@ std::wstring GetColumnValue(sqlite3_stmt* stmt, const int col) {
 	case SQLITE_TEXT:
 		{
 			const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
-			return StringUtilities::FromMultibyte(content);
+			return StringUtilities::FromUtf8(content);
 		}
 
 	case SQLITE_BLOB:

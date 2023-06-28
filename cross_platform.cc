@@ -53,8 +53,7 @@ namespace cross_platform {
 		}
 		return std::string(buffer);
 #else
-		const int utf8_size = ::WideCharToMultiByte(CP_UTF8, 0, wide_string.c_str(), -1, nullptr, 0, nullptr,
-		                                            nullptr);
+		const int utf8_size = ::WideCharToMultiByte(CP_UTF8, 0, wide_string.c_str(), -1, nullptr, 0, nullptr, nullptr);
 		if (utf8_size == 0) {
 			throw std::exception("ToUtf8: Error in conversion.");
 		}
