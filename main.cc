@@ -12,12 +12,6 @@
 #include "person.h"
 
 int main(int argc, const char* argv[]) {
-	auto n1 = typeid(&Person::first_name).name();
-
-	auto n2 = typeid(&Person::last_name).name();
-	auto n3 = typeid(&Person::age).name();
-	auto n4 = typeid(&Person::salary).name();
-
 #if !defined(_WIN32) && !defined(WIN32)
     Database::Initialize("/Users/nemesis/Desktop/Reflectable/Reflectable/src/sample.db");
 #else
