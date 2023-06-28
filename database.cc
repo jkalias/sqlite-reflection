@@ -84,8 +84,8 @@ void Database::Initialize(const std::string& path)
     
     auto &reg = GetReflectionRegister();
     for (const auto& contents: reg.records) {
-        const auto& name = contents.first;
         const auto& model = contents.second;
+        const auto& name = model.name;
         
         std::string create_table_query("CREATE TABLE IF NOT EXISTS ");
         create_table_query += name + " (";

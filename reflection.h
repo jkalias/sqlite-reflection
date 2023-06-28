@@ -36,7 +36,6 @@ struct Reflection {
     
     bool initialized;
     std::string name;
-    std::string type_id;
     size_t size;
     std::vector<Member> members;
     std::map<std::string, size_t> member_index_mapping;
@@ -175,7 +174,6 @@ static std::string CAT(Register, REFLECTABLE)() {
     auto & reflectable = GetRecordFromTypeId(type_id);
     if (!reflectable.initialized) {
         reflectable.name = name;
-        reflectable.type_id = type_id;
         
         // store member information
 #define MEMBER_INT(R)                           DEFINE_MEMBER(R, ReflectionMemberTrait::kInt, "INTEGER")
