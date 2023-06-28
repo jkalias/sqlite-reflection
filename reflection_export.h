@@ -12,11 +12,11 @@
 #endif
 
 #if defined(_WIN32) || defined(WIN32)
-	#ifdef BUILD_REFLECTION
-		#define REFLECTION_EXPORT __declspec( dllexport )
-	#else
-		#define REFLECTION_EXPORT __declspec( dllimport )
-	#endif
+#ifdef BUILD_REFLECTION
+#define REFLECTION_EXPORT __declspec( dllexport )
 #else
-	#define REFLECTION_EXPORT __attribute__ ((__visibility__("default")))
+#define REFLECTION_EXPORT __declspec( dllimport )
+#endif
+#else
+#define REFLECTION_EXPORT __attribute__ ((__visibility__("default")))
 #endif
