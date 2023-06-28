@@ -21,26 +21,28 @@ enum class ReflectionMemberTrait
 	kBlob
 };
 
-struct Reflection {
-    Reflection() : initialized(false), size(0) {};
-    
-    struct Member {
-        std::string name;
-        ReflectionMemberTrait trait;
-        std::string column_type;
-        size_t offset;
-        Member(const std::string& _name, ReflectionMemberTrait _trait, const std::string& _columnType, size_t _offset)
-        : name(_name), trait(_trait), column_type(_columnType), offset(_offset)
-        {};
-    };
-    
-    bool initialized;
-    std::string name;
-    size_t size;
-    std::vector<Member> members;
-    std::map<std::string, size_t> member_index_mapping;
-    std::map<std::string, std::function<void(void*, void*)>> key_value_update_mapping;
-    std::map<std::string, std::function<std::string(void*)>> value_serialization_mapping;
+struct Reflection
+{
+	Reflection() : initialized(false), size(0) {};
+
+	struct Member
+	{
+		std::string name;
+		ReflectionMemberTrait trait;
+		std::string column_type;
+		size_t offset;
+
+		Member(const std::string& _name, ReflectionMemberTrait _trait, const std::string& _columnType, size_t _offset)
+			: name(_name), trait(_trait), column_type(_columnType), offset(_offset) {};
+	};
+
+	bool initialized;
+	std::string name;
+	size_t size;
+	std::vector<Member> members;
+	std::map<std::string, size_t> member_index_mapping;
+	std::map<std::string, std::function<void(void*, void*)>> key_value_update_mapping;
+	std::map<std::string, std::function<std::string(void*)>> value_serialization_mapping;
 };
 
 #define STR_NOEXPAND(A) #A
@@ -51,7 +53,6 @@ struct Reflection {
 
 #define DEFINE_MEMBER(R, T, G)	        reflectable.members.push_back(Reflection::Member(STR(R), T, G, offsetof(struct REFLECTABLE, R))); \
 										reflectable.member_index_mapping[STR(R)] = reflectable.members.size() - 1;
-
 
 #define DEFINE_KEY_PATH(L, R)           reflectable.key_value_update_mapping[STR(R)] = [](void *p, void *v) {   \
                                                 REFLECTABLE& model = (*(REFLECTABLE*)(p));                      \
@@ -67,13 +68,14 @@ struct Reflection {
 #define ASSIGN_COPY(x) ASSIGN_COPY_NOCAT(x)
 #define COPY_MEMBER(x) ASSIGN_COPY(x)
 
-struct ReflectionRegister {
-    std::map<std::string, Reflection> records;
+struct ReflectionRegister
+{
+	std::map<std::string, Reflection> records;
 };
 
-REFLECTION_EXPORT ReflectionRegister * GetReflectionRegisterInstance();
-REFLECTION_EXPORT Reflection & GetRecordFromTypeId(const std::string& type_id);
-REFLECTION_EXPORT char * GetMemberAddress(void * p, const Reflection& record, size_t i);
+REFLECTION_EXPORT ReflectionRegister* GetReflectionRegisterInstance();
+REFLECTION_EXPORT Reflection& GetRecordFromTypeId(const std::string& type_id);
+REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size_t i);
 
 #endif // REFLECTION_INTERNAL
 

@@ -9,13 +9,13 @@ struct StringUtilities
 		std::setlocale(LC_ALL, "en_US.utf8");
 	}
 
-	static int Int(const std::wstring &s) {
+	static int Int(const std::wstring& s) {
 		char mbstr[MAX_BUFFER_SIZE];
 		std::wcstombs(mbstr, s.c_str(), MAX_BUFFER_SIZE);
 		return atoi(mbstr);
 	}
 
-	static int Double(const std::wstring &s) {
+	static int Double(const std::wstring& s) {
 		char mbstr[MAX_BUFFER_SIZE];
 		std::wcstombs(mbstr, s.c_str(), MAX_BUFFER_SIZE);
 		return atof(mbstr);
@@ -42,8 +42,7 @@ struct StringUtilities
 		try {
 			number_of_copied_bytes = mbstowcs(dest, content, string_length);
 		}
-		catch (...)
-		{
+		catch (...) {
 			delete[] dest;
 			return L"";
 		}
