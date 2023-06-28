@@ -75,7 +75,6 @@ std::wstring GetColumnValue(sqlite3_stmt* stmt, int col);
 const ReflectionRegister& GetReflectionRegister();
 
 void Database::Initialize(const std::string& path) {
-	StringUtilities::Initialize();
 	if (db_ != nullptr) {
 		throw std::invalid_argument("Database has already been initialized");
 	}
