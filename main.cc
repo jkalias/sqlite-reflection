@@ -1,4 +1,4 @@
-﻿//
+//
 //  main.cpp
 //  Reflectable
 //
@@ -19,7 +19,7 @@ int main(int argc, const char * argv[]) {
     auto n4 = typeid(&Person::salary).name();
 
 #if !defined(_WIN32) && !defined(WIN32)
-    Database::Initialize("/Users/nemesis/Desktop/src/sample.db");
+    Database::Initialize("/Users/nemesis/Desktop/Reflectable/Reflectable/src/sample.db");
 #else
     Database::Initialize("D:/workspace/Reflectable/src/sample.db");
 #endif
