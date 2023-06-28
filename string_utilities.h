@@ -6,7 +6,7 @@
 struct StringUtilities
 {
 	static void Initialize() {
-		std::setlocale(LC_ALL, "");
+		std::setlocale(LC_ALL, "en_US.utf8");
 	}
 
 	static int Int(const std::wstring& s) {
