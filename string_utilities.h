@@ -6,7 +6,7 @@
 struct StringUtilities
 {
 	static void Initialize() {
-		std::setlocale(LC_ALL, "en_US.utf8");
+		std::setlocale(LC_ALL, "");
 	}
 
 	static int Int(const std::wstring& s) {
@@ -15,7 +15,7 @@ struct StringUtilities
 		return atoi(mbstr);
 	}
 
-	static int Double(const std::wstring& s) {
+	static double Double(const std::wstring& s) {
 		char mbstr[MAX_BUFFER_SIZE];
 		std::wcstombs(mbstr, s.c_str(), MAX_BUFFER_SIZE);
 		return atof(mbstr);
