@@ -1,5 +1,5 @@
-//
-//  database.cpp
+﻿//
+//  database.cc
 //  Reflectable
 //
 //  Created by Ioannis Kaliakatsos on 25.06.2023.
@@ -9,6 +9,8 @@
 #include <memory>
 
 #include "database.h"
+#include "string_utilities.h"
+
 #include "sqlite3.h"
 
 int RegisterValueCallbackInt() {
@@ -43,9 +45,6 @@ int RegisterValueCallbackBlob() {
 }
 static int blob_value_mapping = RegisterValueCallbackBlob();
 
-//
-//
-//
 //void test(Person &model, std::wstring Person::* key_path, std::function<std::wstring(void)> value) {
 //
 //    std::map<std::string, std::function<void(void*, void*)>> key_value_update_mapping;
@@ -68,11 +67,12 @@ static int blob_value_mapping = RegisterValueCallbackBlob();
 sqlite3* Database::db_ = nullptr;
 
 std::string ColumnTypeFromTrait(ReflectionMemberTrait trait);
-std::string GetColumnValue(sqlite3_stmt* stmt, int col);
+std::wstring GetColumnValue(sqlite3_stmt* stmt, int col);
 const ReflectionRegister& GetReflectionRegister();
 
 void Database::Initialize(const std::string& path)
 {
+    StringUtilities::Initialize();
     if (db_ != nullptr) {
         throw std::invalid_argument("Database has already been initialized");
     }
@@ -133,14 +133,14 @@ Database::QueryResults Database::FetchEntries(const std::string& type_id)
     }
     
     while (sqlite3_step(stmt) != SQLITE_DONE) {
-        std::vector<std::string> row;
+        std::vector<std::wstring> row;
         row.reserve(column_count);
         for (auto col = 0; col < column_count; col++) {
-            if (col == 3) {
+            /*if (col == 3) {
                 auto p = value_callback_mapping[sqlite3_column_type(stmt, col)](stmt, col);
                 auto g = record.value_serialization_mapping.at(results.column_names[col])(p);
                 auto ok = false;
-            }
+            }*/
             auto value = GetColumnValue(stmt, col);
             row.emplace_back(value);
         }
@@ -160,23 +160,26 @@ const ReflectionRegister& GetReflectionRegister()
     return *GetReflectionRegisterInstance();
 }
 
-std::string GetColumnValue(sqlite3_stmt* stmt, const int col)
+std::wstring GetColumnValue(sqlite3_stmt* stmt, const int col)
 {
 	const int col_type = sqlite3_column_type(stmt, col);
     switch(col_type) {
         case SQLITE_INTEGER:
-            return std::to_string(sqlite3_column_int(stmt, col));
+            return std::to_wstring(sqlite3_column_int(stmt, col));
 
         case SQLITE_FLOAT:
-            return std::to_string(sqlite3_column_double(stmt, col));
+            return std::to_wstring(sqlite3_column_double(stmt, col));
 
-        case SQLITE_TEXT:
-            return std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, col)));
+    case SQLITE_TEXT:
+	    {
+		    const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
+            return StringUtilities::FromMultibyte(content);
+	    }
 
         case SQLITE_BLOB:
-            return "blob";
+            return L"blob";
 
         default:
-            return "null";
+            return L"null";
     }
 }
