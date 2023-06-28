@@ -25,8 +25,7 @@ int main(int argc, const char* argv[]) {
 #endif
 	const auto persons = Database::FetchAll<Person>();
 	for (const auto& p : persons) {
-		std::cout << "[Person] first name: " << p.first_name.c_str() << ", last name: " << p.last_name.c_str() <<
-			", age: " << p.age << "\n";
+		std::cout << L"[Person] first name: " << p.first_name.c_str() << L", last name: " << p.last_name.c_str() << L", age: " << p.age << "\n";
 	}
 
 	return 0;
