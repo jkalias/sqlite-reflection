@@ -11,7 +11,22 @@
 #include "pet.h"
 #include "person.h"
 
+template <typename T, typename R>
+int OffsetFromStart(R T::* fn) {
+    auto sf = sizeof(fn);
+    char bytes_f[sf];
+    memcpy(bytes_f,(const char *)&fn, sf);
+    auto len = strlen(bytes_f);
+    int offset = 0;
+    memcpy(&offset, bytes_f, len);
+    return offset;
+}
+
 int main(int argc, const char* argv[]) {
+    auto h = GetReflectionRegisterInstance()->records[typeid(Person).name()].members;
+    auto f1 = OffsetFromStart(&Person::first_name);
+    auto f2 = OffsetFromStart(&Person::age);
+    
 #if !defined(_WIN32) && !defined(WIN32)
     Database::Initialize("/Users/nemesis/Desktop/Reflectable/Reflectable/src/sample.db");
 #else
