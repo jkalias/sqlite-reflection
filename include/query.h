@@ -25,6 +25,7 @@
 #include <string>
 
 #include "reflection.h"
+struct sqlite3;
 
 namespace sqlite_reflection {
 	class REFLECTION_EXPORT Query
@@ -46,5 +47,17 @@ namespace sqlite_reflection {
 
 	private:
 		const Reflection& record_;
+	};
+
+	class REFLECTION_EXPORT FetchRecordQuery final : public Query
+	{
+	public:
+		explicit FetchRecordQuery(const Reflection& record, sqlite3* db);
+		~FetchRecordQuery() override = default;
+		std::string Evaluate() const override;
+
+	private:
+		const Reflection& record_;
+		sqlite3* db_;
 	};
 }

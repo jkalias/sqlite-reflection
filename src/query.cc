@@ -28,10 +28,15 @@
 
 #include <algorithm>
 #include <iterator>
+#include <stdexcept>
 
+#include "sqlite3.h"
 #include "string_utilities.h"
+#include "query_results.h"
 
 using namespace sqlite_reflection;
+
+std::wstring GetColumnValue(sqlite3_stmt* stmt, int col);
 
 Query::Query() {}
 
@@ -53,4 +58,64 @@ std::string CreateTableQuery::Evaluate() const {
 
 	create_table_query += ")";
 	return create_table_query;
+}
+
+FetchRecordQuery::FetchRecordQuery(const Reflection& record, sqlite3* db)
+	: record_(record), db_(db) { }
+
+std::string FetchRecordQuery::Evaluate() const {
+	std::string sql("SELECT * FROM ");
+	sql += record_.name + ";";
+	sqlite3_stmt* stmt;
+	if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt, nullptr)) {
+		sqlite3_close(db_);
+		throw std::domain_error("Could not fetch entries from table" + record_.name);
+	}
+
+	const auto column_count = sqlite3_column_count(stmt);
+
+	QueryResults2 results;
+	results.column_names.reserve(column_count);
+	for (auto i = 0; i < column_count; i++) {
+		results.column_names.emplace_back(sqlite3_column_name(stmt, i));
+	}
+
+	while (sqlite3_step(stmt) != SQLITE_DONE) {
+		std::vector<std::wstring> row;
+		row.reserve(column_count);
+		for (auto col = 0; col < column_count; col++) {
+			/*if (col == 3) {
+				auto p = value_callback_mapping[sqlite3_column_type(stmt, col)](stmt, col);
+				auto g = record_.value_serialization_mapping.at(results.column_names[col])(p);
+				auto ok = false;
+			}*/
+			auto value = GetColumnValue(stmt, col);
+			row.emplace_back(value);
+		}
+		results.row_values.emplace_back(row);
+	}
+	sqlite3_finalize(stmt);
+}
+
+std::wstring GetColumnValue(sqlite3_stmt* stmt, const int col) {
+	const int col_type = sqlite3_column_type(stmt, col);
+	switch (col_type) {
+	case SQLITE_INTEGER:
+		return std::to_wstring(sqlite3_column_int(stmt, col));
+
+	case SQLITE_FLOAT:
+		return std::to_wstring(sqlite3_column_double(stmt, col));
+
+	case SQLITE_TEXT:
+	{
+		const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
+		return StringUtilities::FromUtf8(content);
+	}
+
+	case SQLITE_BLOB:
+		return L"blob";
+
+	default:
+		return L"null";
+	}
 }
