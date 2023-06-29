@@ -31,9 +31,6 @@ struct Reflection
 		ReflectionMemberTrait trait;
 		std::string column_type;
 		size_t offset;
-
-		Member(const std::string& _name, ReflectionMemberTrait _trait, const std::string& _columnType, size_t _offset)
-			: name(_name), trait(_trait), column_type(_columnType), offset(_offset) {};
 	};
 
 	bool initialized;
@@ -45,13 +42,24 @@ struct Reflection
 	std::map<std::string, std::function<std::string(void*)>> value_serialization_mapping;
 };
 
+template <typename T, typename R>
+size_t OffsetFromStart(R T::* fn) {
+    const auto sf = sizeof(fn);
+    char bytes_f[sf];
+    memcpy(bytes_f, (const char*)&fn, sf);
+    auto len = strlen(bytes_f);
+    size_t offset = 0;
+    memcpy(&offset, bytes_f, len);
+    return offset;
+}
+
 #define STR_NOEXPAND(A) #A
 #define STR(A) STR_NOEXPAND(A)
 
 #define CAT_NOEXPAND(A, B) A##B
 #define CAT(A, B) CAT_NOEXPAND(A, B)
 
-#define DEFINE_MEMBER(R, T, G)	        reflectable.members.push_back(Reflection::Member(STR(R), T, G, offsetof(struct REFLECTABLE, R))); \
+#define DEFINE_MEMBER(R, T, G)	        reflectable.members.push_back(Reflection::Member { STR(R), T, G, offsetof(struct REFLECTABLE, R) } ); \
 										reflectable.member_index_mapping[STR(R)] = reflectable.members.size() - 1;
 
 #define DEFINE_KEY_PATH(L, R)           reflectable.key_value_update_mapping[STR(R)] = [](void *p, void *v) {   \
