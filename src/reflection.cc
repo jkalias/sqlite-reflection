@@ -27,7 +27,7 @@ static std::unique_ptr<ReflectionRegister> p = nullptr;
 
 ReflectionRegister* GetReflectionRegisterInstance() {
 	if (!p) {
-		p = std::make_unique<ReflectionRegister>(ReflectionRegister());
+		p = std::unique_ptr<ReflectionRegister>(new ReflectionRegister());
 	}
 	return p.get();
 }

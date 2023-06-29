@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2023 Ioannis Kaliakatsos
 //
@@ -24,58 +24,61 @@
 
 #include <codecvt>
 #include <numeric>
+#ifdef __clang__
+#include <locale>
+#endif
 
-namespace sqlite_reflection {
-	int StringUtilities::Int(const std::wstring& s) {
-		int result = 0;
-		try {
-			result = std::stoi(s);
-		}
-		catch (...) {}
-		return result;
-	}
+using namespace sqlite_reflection;
 
-	double StringUtilities::Double(const std::wstring& s) {
-		double result = 0.0;
-		try {
-			result = std::stod(s);
-		}
-		catch (...) {}
-		return result;
-	}
+int StringUtilities::Int(const std::wstring& s) {
+    int result = 0;
+    try {
+        result = std::stoi(s);
+    }
+    catch (...) {}
+    return result;
+}
 
-	std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		auto utf8_string = converter.to_bytes(wide_string.data());
-		return utf8_string;
-	}
+double StringUtilities::Double(const std::wstring& s) {
+    double result = 0.0;
+    try {
+        result = std::stod(s);
+    }
+    catch (...) {}
+    return result;
+}
 
-	std::wstring StringUtilities::FromUtf8(const char* utf8_string) {
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		auto wide_string = converter.from_bytes(utf8_string);
-		return wide_string;
-	}
+std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    auto utf8_string = converter.to_bytes(wide_string.data());
+    return utf8_string;
+}
 
-	std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {
-		const auto size = list.size();
-		if (size == 0) {
-			return "";
-		}
+std::wstring StringUtilities::FromUtf8(const char* utf8_string) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    auto wide_string = converter.from_bytes(utf8_string);
+    return wide_string;
+}
 
-		if (size == 1) {
-			return list[0];
-		}
+std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {
+    const auto size = list.size();
+    if (size == 0) {
+        return "";
+    }
+    
+    if (size == 1) {
+        return list[0];
+    }
+    
+    return std::accumulate(
+                           list.begin() + 1,
+                           list.end(),
+                           list[0],
+                           [&](const std::string& a, const std::string& b){
+                               return a + separator + b;
+                           });
+}
 
-		return std::accumulate(
-			list.begin() + 1,
-			list.end(),
-			list[0],
-			[&](const std::string& a, const std::string& b){
-				return a + separator + b;
-			});
-	}
-
-	std::string StringUtilities::Join(const std::vector<std::string>& list, char c) {
-		return Join(list, std::string(1, c));
-	}
+std::string StringUtilities::Join(const std::vector<std::string>& list, char c) {
+    return Join(list, std::string(1, c));
 }
