@@ -24,9 +24,10 @@
 #include <string>
 #include <vector>
 
+#include "reflection_export.h"
 // todo: to internal
 
-class StringUtilities
+class REFLECTION_EXPORT StringUtilities
 {
 public:
 	static int Int(const std::wstring& s);
