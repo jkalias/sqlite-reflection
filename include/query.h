@@ -49,11 +49,11 @@ namespace sqlite_reflection {
 		const Reflection& record_;
 	};
 
-	class REFLECTION_EXPORT FetchRecordQuery final : public Query
+	class REFLECTION_EXPORT FetchRecordsQuery final : public Query
 	{
 	public:
-		explicit FetchRecordQuery(const Reflection& record, sqlite3* db);
-		~FetchRecordQuery() override = default;
+		explicit FetchRecordsQuery(const Reflection& record, sqlite3* db);
+		~FetchRecordsQuery() override = default;
 		std::string Evaluate() const override;
 
 	private:

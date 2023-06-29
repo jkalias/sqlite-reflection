@@ -60,16 +60,16 @@ std::string CreateTableQuery::Evaluate() const {
 	return create_table_query;
 }
 
-FetchRecordQuery::FetchRecordQuery(const Reflection& record, sqlite3* db)
+FetchRecordsQuery::FetchRecordsQuery(const Reflection& record, sqlite3* db)
 	: record_(record), db_(db) { }
 
-std::string FetchRecordQuery::Evaluate() const {
+std::string FetchRecordsQuery::Evaluate() const {
 	std::string sql("SELECT * FROM ");
 	sql += record_.name + ";";
 	sqlite3_stmt* stmt;
 	if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt, nullptr)) {
 		sqlite3_close(db_);
-		throw std::domain_error("Could not fetch entries from table" + record_.name);
+		throw std::runtime_error("Could not fetch entries from table" + record_.name);
 	}
 
 	const auto column_count = sqlite3_column_count(stmt);
