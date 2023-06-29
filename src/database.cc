@@ -85,23 +85,23 @@ static int blob_value_mapping = RegisterValueCallbackBlob();
 //    auto int_value = sqlite3_column_int(stmt, i);
 //}
 
-sqlite3* Database::db_ = nullptr;
+Database* Database::instance_ = nullptr;
 
 std::string ColumnTypeFromTrait(ReflectionMemberTrait trait);
 std::wstring GetColumnValue(sqlite3_stmt* stmt, int col);
 const ReflectionRegister& GetReflectionRegister();
 
 void Database::Initialize(const std::string& path) {
-	if (db_ != nullptr) {
+	if (instance_ != nullptr) {
 		throw std::invalid_argument("Database has already been initialized");
 	}
 
-	const auto effective_path = path != ""
-		? path
-		: ":memory:";
+	const auto effective_path = path != "" ? path : ":memory:";
+	instance_ = new Database(effective_path.data());
+}
 
-	const auto result = sqlite3_open(effective_path.data(), &db_);
-	if (result) {
+Database::Database(const char* path) {
+	if (sqlite3_open(path, &db_)) {
 		throw std::invalid_argument("Database could not be initialized");
 	}
 
@@ -128,16 +128,16 @@ void Database::Initialize(const std::string& path) {
 	}
 }
 
-void Database::Finalize() {
-	sqlite3_close(db_);
+const Database& Database::Instance() {
+	return *instance_;
 }
 
-void Database::ExecuteQuery(const std::string& query) {
+void Database::ExecuteQuery(const std::string& query) const {
 	const auto sql = query + ";";
 	sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr);
 }
 
-Database::QueryResults Database::FetchEntries(const std::string& type_id) {
+Database::QueryResults Database::FetchEntries(const std::string& type_id) const {
 	const auto& record = GetRecord(type_id);
 	std::string sql("SELECT * FROM ");
 	sql += record.name + ";";

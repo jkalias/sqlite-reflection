@@ -29,5 +29,11 @@
 TEST(DatabaseTest, Initialization)
 {
 	Database::Initialize("");
-	EXPECT_TRUE(true);
+	const auto &db = Database::Instance();
+
+	const auto all_persons = db.FetchAll<Person>();
+	EXPECT_EQ(0, all_persons.size());
+
+	const auto all_pets = db.FetchAll<Pet>();
+	EXPECT_EQ(0, all_pets.size());
 }

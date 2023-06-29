@@ -37,13 +37,14 @@ static std::map<int, std::function<void*(sqlite3_stmt*, int)>> value_callback_ma
 class REFLECTION_EXPORT Database
 {
 public:
+	static void Initialize(const std::string& path = "");
+	static const Database& Instance();
+
 	Database(Database const&) = delete;
 	void operator=(Database const&) = delete;
-	static void Initialize(const std::string& path = "");
-	static void Finalize();
 
 	template <typename T>
-	static std::vector<T> FetchAll() {
+	std::vector<T> FetchAll() const {
 		const auto type_id = typeid(T).name();
 		const auto& query_result = FetchEntries(type_id);
 		const auto& record = GetRecord(type_id);
@@ -57,13 +58,16 @@ private:
 		std::vector<std::vector<std::wstring>> row_values;
 	};
 
-	static sqlite3* db_;
-	static void ExecuteQuery(const std::string& query);
-	static QueryResults FetchEntries(const std::string& type_id);
+	static Database* instance_;
+	sqlite3* db_ = nullptr;
+
+	explicit Database(const char* path);
+	void ExecuteQuery(const std::string& query) const;
+	QueryResults FetchEntries(const std::string& type_id) const;
 	static const Reflection& GetRecord(const std::string& type_id);
 
 	template <typename T>
-	static std::vector<T> Hydrate(const QueryResults& query_result, const Reflection& record) {
+	std::vector<T> Hydrate(const QueryResults& query_result, const Reflection& record) const {
 		std::vector<T> models;
 		for (auto i = 0; i < query_result.row_values.size(); i++) {
 			T model;
