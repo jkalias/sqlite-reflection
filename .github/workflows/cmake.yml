@@ -39,6 +39,15 @@ jobs:
             generators: "Visual Studio 17 2022"
           }
         - {
+          name: "Windows Latest MSVC (C++20)",
+          os: windows-latest,
+          build_type: "Debug",
+          cc: "cl",
+          cxx: "cl",
+          environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+          generators: "Visual Studio 17 2022"
+          }
+        - {
             name: "Ubuntu Latest GCC (C++11)",
             os: ubuntu-latest,
             build_type: "Debug",
@@ -55,6 +64,14 @@ jobs:
             generators: "Ninja"
           }
         - {
+            name: "Ubuntu Latest GCC (C++20)",
+            os: ubuntu-latest,
+            build_type: "Debug",
+            cc: "gcc",
+            cxx: "g++",
+            generators: "Ninja"
+          }
+        - {
             name: "macOS Latest Clang (C++11)",
             os: macos-latest,
             build_type: "Debug",
@@ -64,6 +81,14 @@ jobs:
           }
         - {
             name: "macOS Latest Clang (C++17)",
+            os: macos-latest,
+            build_type: "Debug",
+            cc: "clang",
+            cxx: "clang++",
+            generators: "Xcode"
+          }
+        - {
+            name: "macOS Latest Clang (C++20)",
             os: macos-latest,
             build_type: "Debug",
             cc: "clang",
@@ -124,6 +149,18 @@ jobs:
             -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
             -DCMAKE_CXX_STANDARD=17 \
+            -G "${{ matrix.config.generators }}"
+
+      - name: Configure C++20
+        shell: bash
+        if: contains(matrix.config.name, 'C++20')
+        run: |
+          mkdir build
+          cmake \
+            -S . \
+            -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
+            -DCMAKE_CXX_STANDARD=20 \
             -G "${{ matrix.config.generators }}"
 
       - name: Build
