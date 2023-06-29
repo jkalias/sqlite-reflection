@@ -1,6 +1,7 @@
 ﻿#include "string_utilities.h"
 
 #include <codecvt>
+#include <numeric>
 
 int StringUtilities::Int(const std::wstring& s) {
 	int result = 0;
@@ -30,4 +31,27 @@ std::wstring StringUtilities::FromUtf8(const char* utf8_string) {
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 	auto wide_string = converter.from_bytes(utf8_string);
 	return wide_string;
+}
+
+std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {
+	const auto size = list.size();
+	if (size == 0) {
+		return "";
+	}
+
+	if (size == 1) {
+		return list[0];
+	}
+
+	return std::accumulate(
+		list.begin() + 1,
+		list.end(),
+		list[0],
+		[&](const std::string& a, const std::string& b){
+			return a + separator + b;
+		});
+}
+
+std::string StringUtilities::Join(const std::vector<std::string>& list, char c) {
+	return Join(list, std::string(1, c));
 }

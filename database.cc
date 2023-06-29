@@ -5,12 +5,14 @@
 //  Created by Ioannis Kaliakatsos on 25.06.2023.
 //
 
+#include "database.h"
+
 #include <stdexcept>
 #include <memory>
+#include <algorithm>
+#include <iterator>
 
-#include "database.h"
 #include "string_utilities.h"
-
 #include "sqlite3.h"
 
 int RegisterValueCallbackInt() {
@@ -92,13 +94,15 @@ void Database::Initialize(const std::string& path) {
 		std::string create_table_query("CREATE TABLE IF NOT EXISTS ");
 		create_table_query += name + " (";
 
-		for (auto i = 0; i < model.members.size(); i++) {
-			const auto& column = model.members[i];
-			create_table_query += column.name + " " + column.column_type;
-			if (i != model.members.size() - 1) {
-				create_table_query += " , ";
-			}
-		}
+		std::vector<std::string> column_names;
+		std::transform(
+			model.members.cbegin(),
+			model.members.cend(),
+			std::back_inserter(column_names),
+			[](const Reflection::Member& member){ return member.name; });
+
+		create_table_query += StringUtilities::Join(column_names, ", ");
+
 		create_table_query += ")";
 
 		ExecuteQuery(create_table_query);
