@@ -39,7 +39,7 @@ namespace sqlite_reflection {
         virtual std::string PrepareSql() const = 0;
         
         sqlite3* db_;
-        Reflection record_;
+        const Reflection &record_;
     };
 
 
@@ -64,6 +64,7 @@ namespace sqlite_reflection {
 
 
 // ------------------------------------------------------------------------
+    struct QueryResults;
 
     class REFLECTION_EXPORT ResultsQuery : public Query
     {
@@ -71,7 +72,7 @@ namespace sqlite_reflection {
         explicit ResultsQuery(sqlite3* db, const Reflection& record);
         virtual ~ResultsQuery();
         
-        Database::QueryResults GetResults();
+        QueryResults GetResults();
         
     protected:
         sqlite3_stmt* stmt_;

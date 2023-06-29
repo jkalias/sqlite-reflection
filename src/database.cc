@@ -101,7 +101,8 @@ namespace sqlite_reflection {
 		instance_ = new Database(effective_path.data());
 	}
 
-	Database::Database(const char* path) {
+	Database::Database(const char* path)
+    : db_(nullptr) {
 		if (sqlite3_open(path, &db_)) {
 			throw std::invalid_argument("Database could not be initialized");
 		}
@@ -118,8 +119,7 @@ namespace sqlite_reflection {
 		return *instance_;
 	}
 
-	QueryResults2 Database::FetchEntries(const std::string& type_id) const {
-        const auto& record = GetRecord(type_id);
+	QueryResults Database::FetchEntries(const Reflection &record) const {
         FetchRecordsQuery fetch(db_, record);
         return fetch.GetResults();
 	}
@@ -130,28 +130,5 @@ namespace sqlite_reflection {
 
 	const ReflectionRegister& GetReflectionRegister() {
 		return *GetReflectionRegisterInstance();
-	}
-
-	std::wstring GetColumnValue(sqlite3_stmt* stmt, const int col) {
-		const int col_type = sqlite3_column_type(stmt, col);
-		switch (col_type) {
-		case SQLITE_INTEGER:
-			return std::to_wstring(sqlite3_column_int(stmt, col));
-
-		case SQLITE_FLOAT:
-			return std::to_wstring(sqlite3_column_double(stmt, col));
-
-		case SQLITE_TEXT:
-			{
-				const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
-				return StringUtilities::FromUtf8(content);
-			}
-
-		case SQLITE_BLOB:
-			return L"blob";
-
-		default:
-			return L"null";
-		}
 	}
 }

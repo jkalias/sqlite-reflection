@@ -28,6 +28,7 @@
 
 #include "reflection.h"
 #include "string_utilities.h"
+#include "query_results.h"
 
 struct sqlite3;
 struct sqlite3_stmt;
@@ -48,24 +49,17 @@ namespace sqlite_reflection {
 		template <typename T>
 		std::vector<T> FetchAll() const {
 			const auto type_id = typeid(T).name();
-			const auto& query_result = FetchEntries(type_id);
-			const auto& record = GetRecord(type_id);
+            const auto& record = GetRecord(type_id);
+			const auto& query_result = FetchEntries(record);
 			return Hydrate<T>(query_result, record);
 		}
 
 	private:
-        friend class Query;
-		struct QueryResults
-		{
-			std::vector<std::string> column_names;
-			std::vector<std::vector<std::wstring>> row_values;
-		};
-
 		static Database* instance_;
-		sqlite3* db_ = nullptr;
+		sqlite3* db_;
 
 		explicit Database(const char* path);
-		QueryResults FetchEntries(const std::string& type_id) const;
+		QueryResults FetchEntries(const Reflection &record) const;
 		static const Reflection& GetRecord(const std::string& type_id);
 
 		template <typename T>

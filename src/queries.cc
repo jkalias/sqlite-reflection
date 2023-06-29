@@ -88,7 +88,7 @@ ResultsQuery::~ResultsQuery() {
     }
 }
 
-QueryResults2 ResultsQuery::GetResults() {
+QueryResults ResultsQuery::GetResults() {
     auto sql = PrepareSql();
     
     if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
@@ -98,7 +98,7 @@ QueryResults2 ResultsQuery::GetResults() {
     
     const auto column_count = sqlite3_column_count(stmt_);
     
-    QueryResults2 results;
+    QueryResults results;
     results.column_names.reserve(column_count);
     for (auto i = 0; i < column_count; i++) {
         results.column_names.emplace_back(sqlite3_column_name(stmt_, i));
