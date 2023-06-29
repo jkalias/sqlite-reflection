@@ -3,11 +3,25 @@
 #include <codecvt>
 
 int StringUtilities::Int(const std::wstring& s) {
-	return std::stoi(s);
+	auto result = 0;
+	try {
+		result = std::stoi(s);
+	}
+	catch (...) {
+		
+	}
+	return result;
 }
 
 double StringUtilities::Double(const std::wstring& s) {
-	return std::stod(s);
+	auto result = 0;
+	try {
+		result = std::stod(s);
+	}
+	catch (...) {
+
+	}
+	return result;
 }
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
