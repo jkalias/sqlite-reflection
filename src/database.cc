@@ -67,24 +67,7 @@ namespace sqlite_reflection {
 
 	static int blob_value_mapping = RegisterValueCallbackBlob();
 
-	//void test(Person &model, std::wstring Person::* key_path, std::function<std::wstring(void)> value) {
-	//
-	//    std::map<std::string, std::function<void(void*, void*)>> key_value_update_mapping;
-	//    key_value_update_mapping["first_name"] = [](void *p, void *v) {
-	//        Person& model = (*(Person*)(p));
-	//        std::wstring& value = (*(std::wstring*)(v));
-	//        model.*(&Person::first_name) = value;
-	//    };
-	//
-	//    model.*key_path = value();
-	//}
-	//
-	//void update(void *p, sqlite3_stmt *stmt, int i) {
-	//    Person& record = (*(Person*)(p));
-	//    auto keyPath = &Person::first_name;
-	//    test(record, keyPath, []() { return L"hallo"; });
-	//    auto int_value = sqlite3_column_int(stmt, i);
-	//}
+// ------------------------------------------------------------------------
 
 	Database* Database::instance_ = nullptr;
 

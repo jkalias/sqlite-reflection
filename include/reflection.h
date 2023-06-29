@@ -44,7 +44,8 @@ enum class REFLECTION_EXPORT ReflectionMemberTrait
 
 struct REFLECTION_EXPORT Reflection
 {
-	Reflection() : size(0) {};
+	Reflection()
+    : size(0) {};
 
 	class Member
 	{
@@ -140,6 +141,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
     struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
         // member declaration
 #define MEMBER_DECLARE(L, R)            L R;
+                                        MEMBER_DECLARE(int, id)
 #define MEMBER_INT(R)				    MEMBER_DECLARE(int, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
@@ -156,6 +158,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
             // struct default constructor
             REFLECTABLE()
         {
+                id = 0;
             // Initialize members
 #define MEMBER_INT(R)				    R = 0;
 #define MEMBER_REAL(R)			        R = 0.0;
@@ -183,6 +186,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
                 return *this;
             }
             // copy members
+            id = _r.id;
 #define MEMBER_INT(R)					    COPY_MEMBER(R)
 #define MEMBER_REAL(R)					    COPY_MEMBER(R)
 #define MEMBER_TEXT(R)		                COPY_MEMBER(R)
@@ -194,7 +198,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
-                return *this;
+            return *this;
         };
 
         // custom function declaration
@@ -219,6 +223,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
             reflectable.name = name;
 
             // store member information
+            DEFINE_MEMBER(id, ReflectionMemberTrait::kInt)
 #define MEMBER_INT(R)                           DEFINE_MEMBER(R, ReflectionMemberTrait::kInt)
 #define MEMBER_REAL(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kReal)
 #define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kText)

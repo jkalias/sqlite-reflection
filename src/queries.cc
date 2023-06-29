@@ -140,13 +140,7 @@ std::wstring ResultsQuery::GetColumnValue(const int col) {
     }
 }
 
-
-
-
-
-
 // ------------------------------------------------------------------------
-
 
 FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record)
 : ResultsQuery(db, record)

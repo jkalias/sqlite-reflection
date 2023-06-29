@@ -46,11 +46,6 @@ namespace sqlite_reflection {
 // ------------------------------------------------------------------------
 
 
-
-
-
-
-
 	class REFLECTION_EXPORT CreateTableQuery final : public Query
 	{
 	public:
@@ -60,7 +55,6 @@ namespace sqlite_reflection {
     protected:
         std::string PrepareSql() const override;
 	};
-
 
 
 // ------------------------------------------------------------------------
@@ -82,13 +76,7 @@ namespace sqlite_reflection {
     };
 
 
-
-
-
 // ------------------------------------------------------------------------
-
-
-
 
 
 	class REFLECTION_EXPORT FetchRecordsQuery final : public ResultsQuery
