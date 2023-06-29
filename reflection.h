@@ -24,12 +24,32 @@ struct Reflection
 {
 	Reflection() : initialized(false), size(0) {};
 
-	struct Member
+	class Member
 	{
+	public:
+		Member(std::string _name, ReflectionMemberTrait _trait, size_t _offset)
+			: name(_name), trait(_trait), column_type(ToColumnType(_trait)), offset(_offset) { }
+
 		std::string name;
 		ReflectionMemberTrait trait;
 		std::string column_type;
 		size_t offset;
+
+	private:
+		static const char* ToColumnType(const ReflectionMemberTrait trait) {
+			switch (trait) {
+			case ReflectionMemberTrait::kInt:
+				return "INTEGER";
+			case ReflectionMemberTrait::kReal:
+				return "REAL";
+			case ReflectionMemberTrait::kText:
+				return "TEXT";
+			case ReflectionMemberTrait::kBlob:
+				return "BLOB";
+			default:
+				return "";
+			}
+		}
 	};
 
 	bool initialized;
@@ -43,13 +63,13 @@ struct Reflection
 
 template <typename T, typename R>
 size_t OffsetFromStart(R T::* fn) {
-    const auto sf = sizeof(fn);
-    char bytes_f[sf];
-    memcpy(bytes_f, (const char*)&fn, sf);
-    auto len = strlen(bytes_f);
-    size_t offset = 0;
-    memcpy(&offset, bytes_f, len);
-    return offset;
+	const auto sf = sizeof(fn);
+	char bytes_f[sf];
+	memcpy(bytes_f, (const char*)&fn, sf);
+	auto len = strlen(bytes_f);
+	size_t offset = 0;
+	memcpy(&offset, bytes_f, len);
+	return offset;
 }
 
 #define STR_NOEXPAND(A) #A
@@ -58,7 +78,7 @@ size_t OffsetFromStart(R T::* fn) {
 #define CAT_NOEXPAND(A, B) A##B
 #define CAT(A, B) CAT_NOEXPAND(A, B)
 
-#define DEFINE_MEMBER(R, T, G)	        reflectable.members.push_back(Reflection::Member { STR(R), T, G, offsetof(struct REFLECTABLE, R) } ); \
+#define DEFINE_MEMBER(R, T)	            reflectable.members.push_back(Reflection::Member(STR(R), T, offsetof(struct REFLECTABLE, R))); \
 										reflectable.member_index_mapping[STR(R)] = reflectable.members.size() - 1;
 
 #define DEFINE_KEY_PATH(L, R)           reflectable.key_value_update_mapping[STR(R)] = [](void *p, void *v) {   \
@@ -177,10 +197,10 @@ static std::string CAT(Register, REFLECTABLE)() {
         reflectable.name = name;
         
         // store member information
-#define MEMBER_INT(R)                           DEFINE_MEMBER(R, ReflectionMemberTrait::kInt, "INTEGER")
-#define MEMBER_REAL(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kReal, "REAL")
-#define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kText, "TEXT")
-#define MEMBER_BLOB(L, R)                       DEFINE_MEMBER(R, ReflectionMemberTrait::kBlob, "BLOB")
+#define MEMBER_INT(R)                           DEFINE_MEMBER(R, ReflectionMemberTrait::kInt)
+#define MEMBER_REAL(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kReal)
+#define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kText)
+#define MEMBER_BLOB(L, R)                       DEFINE_MEMBER(R, ReflectionMemberTrait::kBlob)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_INT
