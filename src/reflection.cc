@@ -38,6 +38,11 @@ Reflection& GetRecordFromTypeId(const std::string& type_id) {
 	return meta_struct;
 }
 
+bool IsRecordRegisterd(const std::string& type_id) {
+	ReflectionRegister& instance = *GetReflectionRegisterInstance();
+	return instance.records.find(type_id) != instance.records.end();
+}
+
 char* GetMemberAddress(void* p, const Reflection& record, const size_t i) {
 	const auto struct_start = static_cast<char*>(p);
 	const size_t var_offset = record.members[i].offset;

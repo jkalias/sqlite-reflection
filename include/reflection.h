@@ -44,7 +44,7 @@ enum class REFLECTION_EXPORT ReflectionMemberTrait
 
 struct REFLECTION_EXPORT Reflection
 {
-	Reflection() : initialized(false), size(0) {};
+	Reflection() : size(0) {};
 
 	class Member
 	{
@@ -74,7 +74,6 @@ struct REFLECTION_EXPORT Reflection
 		}
 	};
 
-	bool initialized;
 	std::string name;
 	size_t size;
 	std::vector<Member> members;
@@ -124,6 +123,7 @@ struct REFLECTION_EXPORT ReflectionRegister
 
 REFLECTION_EXPORT ReflectionRegister* GetReflectionRegisterInstance();
 REFLECTION_EXPORT Reflection& GetRecordFromTypeId(const std::string& type_id);
+REFLECTION_EXPORT bool IsRecordRegisterd(const std::string& type_id);
 REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size_t i);
 
 #endif // REFLECTION_INTERNAL
@@ -214,8 +214,8 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
     static std::string CAT(Register, REFLECTABLE)() {
         std::string type_id = typeid(REFLECTABLE).name();
         std::string name = STR(REFLECTABLE);
-        auto& reflectable = GetRecordFromTypeId(type_id);
-        if (!reflectable.initialized) {
+        if (!IsRecordRegisterd(type_id)) {
+			auto& reflectable = GetRecordFromTypeId(type_id);
             reflectable.name = name;
 
             // store member information
@@ -244,7 +244,6 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef MEMBER_BLOB
 #undef FUNC
 
-                reflectable.initialized = true;
             reflectable.size = sizeof(struct REFLECTABLE);
         }
         return name;
