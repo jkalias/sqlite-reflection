@@ -34,12 +34,12 @@ struct sqlite3_stmt;
 
 static std::map<int, std::function<void*(sqlite3_stmt*, int)>> value_callback_mapping;
 
-class Database
+class REFLECTION_EXPORT Database
 {
 public:
 	Database(Database const&) = delete;
 	void operator=(Database const&) = delete;
-	static void Initialize(const std::string& path);
+	static void Initialize(const std::string& path = "");
 	static void Finalize();
 
 	template <typename T>

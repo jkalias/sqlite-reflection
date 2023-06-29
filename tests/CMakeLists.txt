@@ -6,6 +6,7 @@ include(GoogleTest)
 
 # Properties->C/C++->General->Additional Include Directories
 include_directories ("${PROJECT_SOURCE_DIR}/include")
+include_directories ("./include")
 
 # Collect test sources into the variable TEST_SOURCES
 file (GLOB TEST_SOURCES
@@ -13,6 +14,9 @@ file (GLOB TEST_SOURCES
       "*.cc")
 
 file (GLOB TEST_HEADERS "*.h")
+
+source_group("include" FILES ${TEST_HEADERS})
+source_group("src" FILES ${TEST_SOURCES})
 
 # Set Properties->General->Configuration Type to Application
 add_executable (${EXENAME} ${TEST_SOURCES} ${TEST_HEADERS})

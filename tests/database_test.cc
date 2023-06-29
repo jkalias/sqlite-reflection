@@ -20,8 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "person.h"
+#include <gtest/gtest.h>
+#include "database.h"
 
-std::wstring Person::GetFullName() const {
-	return first_name + L" " + last_name;
+#include "person.h"
+#include "pet.h"
+
+TEST(DatabaseTest, Initialization)
+{
+	Database::Initialize("");
+	EXPECT_TRUE(true);
 }

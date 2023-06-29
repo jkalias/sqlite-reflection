@@ -34,7 +34,7 @@
 #include <stddef.h>
 #endif
 
-enum class ReflectionMemberTrait
+enum class REFLECTION_EXPORT ReflectionMemberTrait
 {
 	kInt,
 	kReal,
@@ -42,7 +42,7 @@ enum class ReflectionMemberTrait
 	kBlob
 };
 
-struct Reflection
+struct REFLECTION_EXPORT Reflection
 {
 	Reflection() : initialized(false), size(0) {};
 
@@ -110,15 +110,14 @@ size_t OffsetFromStart(R T::* fn) {
                                         };
 
 #define DEFINE_SERIALIZATION(L, R)      reflectable.value_serialization_mapping[STR(R)] = [](void *v) {    \
-											return std::to_string(*(L*)v);                                      \
+											return std::to_string(*(L*)v);                                  \
 										};
 
 #define ASSIGN_COPY_NOCAT(x) x = _r.x;
 #define ASSIGN_COPY(x) ASSIGN_COPY_NOCAT(x)
 #define COPY_MEMBER(x) ASSIGN_COPY(x)
 
-struct ReflectionRegister
-{
+struct REFLECTION_EXPORT ReflectionRegister {
 	std::map<std::string, Reflection> records;
 };
 

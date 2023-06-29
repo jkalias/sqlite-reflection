@@ -96,7 +96,11 @@ void Database::Initialize(const std::string& path) {
 		throw std::invalid_argument("Database has already been initialized");
 	}
 
-	const auto result = sqlite3_open(path.data(), &db_);
+	const auto effective_path = path != ""
+		? path
+		: ":memory:";
+
+	const auto result = sqlite3_open(effective_path.data(), &db_);
 	if (result) {
 		throw std::invalid_argument("Database could not be initialized");
 	}
