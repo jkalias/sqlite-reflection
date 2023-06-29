@@ -57,6 +57,9 @@ private:
 				const auto member_index = record.member_index_mapping.at(current_column);
 				const auto current_trait = record.members[member_index].trait;
 				const auto& content = query_result.row_values[i][j];
+				if (content == L"null") {
+					continue;
+				}
 
 				switch (current_trait) {
 				case ReflectionMemberTrait::kInt:
