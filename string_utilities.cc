@@ -3,24 +3,20 @@
 #include <codecvt>
 
 int StringUtilities::Int(const std::wstring& s) {
-	auto result = 0;
+	int result = 0;
 	try {
 		result = std::stoi(s);
 	}
-	catch (...) {
-		
-	}
+	catch (...) { }
 	return result;
 }
 
 double StringUtilities::Double(const std::wstring& s) {
-	auto result = 0;
+	double result = 0.0;
 	try {
 		result = std::stod(s);
 	}
-	catch (...) {
-
-	}
+	catch (...) { }
 	return result;
 }
 
