@@ -12,8 +12,10 @@ file (GLOB TEST_SOURCES
       "*.cpp"
       "*.cc")
 
+file (GLOB TEST_HEADERS "*.h")
+
 # Set Properties->General->Configuration Type to Application
-add_executable (${EXENAME} ${TEST_SOURCES})
+add_executable (${EXENAME} ${TEST_SOURCES} ${TEST_HEADERS})
 
 # Properties->Linker->Input->Additional Dependencies
 target_link_libraries(${EXENAME} PUBLIC sqlite_reflection gtest_main)
