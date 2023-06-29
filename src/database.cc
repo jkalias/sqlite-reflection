@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2023 Ioannis Kaliakatsos
 //
@@ -27,7 +27,7 @@
 #include <iterator>
 
 #include "string_utilities.h"
-#include "query.h"
+#include "queries.h"
 #include "sqlite3.h"
 
 namespace sqlite_reflection {
@@ -109,8 +109,8 @@ namespace sqlite_reflection {
 		auto& reg = GetReflectionRegister();
 		for (const auto& contents : reg.records) {
 			const auto& record = contents.second;
-			CreateTableQuery query(record);
-			ExecuteQuery(query);
+            CreateTableQuery query(db_, record);
+            query.Execute();
 		}
 	}
 
@@ -118,48 +118,10 @@ namespace sqlite_reflection {
 		return *instance_;
 	}
 
-	void Database::ExecuteQuery(const Query& query) const {
-		const auto sql = query.Evaluate() + ";";
-		if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
-			throw std::domain_error("Query could not be executed");
-		}
-	}
-
-	Database::QueryResults Database::FetchEntries(const std::string& type_id) const {
-		const auto& record = GetRecord(type_id);
-		std::string sql("SELECT * FROM ");
-		sql += record.name + ";";
-		sqlite3_stmt* stmt;
-		if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt, nullptr)) {
-			sqlite3_close(db_);
-			throw std::domain_error("Could not fetch entries from table" + record.name);
-		}
-
-		const auto column_count = sqlite3_column_count(stmt);
-
-		QueryResults results;
-		results.column_names.reserve(column_count);
-		for (auto i = 0; i < column_count; i++) {
-			results.column_names.emplace_back(sqlite3_column_name(stmt, i));
-		}
-
-		while (sqlite3_step(stmt) != SQLITE_DONE) {
-			std::vector<std::wstring> row;
-			row.reserve(column_count);
-			for (auto col = 0; col < column_count; col++) {
-				/*if (col == 3) {
-					auto p = value_callback_mapping[sqlite3_column_type(stmt, col)](stmt, col);
-					auto g = record.value_serialization_mapping.at(results.column_names[col])(p);
-					auto ok = false;
-				}*/
-				auto value = GetColumnValue(stmt, col);
-				row.emplace_back(value);
-			}
-			results.row_values.emplace_back(row);
-		}
-		sqlite3_finalize(stmt);
-
-		return results;
+	QueryResults2 Database::FetchEntries(const std::string& type_id) const {
+        const auto& record = GetRecord(type_id);
+        FetchRecordsQuery fetch(db_, record);
+        return fetch.GetResults();
 	}
 
 	const Reflection& Database::GetRecord(const std::string& type_id) {

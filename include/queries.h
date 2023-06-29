@@ -26,38 +26,76 @@
 
 #include "reflection.h"
 struct sqlite3;
+struct sqlite3_stmt;
 
 namespace sqlite_reflection {
-	class REFLECTION_EXPORT Query
-	{
-	public:
-		virtual ~Query() = default;
-		virtual std::string Evaluate() const = 0;
+    class REFLECTION_EXPORT Query
+    {
+    public:
+        virtual ~Query() = default;
 
-	protected:
-		Query();
-	};
+    protected:
+        Query(sqlite3* db, const Reflection& record);
+        virtual std::string PrepareSql() const = 0;
+        
+        sqlite3* db_;
+        Reflection record_;
+    };
+
+
+// ------------------------------------------------------------------------
+
+
+
+
+
+
 
 	class REFLECTION_EXPORT CreateTableQuery final : public Query
 	{
 	public:
-		explicit CreateTableQuery(const Reflection& record);
-		~CreateTableQuery() override = default;
-		std::string Evaluate() const override;
+		explicit CreateTableQuery(sqlite3* db, const Reflection& record);
+		void Execute();
 
-	private:
-		const Reflection& record_;
+    protected:
+        std::string PrepareSql() const override;
 	};
 
-	class REFLECTION_EXPORT FetchRecordsQuery final : public Query
+
+
+// ------------------------------------------------------------------------
+
+    class REFLECTION_EXPORT ResultsQuery : public Query
+    {
+    public:
+        explicit ResultsQuery(sqlite3* db, const Reflection& record);
+        virtual ~ResultsQuery();
+        
+        Database::QueryResults GetResults();
+        
+    protected:
+        sqlite3_stmt* stmt_;
+
+    private:
+        std::wstring GetColumnValue(const int col);
+    };
+
+
+
+
+
+// ------------------------------------------------------------------------
+
+
+
+
+
+	class REFLECTION_EXPORT FetchRecordsQuery final : public ResultsQuery
 	{
 	public:
-		explicit FetchRecordsQuery(const Reflection& record, sqlite3* db);
-		~FetchRecordsQuery() override = default;
-		std::string Evaluate() const override;
-
-	private:
-		const Reflection& record_;
-		sqlite3* db_;
+		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record);
+        
+    protected:
+        std::string PrepareSql() const override;
 	};
 }

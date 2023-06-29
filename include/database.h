@@ -34,7 +34,7 @@ struct sqlite3_stmt;
 static std::map<int, std::function<void*(sqlite3_stmt*, int)>> value_callback_mapping;
 
 namespace sqlite_reflection {
-	class Query;
+    class Query;
 
 	class REFLECTION_EXPORT Database
 	{
@@ -54,6 +54,7 @@ namespace sqlite_reflection {
 		}
 
 	private:
+        friend class Query;
 		struct QueryResults
 		{
 			std::vector<std::string> column_names;
@@ -64,7 +65,6 @@ namespace sqlite_reflection {
 		sqlite3* db_ = nullptr;
 
 		explicit Database(const char* path);
-		void ExecuteQuery(const Query& query) const;
 		QueryResults FetchEntries(const std::string& type_id) const;
 		static const Reflection& GetRecord(const std::string& type_id);
 

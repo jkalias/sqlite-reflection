@@ -25,7 +25,7 @@
 #include <vector>
 
 namespace sqlite_reflection {
-	struct QueryResults2
+	struct QueryResults
 	{
 		std::vector<std::string> column_names;
 		std::vector<std::vector<std::wstring>> row_values;
