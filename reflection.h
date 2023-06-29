@@ -27,7 +27,7 @@ struct Reflection
 	class Member
 	{
 	public:
-		Member(std::string _name, ReflectionMemberTrait _trait, size_t _offset)
+		Member(const std::string& _name, ReflectionMemberTrait _trait, size_t _offset)
 			: name(_name), trait(_trait), column_type(ToColumnType(_trait)), offset(_offset) { }
 
 		std::string name;
