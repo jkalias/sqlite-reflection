@@ -63,16 +63,16 @@ namespace sqlite_reflection {
 		static const Reflection& GetRecord(const std::string& type_id);
 
 		template <typename T>
-		std::vector<T> Hydrate(const QueryResults& query_result, const Reflection& record) const {
+		std::vector<T> Hydrate(const QueryResults& query_results, const Reflection& record) const {
 			std::vector<T> models;
-			for (auto i = 0; i < query_result.row_values.size(); i++) {
+			for (auto i = 0; i < query_results.row_values.size(); i++) {
 				T model;
-				for (auto j = 0; j < query_result.column_names.size(); j++) {
-					const auto current_column = query_result.column_names[j];
+				for (auto j = 0; j < query_results.column_names.size(); j++) {
+					const auto current_column = query_results.column_names[j];
 					const auto member_index = record.member_index_mapping.at(current_column);
 					const auto current_trait = record.members[member_index].trait;
-					const auto& content = query_result.row_values[i][j];
-					if (content == L"null") {
+					const auto& content = query_results.row_values[i][j];
+					if (content == L"") {
 						continue;
 					}
 
