@@ -16,7 +16,6 @@ enum class ReflectionMemberTrait
 {
 	kInt,
 	kReal,
-	kUnicodeText,
 	kText,
 	kBlob
 };
@@ -101,16 +100,14 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
 #define MEMBER_DECLARE(L, R)            L R;
 #define MEMBER_INT(R)				    MEMBER_DECLARE(int, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
-#define MEMBER_UNICODE(R)	            MEMBER_DECLARE(std::wstring, R)
-#define MEMBER_STRING(R)                MEMBER_DECLARE(std::string, R)
+#define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
 #define MEMBER_BLOB(L, R)				MEMBER_DECLARE(L, R)
 #define FUNC(SIGNATURE)
     FIELDS
 #undef MEMBER_DECLARE
 #undef MEMBER_INT
 #undef MEMBER_REAL
-#undef MEMBER_UNICODE
-#undef MEMBER_STRING
+#undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
     
@@ -120,15 +117,13 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
         // Initialize members
 #define MEMBER_INT(R)				    R = 0;
 #define MEMBER_REAL(R)			        R = 0.0;
-#define MEMBER_UNICODE(R)	            R = L"";
-#define MEMBER_STRING(R)                R = "";
+#define MEMBER_TEXT(R)
 #define MEMBER_BLOB(L, R)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
-#undef MEMBER_UNICODE
-#undef MEMBER_STRING
+#undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
     };
@@ -148,15 +143,13 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
         // copy members
 #define MEMBER_INT(R)					    COPY_MEMBER(R)
 #define MEMBER_REAL(R)					    COPY_MEMBER(R)
-#define MEMBER_UNICODE(R)		            COPY_MEMBER(R)
-#define MEMBER_STRING(R)                    COPY_MEMBER(R)
+#define MEMBER_TEXT(R)		                COPY_MEMBER(R)
 #define MEMBER_BLOB(L, R)				    COPY_MEMBER(R)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
-#undef MEMBER_UNICODE
-#undef MEMBER_STRING
+#undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
         return *this;
@@ -165,15 +158,13 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
     // custom function declaration
 #define MEMBER_INT(R)
 #define MEMBER_REAL(R)
-#define MEMBER_UNICODE(R)
-#define MEMBER_STRING(R)
+#define MEMBER_TEXT(R)
 #define MEMBER_BLOB(L, R)
 #define FUNC(SIGNATURE) SIGNATURE;
     FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
-#undef MEMBER_UNICODE
-#undef MEMBER_STRING
+#undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
 };
@@ -188,30 +179,26 @@ static std::string CAT(Register, REFLECTABLE)() {
         // store member information
 #define MEMBER_INT(R)                           DEFINE_MEMBER(R, ReflectionMemberTrait::kInt, "INTEGER")
 #define MEMBER_REAL(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kReal, "REAL")
-#define MEMBER_UNICODE(R)                       DEFINE_MEMBER(R, ReflectionMemberTrait::kUnicodeText, "TEXT")
-#define MEMBER_STRING(R)                        DEFINE_MEMBER(R, ReflectionMemberTrait::kText, "TEXT")
+#define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kText, "TEXT")
 #define MEMBER_BLOB(L, R)                       DEFINE_MEMBER(R, ReflectionMemberTrait::kBlob, "BLOB")
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
-#undef MEMBER_UNICODE
-#undef MEMBER_STRING
+#undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
         
         // mappings
 #define MEMBER_INT(R)                           DEFINE_SERIALIZATION(int, R)
 #define MEMBER_REAL(R)                          DEFINE_SERIALIZATION(double, R)
-#define MEMBER_UNICODE(R)
-#define MEMBER_STRING(R)
+#define MEMBER_TEXT(R)
 #define MEMBER_BLOB(L, R)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
-#undef MEMBER_UNICODE
-#undef MEMBER_STRING
+#undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
         

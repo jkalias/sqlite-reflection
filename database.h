@@ -76,7 +76,7 @@ private:
 						break;
 					}
 
-				case ReflectionMemberTrait::kUnicodeText:
+				case ReflectionMemberTrait::kText:
 					{
 						auto& v = (*(std::wstring*)((void*)GetMemberAddress(&model, record, member_index)));
 						v = content;
