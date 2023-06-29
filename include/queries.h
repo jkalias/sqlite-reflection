@@ -87,4 +87,8 @@ namespace sqlite_reflection {
     protected:
         std::string PrepareSql() const override;
 	};
+
+// todo: InsertQuery
+// todo: UpdateQuery
+// todo: DeleteQuery
 }
