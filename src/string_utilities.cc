@@ -24,7 +24,7 @@
 
 #include <codecvt>
 #include <numeric>
-#ifdef __clang__
+#ifndef _MSC_VER
 #include <locale>
 #endif
 
