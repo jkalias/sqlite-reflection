@@ -24,10 +24,10 @@
 
 #include <stdexcept>
 #include <memory>
-#include <algorithm>
 #include <iterator>
 
 #include "string_utilities.h"
+#include "query.h"
 #include "sqlite3.h"
 
 namespace sqlite_reflection {
@@ -108,24 +108,9 @@ namespace sqlite_reflection {
 
 		auto& reg = GetReflectionRegister();
 		for (const auto& contents : reg.records) {
-			const auto& model = contents.second;
-			const auto& name = model.name;
-
-			std::string create_table_query("CREATE TABLE IF NOT EXISTS ");
-			create_table_query += name + " (";
-
-			std::vector<std::string> column_names;
-			std::transform(
-				model.members.cbegin(),
-				model.members.cend(),
-				std::back_inserter(column_names),
-				[](const Reflection::Member& member){ return member.name; });
-
-			create_table_query += StringUtilities::Join(column_names, ", ");
-
-			create_table_query += ")";
-
-			ExecuteQuery(create_table_query);
+			const auto& record = contents.second;
+			CreateTableQuery query(record);
+			ExecuteQuery(query);
 		}
 	}
 
@@ -133,9 +118,11 @@ namespace sqlite_reflection {
 		return *instance_;
 	}
 
-	void Database::ExecuteQuery(const std::string& query) const {
-		const auto sql = query + ";";
-		sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr);
+	void Database::ExecuteQuery(const Query& query) const {
+		const auto sql = query.Evaluate() + ";";
+		if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
+			throw std::domain_error("Query could not be executed");
+		}
 	}
 
 	Database::QueryResults Database::FetchEntries(const std::string& type_id) const {
