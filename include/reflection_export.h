@@ -12,7 +12,7 @@
 #endif
 
 #if defined(_WIN32) || defined(WIN32)
-#ifdef BUILD_REFLECTION
+#ifdef BUILD_SQLITE_REFLECTION
 #define REFLECTION_EXPORT __declspec( dllexport )
 #else
 #define REFLECTION_EXPORT __declspec( dllimport )

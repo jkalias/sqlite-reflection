@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+// todo: to internal
+
 class StringUtilities
 {
 public:
