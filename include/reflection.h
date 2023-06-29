@@ -117,7 +117,8 @@ size_t OffsetFromStart(R T::* fn) {
 #define ASSIGN_COPY(x) ASSIGN_COPY_NOCAT(x)
 #define COPY_MEMBER(x) ASSIGN_COPY(x)
 
-struct REFLECTION_EXPORT ReflectionRegister {
+struct REFLECTION_EXPORT ReflectionRegister
+{
 	std::map<std::string, Reflection> records;
 };
 
@@ -136,120 +137,120 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #pragma warning (push)
 #pragma warning( disable:4002) // "too many actual parameters for macro 'MEMBER'"
 
-struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
-    // member declaration
+    struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
+        // member declaration
 #define MEMBER_DECLARE(L, R)            L R;
 #define MEMBER_INT(R)				    MEMBER_DECLARE(int, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
 #define MEMBER_BLOB(L, R)				MEMBER_DECLARE(L, R)
 #define FUNC(SIGNATURE)
-    FIELDS
+        FIELDS
 #undef MEMBER_DECLARE
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
-    
-    // struct default constructor
-    REFLECTABLE()
-    {
-        // Initialize members
+
+            // struct default constructor
+            REFLECTABLE()
+        {
+            // Initialize members
 #define MEMBER_INT(R)				    R = 0;
 #define MEMBER_REAL(R)			        R = 0.0;
 #define MEMBER_TEXT(R)
 #define MEMBER_BLOB(L, R)
 #define FUNC(SIGNATURE)
-        FIELDS
+            FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
-    };
-    
-    // copy constructor
-    REFLECTABLE(const REFLECTABLE &_r)
-    {
-        operator=(_r);
-    }
-    
-    // assignment operator
-    const REFLECTABLE & operator = (const REFLECTABLE & _r)
-    {
-        if (&_r == this) {
-            return *this;
+        };
+
+        // copy constructor
+        REFLECTABLE(const REFLECTABLE& _r)
+        {
+            operator=(_r);
         }
-        // copy members
+
+        // assignment operator
+        const REFLECTABLE& operator = (const REFLECTABLE& _r)
+        {
+            if (&_r == this) {
+                return *this;
+            }
+            // copy members
 #define MEMBER_INT(R)					    COPY_MEMBER(R)
 #define MEMBER_REAL(R)					    COPY_MEMBER(R)
 #define MEMBER_TEXT(R)		                COPY_MEMBER(R)
 #define MEMBER_BLOB(L, R)				    COPY_MEMBER(R)
 #define FUNC(SIGNATURE)
-        FIELDS
+            FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
-        return *this;
-    };
-    
-    // custom function declaration
+                return *this;
+        };
+
+        // custom function declaration
 #define MEMBER_INT(R)
 #define MEMBER_REAL(R)
 #define MEMBER_TEXT(R)
 #define MEMBER_BLOB(L, R)
 #define FUNC(SIGNATURE) SIGNATURE;
-    FIELDS
+        FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
-};
+    };
 
-static std::string CAT(Register, REFLECTABLE)() {
-    std::string type_id = typeid(REFLECTABLE).name();
-    std::string name = STR(REFLECTABLE);
-    auto & reflectable = GetRecordFromTypeId(type_id);
-    if (!reflectable.initialized) {
-        reflectable.name = name;
-        
-        // store member information
+    static std::string CAT(Register, REFLECTABLE)() {
+        std::string type_id = typeid(REFLECTABLE).name();
+        std::string name = STR(REFLECTABLE);
+        auto& reflectable = GetRecordFromTypeId(type_id);
+        if (!reflectable.initialized) {
+            reflectable.name = name;
+
+            // store member information
 #define MEMBER_INT(R)                           DEFINE_MEMBER(R, ReflectionMemberTrait::kInt)
 #define MEMBER_REAL(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kReal)
 #define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kText)
 #define MEMBER_BLOB(L, R)                       DEFINE_MEMBER(R, ReflectionMemberTrait::kBlob)
 #define FUNC(SIGNATURE)
-        FIELDS
+            FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
-        
-        // mappings
+
+                // mappings
 #define MEMBER_INT(R)                           DEFINE_SERIALIZATION(int, R)
 #define MEMBER_REAL(R)                          DEFINE_SERIALIZATION(double, R)
 #define MEMBER_TEXT(R)
 #define MEMBER_BLOB(L, R)
 #define FUNC(SIGNATURE)
-        FIELDS
+                FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_BLOB
 #undef FUNC
-        
-        reflectable.initialized = true;
-        reflectable.size = sizeof(struct REFLECTABLE);
-    }
-    return name;
-};
 
-static std::string CAT(meta_registered_, REFLECTABLE) = CAT(Register, REFLECTABLE)();
+                reflectable.initialized = true;
+            reflectable.size = sizeof(struct REFLECTABLE);
+        }
+        return name;
+    };
+
+    static std::string CAT(meta_registered_, REFLECTABLE) = CAT(Register, REFLECTABLE)();
 
 #pragma warning (pop)
 

@@ -26,6 +26,8 @@
 #include "person.h"
 #include "pet.h"
 
+using namespace sqlite_reflection;
+
 TEST(DatabaseTest, Initialization)
 {
 	Database::Initialize("");

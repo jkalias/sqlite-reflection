@@ -21,14 +21,15 @@
 // SOFTWARE.
 
 #include "reflection.h"
+#include <memory>
 
-static ReflectionRegister* p = nullptr;
+static std::unique_ptr<ReflectionRegister> p = nullptr;
 
 ReflectionRegister* GetReflectionRegisterInstance() {
 	if (!p) {
-		p = new ReflectionRegister();
+		p = std::make_unique<ReflectionRegister>(ReflectionRegister());
 	}
-	return p;
+	return p.get();
 }
 
 Reflection& GetRecordFromTypeId(const std::string& type_id) {
