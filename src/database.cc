@@ -85,6 +85,8 @@ namespace sqlite_reflection {
     void Database::Finalize() {
         if (instance_ != nullptr) {
             sqlite3_close(instance_->db_);
+            delete instance_;
+            instance_ = nullptr;
         }
     }
 
