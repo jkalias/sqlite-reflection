@@ -30,7 +30,7 @@
 #include <iterator>
 #include <stdexcept>
 
-#include "sqlite3.h"
+#include "internal/sqlite3.h"
 #include "internal/string_utilities.h"
 #include "query_results.h"
 

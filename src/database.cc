@@ -28,7 +28,7 @@
 
 #include "internal/string_utilities.h"
 #include "queries.h"
-#include "sqlite3.h"
+#include "internal/sqlite3.h"
 
 namespace sqlite_reflection {
     int RegisterValueCallbackInt() {
