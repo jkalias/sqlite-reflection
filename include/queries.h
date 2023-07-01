@@ -52,7 +52,7 @@ namespace sqlite_reflection {
 	public:
         virtual ~ExecutionQuery() = default;
 		explicit ExecutionQuery(sqlite3* db, const Reflection& record);
-		virtual void Execute() = 0;
+		void Execute();
 	};
 
 // ------------------------------------------------------------------------
@@ -63,7 +63,6 @@ namespace sqlite_reflection {
     public:
         ~CreateTableQuery() = default;
         explicit CreateTableQuery(sqlite3* db, const Reflection& record);
-        void Execute() override;
 
     protected:
         std::string PrepareSql() const override;
@@ -78,7 +77,6 @@ namespace sqlite_reflection {
     public:
         ~InsertQuery() = default;
         explicit InsertQuery(sqlite3* db, const Reflection& record, void* p);
-        void Execute() override;
 
     protected:
         std::string PrepareSql() const override;

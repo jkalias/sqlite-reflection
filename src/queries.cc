@@ -59,6 +59,12 @@ ExecutionQuery::ExecutionQuery(sqlite3* db, const Reflection& record)
 {
 }
 
+void ExecutionQuery::Execute() {
+    auto sql = PrepareSql();
+    if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
+        throw std::domain_error((sql + ": Query could not be executed").data());
+    }
+}
 
 // ------------------------------------------------------------------------
 
@@ -66,13 +72,6 @@ ExecutionQuery::ExecutionQuery(sqlite3* db, const Reflection& record)
 CreateTableQuery::CreateTableQuery(sqlite3* db, const Reflection& record)
 : ExecutionQuery(db, record)
 {    
-}
-
-void CreateTableQuery::Execute() {
-    auto sql = PrepareSql();
-    if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
-        throw std::domain_error((sql + ": Query could not be executed").data());
-    }
 }
 
 std::string CreateTableQuery::PrepareSql() const {
