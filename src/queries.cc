@@ -130,7 +130,7 @@ std::string InsertQuery::JoinedValues() const {
         default:
             break;
         }
-        values.emplace_back(content);
+        values.emplace_back("'" + content + "'");
     }
     
     return StringUtilities::Join(values, ", ");
