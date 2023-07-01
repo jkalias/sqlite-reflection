@@ -38,13 +38,14 @@ TEST(DatabaseTest, Initialization)
     
     const auto all_pets = db.FetchAll<Pet>();
     EXPECT_EQ(0, all_pets.size());
+    Database::Finalize();
 }
 
 TEST(DatabaseTest, Insertion)
 {
     Database::Initialize("");
     const auto &db = Database::Instance();
-
+    
     Person p;
     p.first_name = L"παναγιώτης";
     p.last_name = L"ανδριανόπουλος";
@@ -59,4 +60,5 @@ TEST(DatabaseTest, Insertion)
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
     EXPECT_EQ(p.age, all_persons[0].age);
     EXPECT_EQ(p.id, all_persons[0].id);
+    Database::Finalize();
 }

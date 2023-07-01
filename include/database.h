@@ -40,6 +40,7 @@ namespace sqlite_reflection {
 	{
 	public:
 		static void Initialize(const std::string& path = "");
+        static void Finalize();
 		static const Database& Instance();
 
 		Database(Database const&) = delete;

@@ -82,6 +82,12 @@ namespace sqlite_reflection {
         instance_ = new Database(effective_path.data());
     }
 
+    void Database::Finalize() {
+        if (instance_ != nullptr) {
+            sqlite3_close(instance_->db_);
+        }
+    }
+
     Database::Database(const char* path)
     : db_(nullptr) {
         if (sqlite3_open(path, &db_)) {
