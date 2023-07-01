@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "string_utilities.h"
+#include "internal/string_utilities.h"
 
 #include <codecvt>
 #include <numeric>

@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2023 Ioannis Kaliakatsos
 //
@@ -21,11 +21,10 @@
 // SOFTWARE.
 
 #pragma once
+#include "reflection_export.h"
+
 #include <string>
 #include <vector>
-
-#include "reflection_export.h"
-// todo: to internal
 
 namespace sqlite_reflection {
 	class REFLECTION_EXPORT StringUtilities

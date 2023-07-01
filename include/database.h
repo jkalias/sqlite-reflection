@@ -27,7 +27,6 @@
 #include <map>
 
 #include "reflection.h"
-#include "string_utilities.h"
 #include "query_results.h"
 
 struct sqlite3;
@@ -59,7 +58,9 @@ namespace sqlite_reflection {
 		sqlite3* db_;
 
 		explicit Database(const char* path);
+        
 		QueryResults FetchEntries(const Reflection &record) const;
+        
 		static const Reflection& GetRecord(const std::string& type_id);
 
 		template <typename T>
@@ -67,44 +68,12 @@ namespace sqlite_reflection {
 			std::vector<T> models;
 			for (auto i = 0; i < query_results.row_values.size(); i++) {
 				T model;
-				for (auto j = 0; j < query_results.column_names.size(); j++) {
-					const auto current_column = query_results.column_names[j];
-					const auto member_index = record.member_index_mapping.at(current_column);
-					const auto current_trait = record.members[member_index].trait;
-					const auto& content = query_results.row_values[i][j];
-					if (content == L"") {
-						continue;
-					}
-
-					switch (current_trait) {
-					case ReflectionMemberTrait::kInt:
-						{
-							auto& v = (*(int*)((void*)GetMemberAddress(&model, record, member_index)));
-							v = StringUtilities::Int(content);
-							break;
-						}
-
-					case ReflectionMemberTrait::kReal:
-						{
-							auto& v = (*(double*)((void*)GetMemberAddress(&model, record, member_index)));
-							v = StringUtilities::Double(content);
-							break;
-						}
-
-					case ReflectionMemberTrait::kText:
-						{
-							auto& v = (*(std::wstring*)((void*)GetMemberAddress(&model, record, member_index)));
-							v = content;
-							break;
-						}
-
-					default:
-						break;
-					}
-				}
+                Hydrate((void*)&model, query_results, record, i);
 				models.emplace_back(model);
 			}
 			return models;
 		}
+        
+        void Hydrate(void *p, const QueryResults& query_results, const Reflection& record, size_t i) const;
 	};
 }

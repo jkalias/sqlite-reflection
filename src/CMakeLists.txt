@@ -2,7 +2,7 @@ set (LIBNAME sqlite_reflection)
 
 # Properties->C/C++->General->Additional Include Directories
 include_directories ("../include")
-include_directories ("./internal")
+include_directories (".")
 
 # Collect files without having to explicitly list each header and source file
 file (GLOB HEADERS

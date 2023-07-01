@@ -31,7 +31,7 @@
 #include <stdexcept>
 
 #include "sqlite3.h"
-#include "string_utilities.h"
+#include "internal/string_utilities.h"
 #include "query_results.h"
 
 using namespace sqlite_reflection;
