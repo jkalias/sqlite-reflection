@@ -39,6 +39,10 @@ int StringUtilities::Int(const std::wstring& s) {
     return result;
 }
 
+std::string StringUtilities::String(int value) {
+    return std::to_string(value);
+}
+
 double StringUtilities::Double(const std::wstring& s) {
     double result = 0.0;
     try {
@@ -46,6 +50,10 @@ double StringUtilities::Double(const std::wstring& s) {
     }
     catch (...) {}
     return result;
+}
+
+std::string StringUtilities::String(double value) {
+    return std::to_string(value);
 }
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {

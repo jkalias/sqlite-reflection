@@ -49,7 +49,7 @@ namespace sqlite_reflection {
 		std::vector<T> FetchAll() const {
 			const auto type_id = typeid(T).name();
             const auto& record = GetRecord(type_id);
-			const auto& query_result = FetchEntries(record);
+			const auto& query_result = FetchAll(record);
 			return Hydrate<T>(query_result, record);
 		}
 
@@ -59,7 +59,7 @@ namespace sqlite_reflection {
 
 		explicit Database(const char* path);
         
-		QueryResults FetchEntries(const Reflection &record) const;
+		QueryResults FetchAll(const Reflection &record) const;
         
 		static const Reflection& GetRecord(const std::string& type_id);
 

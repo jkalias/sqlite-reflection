@@ -37,6 +37,7 @@ namespace sqlite_reflection {
     protected:
         Query(sqlite3* db, const Reflection& record);
         virtual std::string PrepareSql() const = 0;
+        std::string JoinedRecordColumnNames() const;
         
         sqlite3* db_;
         const Reflection &record_;
@@ -46,15 +47,44 @@ namespace sqlite_reflection {
 // ------------------------------------------------------------------------
 
 
-	class REFLECTION_EXPORT CreateTableQuery final : public Query
+	class REFLECTION_EXPORT ExecutionQuery : public Query
 	{
 	public:
-		explicit CreateTableQuery(sqlite3* db, const Reflection& record);
-		void Execute();
+        virtual ~ExecutionQuery() = default;
+		explicit ExecutionQuery(sqlite3* db, const Reflection& record);
+		virtual void Execute() = 0;
+	};
+
+// ------------------------------------------------------------------------
+
+
+    class REFLECTION_EXPORT CreateTableQuery final : public ExecutionQuery
+    {
+    public:
+        ~CreateTableQuery() = default;
+        explicit CreateTableQuery(sqlite3* db, const Reflection& record);
+        void Execute() override;
 
     protected:
         std::string PrepareSql() const override;
-	};
+    };
+
+
+// ------------------------------------------------------------------------
+
+
+    class REFLECTION_EXPORT InsertQuery final : public ExecutionQuery
+    {
+    public:
+        ~InsertQuery() = default;
+        explicit InsertQuery(sqlite3* db, const Reflection& record, void* p);
+        void Execute() override;
+
+    protected:
+        std::string PrepareSql() const override;
+        std::string JoinedValues() const;
+        void* p_;
+    };
 
 
 // ------------------------------------------------------------------------
