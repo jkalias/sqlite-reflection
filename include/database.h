@@ -52,6 +52,13 @@ namespace sqlite_reflection {
 			const auto& query_result = FetchAll(record);
 			return Hydrate<T>(query_result, record);
 		}
+        
+        template <typename T>
+        void Save(const T& model) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            Save((void*)&model, record);
+        }
 
 	private:
 		static Database* instance_;
@@ -75,5 +82,7 @@ namespace sqlite_reflection {
 		}
         
         void Hydrate(void *p, const QueryResults& query_results, const Reflection& record, size_t i) const;
+        
+        void Save(void *p, const Reflection& record) const;
 	};
 }

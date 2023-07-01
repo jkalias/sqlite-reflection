@@ -30,12 +30,33 @@ using namespace sqlite_reflection;
 
 TEST(DatabaseTest, Initialization)
 {
-	Database::Initialize("");
-	const auto &db = Database::Instance();
+    Database::Initialize("");
+    const auto &db = Database::Instance();
+    
+    const auto all_persons = db.FetchAll<Person>();
+    EXPECT_EQ(0, all_persons.size());
+    
+    const auto all_pets = db.FetchAll<Pet>();
+    EXPECT_EQ(0, all_pets.size());
+}
 
-	const auto all_persons = db.FetchAll<Person>();
-	EXPECT_EQ(0, all_persons.size());
+TEST(DatabaseTest, Insertion)
+{
+    Database::Initialize("");
+    const auto &db = Database::Instance();
 
-	const auto all_pets = db.FetchAll<Pet>();
-	EXPECT_EQ(0, all_pets.size());
+    Person p;
+    p.first_name = L"παναγιώτης";
+    p.last_name = L"ανδριανόπουλος";
+    p.age = 39;
+    p.id = 1;
+    db.Save(p);
+    
+    const auto all_persons = db.FetchAll<Person>();
+    EXPECT_EQ(1, all_persons.size());
+    
+    EXPECT_EQ(p.first_name, all_persons[0].first_name);
+    EXPECT_EQ(p.last_name, all_persons[0].last_name);
+    EXPECT_EQ(p.age, all_persons[0].age);
+    EXPECT_EQ(p.id, all_persons[0].id);
 }

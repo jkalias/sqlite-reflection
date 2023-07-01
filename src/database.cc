@@ -146,4 +146,9 @@ namespace sqlite_reflection {
             }
         }
     }
+
+    void Database::Save(void *p, const Reflection& record) const {
+        InsertQuery insert(db_, record, p);
+        insert.Execute();
+    }
 }
