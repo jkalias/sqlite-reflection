@@ -95,6 +95,7 @@ namespace sqlite_reflection {
         virtual ~ResultsQuery();
         
         QueryResults GetResults();
+        static void Hydrate(void *p, const QueryResults& query_results, const Reflection& record, size_t i);
         
     protected:
         sqlite3_stmt* stmt_;

@@ -30,7 +30,7 @@
 
 using namespace sqlite_reflection;
 
-int StringUtilities::Int(const std::wstring& s) {
+int64_t StringUtilities::Int(const std::wstring& s) {
     int result = 0;
     try {
         result = std::stoi(s);
@@ -39,7 +39,7 @@ int StringUtilities::Int(const std::wstring& s) {
     return result;
 }
 
-std::string StringUtilities::String(int value) {
+std::string StringUtilities::String(int64_t value) {
     return std::to_string(value);
 }
 

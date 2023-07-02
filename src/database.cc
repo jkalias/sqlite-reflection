@@ -117,44 +117,6 @@ namespace sqlite_reflection {
         return GetReflectionRegister().records.at(type_id);
     }
 
-    void Database::Hydrate(void *p, const QueryResults& query_results, const Reflection& record, size_t i) const {
-        for (auto j = 0; j < query_results.column_names.size(); j++) {
-            const auto current_column = query_results.column_names[j];
-            const auto member_index = record.member_index_mapping.at(current_column);
-            const auto current_trait = record.members[member_index].trait;
-            const auto& content = query_results.row_values[i][j];
-            if (content == L"") {
-                continue;
-            }
-
-            switch (current_trait) {
-            case ReflectionMemberTrait::kInt:
-                {
-                    auto& v = (*(int*)((void*)GetMemberAddress(p, record, member_index)));
-                    v = StringUtilities::Int(content);
-                    break;
-                }
-
-            case ReflectionMemberTrait::kReal:
-                {
-                    auto& v = (*(double*)((void*)GetMemberAddress(p, record, member_index)));
-                    v = StringUtilities::Double(content);
-                    break;
-                }
-
-            case ReflectionMemberTrait::kText:
-                {
-                    auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, member_index)));
-                    v = content;
-                    break;
-                }
-
-            default:
-                break;
-            }
-        }
-    }
-
     void Database::Save(void *p, const Reflection& record) const {
         InsertQuery insert(db_, record, p);
         insert.Execute();

@@ -143,8 +143,8 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
     struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
         // member declaration
 #define MEMBER_DECLARE(L, R)            L R;
-                                        MEMBER_DECLARE(int, id)
-#define MEMBER_INT(R)				    MEMBER_DECLARE(int, R)
+                                        MEMBER_DECLARE(int64_t, id)
+#define MEMBER_INT(R)				    MEMBER_DECLARE(int64_t, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
 #define MEMBER_BLOB(L, R)				MEMBER_DECLARE(L, R)
@@ -215,7 +215,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef FUNC
 
                 // mappings
-#define MEMBER_INT(R)                           DEFINE_SERIALIZATION(int, R)
+#define MEMBER_INT(R)                           DEFINE_SERIALIZATION(int64_t, R)
 #define MEMBER_REAL(R)                          DEFINE_SERIALIZATION(double, R)
 #define MEMBER_TEXT(R)
 #define MEMBER_BLOB(L, R)

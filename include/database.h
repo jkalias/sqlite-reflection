@@ -28,13 +28,13 @@
 
 #include "reflection.h"
 #include "query_results.h"
+#include "queries.h"
 
 struct sqlite3;
 struct sqlite3_stmt;
 static std::map<int, std::function<void*(sqlite3_stmt*, int)>> value_callback_mapping;
 
 namespace sqlite_reflection {
-    class Query;
 
 	class REFLECTION_EXPORT Database
 	{
@@ -85,13 +85,11 @@ namespace sqlite_reflection {
 			std::vector<T> models;
 			for (auto i = 0; i < query_results.row_values.size(); i++) {
 				T model;
-                Hydrate((void*)&model, query_results, record, i);
+                ResultsQuery::Hydrate((void*)&model, query_results, record, i);
 				models.emplace_back(model);
 			}
 			return models;
 		}
-        
-        void Hydrate(void *p, const QueryResults& query_results, const Reflection& record, size_t i) const;
         
         void Save(void *p, const Reflection& record) const;
 	};

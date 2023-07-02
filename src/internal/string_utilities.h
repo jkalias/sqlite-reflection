@@ -30,8 +30,8 @@ namespace sqlite_reflection {
 	class REFLECTION_EXPORT StringUtilities
 	{
 	public:
-		static int Int(const std::wstring& s);
-        static std::string String(int value);
+		static int64_t Int(const std::wstring& s);
+        static std::string String(int64_t value);
 		static double Double(const std::wstring& s);
         static std::string String(double value);
 		static std::string ToUtf8(const std::wstring& wide_string);
