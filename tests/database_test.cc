@@ -28,6 +28,15 @@
 
 using namespace sqlite_reflection;
 
+Person CreatePerson(int id, std::wstring first_name, std::wstring last_name, int age) {
+    Person p;
+    p.id = id;
+    p.first_name = first_name;
+    p.last_name = last_name;
+    p.age = age;
+    return p;
+}
+
 TEST(DatabaseTest, Initialization)
 {
     Database::Initialize("");
@@ -41,16 +50,12 @@ TEST(DatabaseTest, Initialization)
     Database::Finalize();
 }
 
-TEST(DatabaseTest, Insertion)
+TEST(DatabaseTest, SingleInsertion)
 {
     Database::Initialize("");
     const auto &db = Database::Instance();
     
-    Person p;
-    p.first_name = L"παναγιώτης";
-    p.last_name = L"ανδριανόπουλος";
-    p.age = 39;
-    p.id = 1;
+    auto p = CreatePerson(1, L"παναγιώτης", L"ανδριανόπουλος", 39);
     db.Save(p);
     
     const auto all_persons = db.FetchAll<Person>();
@@ -60,5 +65,30 @@ TEST(DatabaseTest, Insertion)
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
     EXPECT_EQ(p.age, all_persons[0].age);
     EXPECT_EQ(p.id, all_persons[0].id);
+    Database::Finalize();
+}
+
+TEST(DatabaseTest, MultipleInsertions)
+{
+    Database::Initialize("");
+    const auto &db = Database::Instance();
+    
+    std::vector<Person> persons;
+    
+    persons.push_back(CreatePerson(3, L"παναγιώτης", L"ανδριανόπουλος", 28));
+    persons.push_back(CreatePerson(5, L"peter", L"meier", 32));
+    
+    db.Save(persons);
+    
+    const auto saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(2, saved_persons.size());
+    
+    for (auto i = 0; i < saved_persons.size(); ++i) {
+        EXPECT_EQ(persons[i].id, saved_persons[i].id);
+        EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
+        EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
+        EXPECT_EQ(persons[i].age, saved_persons[i].age);
+    }
+    
     Database::Finalize();
 }

@@ -60,6 +60,15 @@ namespace sqlite_reflection {
             const auto& record = GetRecord(type_id);
             Save((void*)&model, record);
         }
+        
+        template <typename T>
+        void Save(const std::vector<T>& models) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            for (const auto& model: models) {
+                Save((void*)&model, record);
+            }
+        }
 
 	private:
 		static Database* instance_;
