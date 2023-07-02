@@ -23,12 +23,75 @@
 #pragma once
 
 #include <string>
+#include <functional>
 
 #include "reflection.h"
+
 struct sqlite3;
 struct sqlite3_stmt;
 
 namespace sqlite_reflection {
+
+class QueryCondition {
+public:
+    virtual std::string Statement() const = 0;
+};
+
+class REFLECTION_EXPORT SingleCondition final: public QueryCondition {
+public:
+    SingleCondition(const std::function<std::string()>& expression);
+    std::string Statement() const override;
+    
+protected:
+    const std::function<std::string()>& expression_;
+};
+
+class BinaryCondition: public QueryCondition {
+public:
+    BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol);
+    std::string Statement() const override;
+    
+protected:
+    const QueryCondition& left_;
+    const QueryCondition& right_;
+    std::string symbol_;
+};
+
+class REFLECTION_EXPORT AndCondition final: public BinaryCondition {
+public:
+    AndCondition(const QueryCondition& left, const QueryCondition& right);
+};
+
+class REFLECTION_EXPORT OrCondition final: public BinaryCondition {
+public:
+    OrCondition(const QueryCondition& left, const QueryCondition& right);
+};
+
+
+// ------------------------------------------------------------------------
+
+class REFLECTION_EXPORT ConditionBuilder {
+public:
+    template <typename T>
+    static ConditionBuilder Init() {
+        ConditionBuilder builder(GetRecordFromTypeId(typeid(T).name()));
+        return builder;
+    }
+    
+    //public ConditionBuilder
+    
+protected:
+    ConditionBuilder(const Reflection& record)
+    : record_(record)
+    {
+    }
+    
+    const Reflection& record_;
+};
+
+
+// ------------------------------------------------------------------------
+
     class REFLECTION_EXPORT Query
     {
     public:

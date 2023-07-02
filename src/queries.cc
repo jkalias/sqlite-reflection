@@ -34,6 +34,38 @@
 
 using namespace sqlite_reflection;
 
+BinaryCondition::BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol)
+: left_(left), right_(right), symbol_(symbol)
+{
+}
+
+
+SingleCondition::SingleCondition(const std::function<std::string()>& expression)
+: expression_(expression)
+{
+}
+
+std::string SingleCondition::Statement() const {
+    return expression_();
+}
+
+
+std::string BinaryCondition::Statement() const {
+    return std::string("(") + left_.Statement() + " " + symbol_ + " " + right_.Statement() + std::string(")");
+}
+
+AndCondition::AndCondition(const QueryCondition& left, const QueryCondition& right)
+: BinaryCondition(left, right, "AND")
+{}
+
+OrCondition::OrCondition(const QueryCondition& left, const QueryCondition& right)
+: BinaryCondition(left, right, "OR")
+{}
+
+// ------------------------------------------------------------------------
+
+
+
 Query::Query(sqlite3* db, const Reflection& record)
 : db_(db), record_(record)
 {
