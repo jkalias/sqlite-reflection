@@ -76,6 +76,15 @@ namespace sqlite_reflection {
             const auto& record = GetRecord(type_id);
             Update((void*)&model, record);
         }
+        
+        template <typename T>
+        void Update(const std::vector<T>& models) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            for (const auto& model: models) {
+                Update((void*)&model, record);
+            }
+        }
 
 	private:
 		static Database* instance_;

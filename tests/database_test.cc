@@ -98,7 +98,7 @@ TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType)
     EXPECT_EQ(0, all_pets.size());
 }
 
-TEST_F(DatabaseTest, Update)
+TEST_F(DatabaseTest, SingleUpdate)
 {
     const auto &db = Database::Instance();
     
@@ -117,4 +117,31 @@ TEST_F(DatabaseTest, Update)
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
     EXPECT_EQ(p.age, all_persons[0].age);
     EXPECT_EQ(p.id, all_persons[0].id);
+}
+
+TEST_F(DatabaseTest, MultipleUpdates)
+{
+    const auto &db = Database::Instance();
+    
+    std::vector<Person> persons;
+    
+    persons.push_back({ 3, L"john", L"doe", 28 });
+    persons.push_back({ 5, L"mary", L"poppins", 20} );
+    
+    db.Save(persons);
+    
+    persons[0].last_name = L"rambo";
+    persons[1].age = 20;
+    
+    db.Update(persons);
+    
+    const auto saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(2, saved_persons.size());
+    
+    for (auto i = 0; i < saved_persons.size(); ++i) {
+        EXPECT_EQ(persons[i].id, saved_persons[i].id);
+        EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
+        EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
+        EXPECT_EQ(persons[i].age, saved_persons[i].age);
+    }
 }
