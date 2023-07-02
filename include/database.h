@@ -85,6 +85,20 @@ namespace sqlite_reflection {
                 Update((void*)&model, record);
             }
         }
+        
+        template <typename T>
+        void Delete(const T& model) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            Delete(model.id, record);
+        }
+        
+        template <typename T>
+        void Delete(int64_t id) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            Delete(id, record);
+        }
 
 	private:
 		static Database* instance_;
@@ -110,5 +124,7 @@ namespace sqlite_reflection {
         void Save(void *p, const Reflection& record) const;
         
         void Update(void *p, const Reflection& record) const;
+        
+        void Delete(int64_t id, const Reflection& record) const;
 	};
 }

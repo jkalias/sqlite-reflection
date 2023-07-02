@@ -145,3 +145,67 @@ TEST_F(DatabaseTest, MultipleUpdates)
         EXPECT_EQ(persons[i].age, saved_persons[i].age);
     }
 }
+
+TEST_F(DatabaseTest, DeleteWithRecord)
+{
+    const auto &db = Database::Instance();
+    
+    std::vector<Person> persons;
+    
+    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
+    persons.push_back({ 5, L"peter", L"meier", 32} );
+    persons.push_back({ 13, L"mary", L"poppins", 20} );
+    
+    db.Save(persons);
+    
+    auto saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(3, saved_persons.size());
+    
+    db.Delete(persons[1]);
+    saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(2, saved_persons.size());
+    
+    auto i = 0;
+    EXPECT_EQ(3, saved_persons[i].id);
+    EXPECT_EQ(L"παναγιώτης", saved_persons[i].first_name);
+    EXPECT_EQ(L"ανδριανόπουλος", saved_persons[i].last_name);
+    EXPECT_EQ(28, saved_persons[i].age);
+    
+    i++;
+    EXPECT_EQ(13, saved_persons[i].id);
+    EXPECT_EQ(L"mary", saved_persons[i].first_name);
+    EXPECT_EQ(L"poppins", saved_persons[i].last_name);
+    EXPECT_EQ(20, saved_persons[i].age);
+}
+
+TEST_F(DatabaseTest, DeleteWithId)
+{
+    const auto &db = Database::Instance();
+    
+    std::vector<Person> persons;
+    
+    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
+    persons.push_back({ 5, L"peter", L"meier", 32} );
+    persons.push_back({ 13, L"mary", L"poppins", 20} );
+    
+    db.Save(persons);
+    
+    auto saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(3, saved_persons.size());
+    
+    db.Delete<Person>(persons[1].id);
+    saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(2, saved_persons.size());
+    
+    auto i = 0;
+    EXPECT_EQ(3, saved_persons[i].id);
+    EXPECT_EQ(L"παναγιώτης", saved_persons[i].first_name);
+    EXPECT_EQ(L"ανδριανόπουλος", saved_persons[i].last_name);
+    EXPECT_EQ(28, saved_persons[i].age);
+    
+    i++;
+    EXPECT_EQ(13, saved_persons[i].id);
+    EXPECT_EQ(L"mary", saved_persons[i].first_name);
+    EXPECT_EQ(L"poppins", saved_persons[i].last_name);
+    EXPECT_EQ(20, saved_persons[i].age);
+}

@@ -52,8 +52,12 @@ std::vector<std::string> Query::GetRecordColumnNames() const {
                    record_.members.cbegin(),
                    record_.members.cend(),
                    std::back_inserter(column_names),
-                   [](const Reflection::Member& member){ return member.name; });
+                   [&](const Reflection::Member& member){ return CustomizedColumnName(member.name); });
     return column_names;
+}
+
+std::string Query::CustomizedColumnName(const std::string& name) const {
+    return name;
 }
 
 // ------------------------------------------------------------------------
@@ -82,6 +86,26 @@ CreateTableQuery::CreateTableQuery(sqlite3* db, const Reflection& record)
 std::string CreateTableQuery::PrepareSql() const {
     std::string sql("CREATE TABLE IF NOT EXISTS ");
     sql += record_.name + " (" + JoinedRecordColumnNames() + ");";
+    return sql;
+}
+
+std::string CreateTableQuery::CustomizedColumnName(const std::string& name) const {
+    return name.compare(std::string("id")) == 0
+    ? name + " PRIMARY KEY"
+    : name;
+}
+
+// ------------------------------------------------------------------------
+
+
+DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, int64_t id)
+: ExecutionQuery(db, record), id_(id)
+{
+}
+
+std::string DeleteQuery::PrepareSql() const {
+    std::string sql("DELETE FROM ");
+    sql += record_.name + " WHERE id = '" + StringUtilities::String(id_) + "';";
     return sql;
 }
 

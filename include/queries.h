@@ -39,6 +39,7 @@ namespace sqlite_reflection {
         virtual std::string PrepareSql() const = 0;
         std::string JoinedRecordColumnNames() const;
         std::vector<std::string> GetRecordColumnNames() const;
+        virtual std::string CustomizedColumnName(const std::string& name) const;
         
         sqlite3* db_;
         const Reflection &record_;
@@ -67,6 +68,22 @@ namespace sqlite_reflection {
 
     protected:
         std::string PrepareSql() const override;
+        std::string CustomizedColumnName(const std::string& name) const override;
+    };
+
+
+// ------------------------------------------------------------------------
+
+
+    class REFLECTION_EXPORT DeleteQuery final : public ExecutionQuery
+    {
+    public:
+        ~DeleteQuery() = default;
+        explicit DeleteQuery(sqlite3* db, const Reflection& record, int64_t id);
+
+    protected:
+        std::string PrepareSql() const override;
+        int64_t id_;
     };
 
 
@@ -133,7 +150,4 @@ namespace sqlite_reflection {
     protected:
         std::string PrepareSql() const override;
 	};
-
-// todo: UpdateQuery
-// todo: DeleteQuery
 }
