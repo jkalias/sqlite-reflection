@@ -21,11 +21,9 @@
 // SOFTWARE.
 
 #pragma once
-
-#include <string>
-
 #include "queries.h"
 
+#include <string>
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
