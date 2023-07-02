@@ -37,9 +37,18 @@ Person CreatePerson(int id, std::wstring first_name, std::wstring last_name, int
     return p;
 }
 
-TEST(DatabaseTest, Initialization)
+class DatabaseTest: public ::testing::Test {
+    void SetUp() override {
+        Database::Initialize("");
+    }
+    
+    void TearDown() override {
+        Database::Finalize();
+    }
+};
+
+TEST_F(DatabaseTest, Initialization)
 {
-    Database::Initialize("");
     const auto &db = Database::Instance();
     
     const auto all_persons = db.FetchAll<Person>();
@@ -47,12 +56,10 @@ TEST(DatabaseTest, Initialization)
     
     const auto all_pets = db.FetchAll<Pet>();
     EXPECT_EQ(0, all_pets.size());
-    Database::Finalize();
 }
 
-TEST(DatabaseTest, SingleInsertion)
+TEST_F(DatabaseTest, SingleInsertion)
 {
-    Database::Initialize("");
     const auto &db = Database::Instance();
     
     auto p = CreatePerson(1, L"παναγιώτης", L"ανδριανόπουλος", 39);
@@ -65,12 +72,10 @@ TEST(DatabaseTest, SingleInsertion)
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
     EXPECT_EQ(p.age, all_persons[0].age);
     EXPECT_EQ(p.id, all_persons[0].id);
-    Database::Finalize();
 }
 
-TEST(DatabaseTest, MultipleInsertions)
+TEST_F(DatabaseTest, MultipleInsertions)
 {
-    Database::Initialize("");
     const auto &db = Database::Instance();
     
     std::vector<Person> persons;
@@ -89,6 +94,4 @@ TEST(DatabaseTest, MultipleInsertions)
         EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
         EXPECT_EQ(persons[i].age, saved_persons[i].age);
     }
-    
-    Database::Finalize();
 }
