@@ -42,13 +42,18 @@ Query::Query(sqlite3* db, const Reflection& record)
 }
 
 std::string Query::JoinedRecordColumnNames() const {
+    auto column_names = GetRecordColumnNames();
+    return StringUtilities::Join(column_names, ", ");
+}
+
+std::vector<std::string> Query::GetRecordColumnNames() const {
     std::vector<std::string> column_names;
     std::transform(
                    record_.members.cbegin(),
                    record_.members.cend(),
                    std::back_inserter(column_names),
                    [](const Reflection::Member& member){ return member.name; });
-    return StringUtilities::Join(column_names, ", ");
+    return column_names;
 }
 
 // ------------------------------------------------------------------------
@@ -134,6 +139,79 @@ std::string InsertQuery::JoinedValues() const {
     }
     
     return StringUtilities::Join(values, ", ");
+}
+
+// ------------------------------------------------------------------------
+
+
+UpdateQuery::UpdateQuery(sqlite3* db, const Reflection& record, void* p)
+: ExecutionQuery(db, record), p_(p)
+{
+}
+
+std::string UpdateQuery::PrepareSql() const {
+    std::string sql("UPDATE ");
+    sql += record_.name + " SET ";
+    
+    auto columns = GetRecordColumnNames();
+    auto values = GetValues();
+    
+    std::vector<std::string> columns_with_values;
+    columns_with_values.reserve(values.size());
+    std::transform(columns.begin() + 1,
+                   columns.end(),
+                   values.begin() + 1,
+                   std::back_inserter(columns_with_values),
+                   [](const std::string& column, const std::string& value)
+                   {
+                       return column + "=" + value;
+                   });
+    
+    sql += StringUtilities::Join(columns_with_values, ", ");
+    sql += " WHERE " + columns[0] + "=" + values[0];
+    sql += ";";
+    
+    return sql;
+}
+
+std::vector<std::string> UpdateQuery::GetValues() const {
+    const auto& members = record_.members;
+    std::vector<std::string> values;
+    
+    for (auto j = 0; j < members.size(); j++) {
+        const auto current_column = members[j].name;
+        const auto current_trait = members[j].trait;
+        std::string content;
+
+        switch (current_trait) {
+        case ReflectionMemberTrait::kInt:
+            {
+                auto& value = (*(int64_t*)((void*)GetMemberAddress(p_, record_, j)));
+                content = StringUtilities::String(value);
+                break;
+            }
+
+        case ReflectionMemberTrait::kReal:
+            {
+                auto& value = (*(double*)((void*)GetMemberAddress(p_, record_, j)));
+                content = StringUtilities::String(value);
+                break;
+            }
+
+        case ReflectionMemberTrait::kText:
+            {
+                auto& value = (*(std::wstring*)((void*)GetMemberAddress(p_, record_, j)));
+                content = StringUtilities::ToUtf8(value);
+                break;
+            }
+
+        default:
+            break;
+        }
+        values.emplace_back("'" + content + "'");
+    }
+    
+    return values;
 }
 
 // ------------------------------------------------------------------------

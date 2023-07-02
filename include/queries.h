@@ -38,6 +38,7 @@ namespace sqlite_reflection {
         Query(sqlite3* db, const Reflection& record);
         virtual std::string PrepareSql() const = 0;
         std::string JoinedRecordColumnNames() const;
+        std::vector<std::string> GetRecordColumnNames() const;
         
         sqlite3* db_;
         const Reflection &record_;
@@ -86,6 +87,22 @@ namespace sqlite_reflection {
 
 
 // ------------------------------------------------------------------------
+
+
+    class REFLECTION_EXPORT UpdateQuery final : public ExecutionQuery
+    {
+    public:
+        ~UpdateQuery() = default;
+        explicit UpdateQuery(sqlite3* db, const Reflection& record, void* p);
+
+    protected:
+        std::string PrepareSql() const override;
+        std::vector<std::string> GetValues() const;
+        void* p_;
+    };
+
+
+// ------------------------------------------------------------------------
     struct QueryResults;
 
     class REFLECTION_EXPORT ResultsQuery : public Query
@@ -117,7 +134,6 @@ namespace sqlite_reflection {
         std::string PrepareSql() const override;
 	};
 
-// todo: InsertQuery
 // todo: UpdateQuery
 // todo: DeleteQuery
 }

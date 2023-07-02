@@ -109,8 +109,8 @@ namespace sqlite_reflection {
     }
 
     QueryResults Database::FetchAll(const Reflection &record) const {
-        FetchRecordsQuery fetch(db_, record);
-        return fetch.GetResults();
+        FetchRecordsQuery query(db_, record);
+        return query.GetResults();
     }
 
     const Reflection& Database::GetRecord(const std::string& type_id) {
@@ -118,7 +118,12 @@ namespace sqlite_reflection {
     }
 
     void Database::Save(void *p, const Reflection& record) const {
-        InsertQuery insert(db_, record, p);
-        insert.Execute();
+        InsertQuery query(db_, record, p);
+        query.Execute();
+    }
+
+    void Database::Update(void *p, const Reflection& record) const {
+        UpdateQuery query(db_, record, p);
+        query.Execute();
     }
 }

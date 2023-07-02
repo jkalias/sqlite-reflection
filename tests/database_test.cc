@@ -97,3 +97,24 @@ TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType)
     const auto all_pets = db.FetchAll<Pet>();
     EXPECT_EQ(0, all_pets.size());
 }
+
+TEST_F(DatabaseTest, Update)
+{
+    const auto &db = Database::Instance();
+    
+    Person p {1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+    db.Save(p);
+    
+    p.age = 23;
+    p.first_name = L"max";
+    
+    db.Update(p);
+    
+    const auto all_persons = db.FetchAll<Person>();
+    EXPECT_EQ(1, all_persons.size());
+    
+    EXPECT_EQ(p.first_name, all_persons[0].first_name);
+    EXPECT_EQ(p.last_name, all_persons[0].last_name);
+    EXPECT_EQ(p.age, all_persons[0].age);
+    EXPECT_EQ(p.id, all_persons[0].id);
+}
