@@ -157,30 +157,6 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef MEMBER_BLOB
 #undef FUNC
 
-            // struct default constructor
-            REFLECTABLE()
-        {
-                id = 0;
-            // Initialize members
-#define MEMBER_INT(R)				    R = 0;
-#define MEMBER_REAL(R)			        R = 0.0;
-#define MEMBER_TEXT(R)
-#define MEMBER_BLOB(L, R)
-#define FUNC(SIGNATURE)
-            FIELDS
-#undef MEMBER_INT
-#undef MEMBER_REAL
-#undef MEMBER_TEXT
-#undef MEMBER_BLOB
-#undef FUNC
-        };
-
-        // copy constructor
-        REFLECTABLE(const REFLECTABLE& _r)
-        {
-            operator=(_r);
-        }
-
         // assignment operator
         const REFLECTABLE& operator = (const REFLECTABLE& _r)
         {

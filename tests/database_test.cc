@@ -28,15 +28,6 @@
 
 using namespace sqlite_reflection;
 
-Person CreatePerson(int id, std::wstring first_name, std::wstring last_name, int age) {
-    Person p;
-    p.id = id;
-    p.first_name = first_name;
-    p.last_name = last_name;
-    p.age = age;
-    return p;
-}
-
 class DatabaseTest: public ::testing::Test {
     void SetUp() override {
         Database::Initialize("");
@@ -62,7 +53,7 @@ TEST_F(DatabaseTest, SingleInsertion)
 {
     const auto &db = Database::Instance();
     
-    auto p = CreatePerson(1, L"παναγιώτης", L"ανδριανόπουλος", 39);
+    Person p {1, L"παναγιώτης", L"ανδριανόπουλος", 39};
     db.Save(p);
     
     const auto all_persons = db.FetchAll<Person>();
@@ -80,8 +71,8 @@ TEST_F(DatabaseTest, MultipleInsertions)
     
     std::vector<Person> persons;
     
-    persons.push_back(CreatePerson(3, L"παναγιώτης", L"ανδριανόπουλος", 28));
-    persons.push_back(CreatePerson(5, L"peter", L"meier", 32));
+    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
+    persons.push_back({ 5, L"peter", L"meier", 32} );
     
     db.Save(persons);
     
