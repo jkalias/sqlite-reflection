@@ -113,6 +113,11 @@ namespace sqlite_reflection {
         return query.GetResults();
     }
 
+    QueryResults Database::Fetch(const Reflection &record, int64_t id) const {
+        FetchRecordsQuery query(db_, record, id);
+        return query.GetResults();
+    }
+
     const Reflection& Database::GetRecord(const std::string& type_id) {
         return GetReflectionRegister().records.at(type_id);
     }

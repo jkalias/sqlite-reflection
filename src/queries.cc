@@ -344,14 +344,24 @@ std::wstring ResultsQuery::GetColumnValue(const int col) {
 
 // ------------------------------------------------------------------------
 
+FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id)
+: ResultsQuery(db, record), id_(StringUtilities::String(id))
+{
+}
+
 FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record)
-: ResultsQuery(db, record)
+: ResultsQuery(db, record), id_("")
 {
 }
 
 std::string FetchRecordsQuery::PrepareSql() const {
     std::string sql("SELECT * FROM ");
-    sql += record_.name + ";";
+    sql += record_.name;
+    if (std::string("").compare(id_) == 0) {
+        sql += ";";
+    } else {
+        sql += " WHERE id ='" + id_ + "';";
+    }
     return sql;
 }
 

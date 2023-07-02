@@ -145,9 +145,11 @@ namespace sqlite_reflection {
 	class REFLECTION_EXPORT FetchRecordsQuery final : public ResultsQuery
 	{
 	public:
+        explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id);
 		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record);
         
     protected:
         std::string PrepareSql() const override;
+        std::string id_;
 	};
 }

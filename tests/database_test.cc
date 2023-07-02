@@ -209,3 +209,37 @@ TEST_F(DatabaseTest, DeleteWithId)
     EXPECT_EQ(L"poppins", saved_persons[i].last_name);
     EXPECT_EQ(20, saved_persons[i].age);
 }
+
+TEST_F(DatabaseTest, SingleFetch)
+{
+    const auto &db = Database::Instance();
+    
+    std::vector<Person> persons;
+    
+    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
+    persons.push_back({ 5, L"peter", L"meier", 32} );
+    persons.push_back({ 13, L"mary", L"poppins", 20} );
+    
+    db.Save(persons);
+    
+    const auto fetched_person = db.Fetch<Person>(5);
+    EXPECT_EQ(5, fetched_person.id);
+    EXPECT_EQ(L"peter", fetched_person.first_name);
+    EXPECT_EQ(L"meier", fetched_person.last_name);
+    EXPECT_EQ(32, fetched_person.age);
+}
+
+TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException)
+{
+    const auto &db = Database::Instance();
+    
+    std::vector<Person> persons;
+    
+    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
+    persons.push_back({ 5, L"peter", L"meier", 32} );
+    persons.push_back({ 13, L"mary", L"poppins", 20} );
+    
+    db.Save(persons);
+
+    EXPECT_ANY_THROW(db.Fetch<Person>(15));
+}

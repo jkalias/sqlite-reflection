@@ -55,6 +55,17 @@ namespace sqlite_reflection {
 		}
         
         template <typename T>
+        T Fetch(int64_t id) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            const auto& query_result = Fetch(record, id);
+            if (query_result.row_values.size() != 1) {
+                throw std::runtime_error("No record with this id found");
+            }
+            return Hydrate<T>(query_result, record)[0];
+        }
+        
+        template <typename T>
         void Save(const T& model) const {
             const auto type_id = typeid(T).name();
             const auto& record = GetRecord(type_id);
@@ -107,6 +118,8 @@ namespace sqlite_reflection {
 		explicit Database(const char* path);
         
 		QueryResults FetchAll(const Reflection &record) const;
+        
+        QueryResults Fetch(const Reflection &record, int64_t id) const;
         
 		static const Reflection& GetRecord(const std::string& type_id);
 
