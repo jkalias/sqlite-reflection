@@ -86,3 +86,14 @@ TEST_F(DatabaseTest, MultipleInsertions)
         EXPECT_EQ(persons[i].age, saved_persons[i].age);
     }
 }
+
+TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType)
+{
+    const auto &db = Database::Instance();
+    
+    Person p {1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+    db.Save(p);
+    
+    const auto all_pets = db.FetchAll<Pet>();
+    EXPECT_EQ(0, all_pets.size());
+}
