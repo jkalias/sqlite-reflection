@@ -55,6 +55,9 @@ namespace sqlite_reflection {
         virtual ~ExecutionQuery() = default;
 		explicit ExecutionQuery(sqlite3* db, const Reflection& record);
 		void Execute();
+        
+    protected:
+        std::vector<std::string> GetValues(void* p) const;
 	};
 
 // ------------------------------------------------------------------------
@@ -114,7 +117,6 @@ namespace sqlite_reflection {
 
     protected:
         std::string PrepareSql() const override;
-        std::vector<std::string> GetValues() const;
         void* p_;
     };
 

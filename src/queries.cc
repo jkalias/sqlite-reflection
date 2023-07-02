@@ -75,6 +75,46 @@ void ExecutionQuery::Execute() {
     }
 }
 
+std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
+    const auto& members = record_.members;
+    std::vector<std::string> values;
+    
+    for (auto j = 0; j < members.size(); j++) {
+        const auto current_column = members[j].name;
+        const auto current_trait = members[j].trait;
+        std::string content;
+
+        switch (current_trait) {
+        case ReflectionMemberTrait::kInt:
+            {
+                auto& value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
+                content = StringUtilities::String(value);
+                break;
+            }
+
+        case ReflectionMemberTrait::kReal:
+            {
+                auto& value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
+                content = StringUtilities::String(value);
+                break;
+            }
+
+        case ReflectionMemberTrait::kText:
+            {
+                auto& value = (*(std::wstring*)((void*)GetMemberAddress(p, record_, j)));
+                content = StringUtilities::ToUtf8(value);
+                break;
+            }
+
+        default:
+            break;
+        }
+        values.emplace_back("'" + content + "'");
+    }
+    
+    return values;
+}
+
 // ------------------------------------------------------------------------
 
 
@@ -126,42 +166,7 @@ std::string InsertQuery::PrepareSql() const {
 }
 
 std::string InsertQuery::JoinedValues() const {
-    const auto& members = record_.members;
-    std::vector<std::string> values;
-    
-    for (auto j = 0; j < members.size(); j++) {
-        const auto current_column = members[j].name;
-        const auto current_trait = members[j].trait;
-        std::string content;
-
-        switch (current_trait) {
-        case ReflectionMemberTrait::kInt:
-            {
-                auto& value = (*(int64_t*)((void*)GetMemberAddress(p_, record_, j)));
-                content = StringUtilities::String(value);
-                break;
-            }
-
-        case ReflectionMemberTrait::kReal:
-            {
-                auto& value = (*(double*)((void*)GetMemberAddress(p_, record_, j)));
-                content = StringUtilities::String(value);
-                break;
-            }
-
-        case ReflectionMemberTrait::kText:
-            {
-                auto& value = (*(std::wstring*)((void*)GetMemberAddress(p_, record_, j)));
-                content = StringUtilities::ToUtf8(value);
-                break;
-            }
-
-        default:
-            break;
-        }
-        values.emplace_back("'" + content + "'");
-    }
-    
+    auto values = GetValues(p_);
     return StringUtilities::Join(values, ", ");
 }
 
@@ -178,7 +183,7 @@ std::string UpdateQuery::PrepareSql() const {
     sql += record_.name + " SET ";
     
     auto columns = GetRecordColumnNames();
-    auto values = GetValues();
+    auto values = GetValues(p_);
     
     std::vector<std::string> columns_with_values;
     columns_with_values.reserve(values.size());
@@ -196,46 +201,6 @@ std::string UpdateQuery::PrepareSql() const {
     sql += ";";
     
     return sql;
-}
-
-std::vector<std::string> UpdateQuery::GetValues() const {
-    const auto& members = record_.members;
-    std::vector<std::string> values;
-    
-    for (auto j = 0; j < members.size(); j++) {
-        const auto current_column = members[j].name;
-        const auto current_trait = members[j].trait;
-        std::string content;
-
-        switch (current_trait) {
-        case ReflectionMemberTrait::kInt:
-            {
-                auto& value = (*(int64_t*)((void*)GetMemberAddress(p_, record_, j)));
-                content = StringUtilities::String(value);
-                break;
-            }
-
-        case ReflectionMemberTrait::kReal:
-            {
-                auto& value = (*(double*)((void*)GetMemberAddress(p_, record_, j)));
-                content = StringUtilities::String(value);
-                break;
-            }
-
-        case ReflectionMemberTrait::kText:
-            {
-                auto& value = (*(std::wstring*)((void*)GetMemberAddress(p_, record_, j)));
-                content = StringUtilities::ToUtf8(value);
-                break;
-            }
-
-        default:
-            break;
-        }
-        values.emplace_back("'" + content + "'");
-    }
-    
-    return values;
 }
 
 // ------------------------------------------------------------------------
