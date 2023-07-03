@@ -31,190 +31,180 @@ struct sqlite3;
 struct sqlite3_stmt;
 
 namespace sqlite_reflection {
+	class QueryCondition
+	{
+	public:
+		virtual ~QueryCondition() = default;
+		virtual std::string Statement() const = 0;
+	};
 
-class QueryCondition {
-public:
-    virtual std::string Statement() const = 0;
-};
+	class REFLECTION_EXPORT SingleCondition final : public QueryCondition
+	{
+	public:
+		SingleCondition(const std::function<std::string()>& expression);
+		std::string Statement() const override;
 
-class REFLECTION_EXPORT SingleCondition final: public QueryCondition {
-public:
-    SingleCondition(const std::function<std::string()>& expression);
-    std::string Statement() const override;
-    
-protected:
-    const std::function<std::string()>& expression_;
-};
+	protected:
+		const std::function<std::string()>& expression_;
+	};
 
-class BinaryCondition: public QueryCondition {
-public:
-    BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol);
-    std::string Statement() const override;
-    
-protected:
-    const QueryCondition& left_;
-    const QueryCondition& right_;
-    std::string symbol_;
-};
+	class BinaryCondition : public QueryCondition
+	{
+	public:
+		BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol);
+		std::string Statement() const override;
 
-class REFLECTION_EXPORT AndCondition final: public BinaryCondition {
-public:
-    AndCondition(const QueryCondition& left, const QueryCondition& right);
-};
+	protected:
+		const QueryCondition& left_;
+		const QueryCondition& right_;
+		std::string symbol_;
+	};
 
-class REFLECTION_EXPORT OrCondition final: public BinaryCondition {
-public:
-    OrCondition(const QueryCondition& left, const QueryCondition& right);
-};
+	class REFLECTION_EXPORT AndCondition final : public BinaryCondition
+	{
+	public:
+		AndCondition(const QueryCondition& left, const QueryCondition& right);
+	};
 
+	class REFLECTION_EXPORT OrCondition final : public BinaryCondition
+	{
+	public:
+		OrCondition(const QueryCondition& left, const QueryCondition& right);
+	};
 
-// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
 
-class REFLECTION_EXPORT ConditionBuilder {
-public:
-    template <typename T>
-    static ConditionBuilder Init() {
-        ConditionBuilder builder(GetRecordFromTypeId(typeid(T).name()));
-        return builder;
-    }
-    
-    //public ConditionBuilder
-    
-protected:
-    ConditionBuilder(const Reflection& record)
-    : record_(record)
-    {
-    }
-    
-    const Reflection& record_;
-};
+	class REFLECTION_EXPORT ConditionBuilder
+	{
+	public:
+		template <typename T>
+		static ConditionBuilder Init() {
+			const ConditionBuilder builder(GetRecordFromTypeId(typeid(T).name()));
+			return builder;
+		}
 
+		//public ConditionBuilder
 
-// ------------------------------------------------------------------------
+	protected:
+		ConditionBuilder(const Reflection& record)
+			: record_(record) { }
 
-    class REFLECTION_EXPORT Query
-    {
-    public:
-        virtual ~Query() = default;
+		const Reflection& record_;
+	};
 
-    protected:
-        Query(sqlite3* db, const Reflection& record);
-        virtual std::string PrepareSql() const = 0;
-        std::string JoinedRecordColumnNames() const;
-        std::vector<std::string> GetRecordColumnNames() const;
-        virtual std::string CustomizedColumnName(const std::string& name) const;
-        
-        sqlite3* db_;
-        const Reflection &record_;
-    };
+	// ------------------------------------------------------------------------
 
+	class REFLECTION_EXPORT Query
+	{
+	public:
+		virtual ~Query() = default;
 
-// ------------------------------------------------------------------------
+	protected:
+		Query(sqlite3* db, const Reflection& record);
+		virtual std::string PrepareSql() const = 0;
+		std::string JoinedRecordColumnNames() const;
+		std::vector<std::string> GetRecordColumnNames() const;
+		virtual std::string CustomizedColumnName(const std::string& name) const;
 
+		sqlite3* db_;
+		const Reflection& record_;
+	};
+
+	// ------------------------------------------------------------------------
 
 	class REFLECTION_EXPORT ExecutionQuery : public Query
 	{
 	public:
-        virtual ~ExecutionQuery() = default;
+		~ExecutionQuery() override = default;
 		explicit ExecutionQuery(sqlite3* db, const Reflection& record);
-		void Execute();
-        
-    protected:
-        std::vector<std::string> GetValues(void* p) const;
+		void Execute() const;
+
+	protected:
+		std::vector<std::string> GetValues(void* p) const;
 	};
 
-// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
 
+	class REFLECTION_EXPORT CreateTableQuery final : public ExecutionQuery
+	{
+	public:
+		~CreateTableQuery() override = default;
+		explicit CreateTableQuery(sqlite3* db, const Reflection& record);
 
-    class REFLECTION_EXPORT CreateTableQuery final : public ExecutionQuery
-    {
-    public:
-        ~CreateTableQuery() = default;
-        explicit CreateTableQuery(sqlite3* db, const Reflection& record);
+	protected:
+		std::string PrepareSql() const override;
+		std::string CustomizedColumnName(const std::string& name) const override;
+	};
 
-    protected:
-        std::string PrepareSql() const override;
-        std::string CustomizedColumnName(const std::string& name) const override;
-    };
+	// ------------------------------------------------------------------------
 
+	class REFLECTION_EXPORT DeleteQuery final : public ExecutionQuery
+	{
+	public:
+		~DeleteQuery() override = default;
+		explicit DeleteQuery(sqlite3* db, const Reflection& record, int64_t id);
 
-// ------------------------------------------------------------------------
+	protected:
+		std::string PrepareSql() const override;
+		int64_t id_;
+	};
 
+	// ------------------------------------------------------------------------
 
-    class REFLECTION_EXPORT DeleteQuery final : public ExecutionQuery
-    {
-    public:
-        ~DeleteQuery() = default;
-        explicit DeleteQuery(sqlite3* db, const Reflection& record, int64_t id);
+	class REFLECTION_EXPORT InsertQuery final : public ExecutionQuery
+	{
+	public:
+		~InsertQuery() override = default;
+		explicit InsertQuery(sqlite3* db, const Reflection& record, void* p);
 
-    protected:
-        std::string PrepareSql() const override;
-        int64_t id_;
-    };
+	protected:
+		std::string PrepareSql() const override;
+		std::string JoinedValues() const;
+		void* p_;
+	};
 
+	// ------------------------------------------------------------------------
 
-// ------------------------------------------------------------------------
+	class REFLECTION_EXPORT UpdateQuery final : public ExecutionQuery
+	{
+	public:
+		~UpdateQuery() override = default;
+		explicit UpdateQuery(sqlite3* db, const Reflection& record, void* p);
 
+	protected:
+		std::string PrepareSql() const override;
+		void* p_;
+	};
 
-    class REFLECTION_EXPORT InsertQuery final : public ExecutionQuery
-    {
-    public:
-        ~InsertQuery() = default;
-        explicit InsertQuery(sqlite3* db, const Reflection& record, void* p);
+	// ------------------------------------------------------------------------
+	struct QueryResults;
 
-    protected:
-        std::string PrepareSql() const override;
-        std::string JoinedValues() const;
-        void* p_;
-    };
+	class REFLECTION_EXPORT ResultsQuery : public Query
+	{
+	public:
+		explicit ResultsQuery(sqlite3* db, const Reflection& record);
+		~ResultsQuery() override;
 
+		QueryResults GetResults();
+		static void Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i);
 
-// ------------------------------------------------------------------------
+	protected:
+		sqlite3_stmt* stmt_;
 
+	private:
+		std::wstring GetColumnValue(int col) const;
+	};
 
-    class REFLECTION_EXPORT UpdateQuery final : public ExecutionQuery
-    {
-    public:
-        ~UpdateQuery() = default;
-        explicit UpdateQuery(sqlite3* db, const Reflection& record, void* p);
-
-    protected:
-        std::string PrepareSql() const override;
-        void* p_;
-    };
-
-
-// ------------------------------------------------------------------------
-    struct QueryResults;
-
-    class REFLECTION_EXPORT ResultsQuery : public Query
-    {
-    public:
-        explicit ResultsQuery(sqlite3* db, const Reflection& record);
-        virtual ~ResultsQuery();
-        
-        QueryResults GetResults();
-        static void Hydrate(void *p, const QueryResults& query_results, const Reflection& record, size_t i);
-        
-    protected:
-        sqlite3_stmt* stmt_;
-
-    private:
-        std::wstring GetColumnValue(const int col);
-    };
-
-
-// ------------------------------------------------------------------------
-
+	// ------------------------------------------------------------------------
 
 	class REFLECTION_EXPORT FetchRecordsQuery final : public ResultsQuery
 	{
 	public:
-        explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id);
+		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id);
 		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record);
-        
-    protected:
-        std::string PrepareSql() const override;
-        std::string id_;
+
+	protected:
+		std::string PrepareSql() const override;
+		std::string id_;
 	};
 }

@@ -28,218 +28,209 @@
 
 using namespace sqlite_reflection;
 
-class DatabaseTest: public ::testing::Test {
-    void SetUp() override {
-        Database::Initialize("");
-    }
-    
-    void TearDown() override {
-        Database::Finalize();
-    }
+class DatabaseTest : public ::testing::Test
+{
+	void SetUp() override {
+		Database::Initialize("");
+	}
+
+	void TearDown() override {
+		Database::Finalize();
+	}
 };
 
-TEST_F(DatabaseTest, Initialization)
-{
-    const auto &db = Database::Instance();
-    
-    const auto all_persons = db.FetchAll<Person>();
-    EXPECT_EQ(0, all_persons.size());
-    
-    const auto all_pets = db.FetchAll<Pet>();
-    EXPECT_EQ(0, all_pets.size());
+TEST_F(DatabaseTest, Initialization) {
+	const auto& db = Database::Instance();
+
+	const auto all_persons = db.FetchAll<Person>();
+	EXPECT_EQ(0, all_persons.size());
+
+	const auto all_pets = db.FetchAll<Pet>();
+	EXPECT_EQ(0, all_pets.size());
 }
 
-TEST_F(DatabaseTest, SingleInsertion)
-{
-    const auto &db = Database::Instance();
-    
-    Person p {1, L"παναγιώτης", L"ανδριανόπουλος", 39};
-    db.Save(p);
-    
-    const auto all_persons = db.FetchAll<Person>();
-    EXPECT_EQ(1, all_persons.size());
-    
-    EXPECT_EQ(p.first_name, all_persons[0].first_name);
-    EXPECT_EQ(p.last_name, all_persons[0].last_name);
-    EXPECT_EQ(p.age, all_persons[0].age);
-    EXPECT_EQ(p.id, all_persons[0].id);
+TEST_F(DatabaseTest, SingleInsertion) {
+	const auto& db = Database::Instance();
+
+	Person p{1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+	db.Save(p);
+
+	const auto all_persons = db.FetchAll<Person>();
+	EXPECT_EQ(1, all_persons.size());
+
+	EXPECT_EQ(p.first_name, all_persons[0].first_name);
+	EXPECT_EQ(p.last_name, all_persons[0].last_name);
+	EXPECT_EQ(p.age, all_persons[0].age);
+	EXPECT_EQ(p.id, all_persons[0].id);
 }
 
-TEST_F(DatabaseTest, MultipleInsertions)
-{
-    const auto &db = Database::Instance();
-    
-    std::vector<Person> persons;
-    
-    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
-    persons.push_back({ 5, L"peter", L"meier", 32} );
-    
-    db.Save(persons);
-    
-    const auto saved_persons = db.FetchAll<Person>();
-    EXPECT_EQ(2, saved_persons.size());
-    
-    for (auto i = 0; i < saved_persons.size(); ++i) {
-        EXPECT_EQ(persons[i].id, saved_persons[i].id);
-        EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
-        EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
-        EXPECT_EQ(persons[i].age, saved_persons[i].age);
-    }
+TEST_F(DatabaseTest, MultipleInsertions) {
+	const auto& db = Database::Instance();
+
+	std::vector<Person> persons;
+
+	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
+	persons.push_back({5, L"peter", L"meier", 32});
+
+	db.Save(persons);
+
+	const auto saved_persons = db.FetchAll<Person>();
+	EXPECT_EQ(2, saved_persons.size());
+
+	for (auto i = 0; i < saved_persons.size(); ++i) {
+		EXPECT_EQ(persons[i].id, saved_persons[i].id);
+		EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
+		EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
+		EXPECT_EQ(persons[i].age, saved_persons[i].age);
+	}
 }
 
-TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType)
-{
-    const auto &db = Database::Instance();
-    
-    Person p {1, L"παναγιώτης", L"ανδριανόπουλος", 39};
-    db.Save(p);
-    
-    const auto all_pets = db.FetchAll<Pet>();
-    EXPECT_EQ(0, all_pets.size());
+TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType) {
+	const auto& db = Database::Instance();
+
+	Person p{1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+	db.Save(p);
+
+	const auto all_pets = db.FetchAll<Pet>();
+	EXPECT_EQ(0, all_pets.size());
 }
 
-TEST_F(DatabaseTest, SingleUpdate)
-{
-    const auto &db = Database::Instance();
-    
-    Person p {1, L"παναγιώτης", L"ανδριανόπουλος", 39};
-    db.Save(p);
-    
-    p.age = 23;
-    p.first_name = L"max";
-    
-    db.Update(p);
-    
-    const auto all_persons = db.FetchAll<Person>();
-    EXPECT_EQ(1, all_persons.size());
-    
-    EXPECT_EQ(p.first_name, all_persons[0].first_name);
-    EXPECT_EQ(p.last_name, all_persons[0].last_name);
-    EXPECT_EQ(p.age, all_persons[0].age);
-    EXPECT_EQ(p.id, all_persons[0].id);
+TEST_F(DatabaseTest, SingleUpdate) {
+	const auto& db = Database::Instance();
+
+	Person p{1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+	db.Save(p);
+
+	p.age = 23;
+	p.first_name = L"max";
+
+	db.Update(p);
+
+	const auto all_persons = db.FetchAll<Person>();
+	EXPECT_EQ(1, all_persons.size());
+
+	EXPECT_EQ(p.first_name, all_persons[0].first_name);
+	EXPECT_EQ(p.last_name, all_persons[0].last_name);
+	EXPECT_EQ(p.age, all_persons[0].age);
+	EXPECT_EQ(p.id, all_persons[0].id);
 }
 
-TEST_F(DatabaseTest, MultipleUpdates)
-{
-    const auto &db = Database::Instance();
-    
-    std::vector<Person> persons;
-    
-    persons.push_back({ 3, L"john", L"doe", 28 });
-    persons.push_back({ 5, L"mary", L"poppins", 20} );
-    
-    db.Save(persons);
-    
-    persons[0].last_name = L"rambo";
-    persons[1].age = 20;
-    
-    db.Update(persons);
-    
-    const auto saved_persons = db.FetchAll<Person>();
-    EXPECT_EQ(2, saved_persons.size());
-    
-    for (auto i = 0; i < saved_persons.size(); ++i) {
-        EXPECT_EQ(persons[i].id, saved_persons[i].id);
-        EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
-        EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
-        EXPECT_EQ(persons[i].age, saved_persons[i].age);
-    }
+TEST_F(DatabaseTest, MultipleUpdates) {
+	const auto& db = Database::Instance();
+
+	std::vector<Person> persons;
+
+	persons.push_back({3, L"john", L"doe", 28});
+	persons.push_back({5, L"mary", L"poppins", 20});
+
+	db.Save(persons);
+
+	persons[0].last_name = L"rambo";
+	persons[1].age = 20;
+
+	db.Update(persons);
+
+	const auto saved_persons = db.FetchAll<Person>();
+	EXPECT_EQ(2, saved_persons.size());
+
+	for (auto i = 0; i < saved_persons.size(); ++i) {
+		EXPECT_EQ(persons[i].id, saved_persons[i].id);
+		EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
+		EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
+		EXPECT_EQ(persons[i].age, saved_persons[i].age);
+	}
 }
 
-TEST_F(DatabaseTest, DeleteWithRecord)
-{
-    const auto &db = Database::Instance();
-    
-    std::vector<Person> persons;
-    
-    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
-    persons.push_back({ 5, L"peter", L"meier", 32} );
-    persons.push_back({ 13, L"mary", L"poppins", 20} );
-    
-    db.Save(persons);
-    
-    auto saved_persons = db.FetchAll<Person>();
-    EXPECT_EQ(3, saved_persons.size());
-    
-    db.Delete(persons[1]);
-    saved_persons = db.FetchAll<Person>();
-    EXPECT_EQ(2, saved_persons.size());
-    
-    auto i = 0;
-    EXPECT_EQ(3, saved_persons[i].id);
-    EXPECT_EQ(L"παναγιώτης", saved_persons[i].first_name);
-    EXPECT_EQ(L"ανδριανόπουλος", saved_persons[i].last_name);
-    EXPECT_EQ(28, saved_persons[i].age);
-    
-    i++;
-    EXPECT_EQ(13, saved_persons[i].id);
-    EXPECT_EQ(L"mary", saved_persons[i].first_name);
-    EXPECT_EQ(L"poppins", saved_persons[i].last_name);
-    EXPECT_EQ(20, saved_persons[i].age);
+TEST_F(DatabaseTest, DeleteWithRecord) {
+	const auto& db = Database::Instance();
+
+	std::vector<Person> persons;
+
+	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
+	persons.push_back({5, L"peter", L"meier", 32});
+	persons.push_back({13, L"mary", L"poppins", 20});
+
+	db.Save(persons);
+
+	auto saved_persons = db.FetchAll<Person>();
+	EXPECT_EQ(3, saved_persons.size());
+
+	db.Delete(persons[1]);
+	saved_persons = db.FetchAll<Person>();
+	EXPECT_EQ(2, saved_persons.size());
+
+	auto i = 0;
+	EXPECT_EQ(3, saved_persons[i].id);
+	EXPECT_EQ(L"παναγιώτης", saved_persons[i].first_name);
+	EXPECT_EQ(L"ανδριανόπουλος", saved_persons[i].last_name);
+	EXPECT_EQ(28, saved_persons[i].age);
+
+	i++;
+	EXPECT_EQ(13, saved_persons[i].id);
+	EXPECT_EQ(L"mary", saved_persons[i].first_name);
+	EXPECT_EQ(L"poppins", saved_persons[i].last_name);
+	EXPECT_EQ(20, saved_persons[i].age);
 }
 
-TEST_F(DatabaseTest, DeleteWithId)
-{
-    const auto &db = Database::Instance();
-    
-    std::vector<Person> persons;
-    
-    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
-    persons.push_back({ 5, L"peter", L"meier", 32} );
-    persons.push_back({ 13, L"mary", L"poppins", 20} );
-    
-    db.Save(persons);
-    
-    auto saved_persons = db.FetchAll<Person>();
-    EXPECT_EQ(3, saved_persons.size());
-    
-    db.Delete<Person>(persons[1].id);
-    saved_persons = db.FetchAll<Person>();
-    EXPECT_EQ(2, saved_persons.size());
-    
-    auto i = 0;
-    EXPECT_EQ(3, saved_persons[i].id);
-    EXPECT_EQ(L"παναγιώτης", saved_persons[i].first_name);
-    EXPECT_EQ(L"ανδριανόπουλος", saved_persons[i].last_name);
-    EXPECT_EQ(28, saved_persons[i].age);
-    
-    i++;
-    EXPECT_EQ(13, saved_persons[i].id);
-    EXPECT_EQ(L"mary", saved_persons[i].first_name);
-    EXPECT_EQ(L"poppins", saved_persons[i].last_name);
-    EXPECT_EQ(20, saved_persons[i].age);
+TEST_F(DatabaseTest, DeleteWithId) {
+	const auto& db = Database::Instance();
+
+	std::vector<Person> persons;
+
+	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
+	persons.push_back({5, L"peter", L"meier", 32});
+	persons.push_back({13, L"mary", L"poppins", 20});
+
+	db.Save(persons);
+
+	auto saved_persons = db.FetchAll<Person>();
+	EXPECT_EQ(3, saved_persons.size());
+
+	db.Delete<Person>(persons[1].id);
+	saved_persons = db.FetchAll<Person>();
+	EXPECT_EQ(2, saved_persons.size());
+
+	auto i = 0;
+	EXPECT_EQ(3, saved_persons[i].id);
+	EXPECT_EQ(L"παναγιώτης", saved_persons[i].first_name);
+	EXPECT_EQ(L"ανδριανόπουλος", saved_persons[i].last_name);
+	EXPECT_EQ(28, saved_persons[i].age);
+
+	i++;
+	EXPECT_EQ(13, saved_persons[i].id);
+	EXPECT_EQ(L"mary", saved_persons[i].first_name);
+	EXPECT_EQ(L"poppins", saved_persons[i].last_name);
+	EXPECT_EQ(20, saved_persons[i].age);
 }
 
-TEST_F(DatabaseTest, SingleFetch)
-{
-    const auto &db = Database::Instance();
-    
-    std::vector<Person> persons;
-    
-    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
-    persons.push_back({ 5, L"peter", L"meier", 32} );
-    persons.push_back({ 13, L"mary", L"poppins", 20} );
-    
-    db.Save(persons);
-    
-    const auto fetched_person = db.Fetch<Person>(5);
-    EXPECT_EQ(5, fetched_person.id);
-    EXPECT_EQ(L"peter", fetched_person.first_name);
-    EXPECT_EQ(L"meier", fetched_person.last_name);
-    EXPECT_EQ(32, fetched_person.age);
+TEST_F(DatabaseTest, SingleFetch) {
+	const auto& db = Database::Instance();
+
+	std::vector<Person> persons;
+
+	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
+	persons.push_back({5, L"peter", L"meier", 32});
+	persons.push_back({13, L"mary", L"poppins", 20});
+
+	db.Save(persons);
+
+	const auto fetched_person = db.Fetch<Person>(5);
+	EXPECT_EQ(5, fetched_person.id);
+	EXPECT_EQ(L"peter", fetched_person.first_name);
+	EXPECT_EQ(L"meier", fetched_person.last_name);
+	EXPECT_EQ(32, fetched_person.age);
 }
 
-TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException)
-{
-    const auto &db = Database::Instance();
-    
-    std::vector<Person> persons;
-    
-    persons.push_back({ 3, L"παναγιώτης", L"ανδριανόπουλος", 28 });
-    persons.push_back({ 5, L"peter", L"meier", 32} );
-    persons.push_back({ 13, L"mary", L"poppins", 20} );
-    
-    db.Save(persons);
+TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException) {
+	const auto& db = Database::Instance();
 
-    EXPECT_ANY_THROW(db.Fetch<Person>(15));
+	std::vector<Person> persons;
+
+	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
+	persons.push_back({5, L"peter", L"meier", 32});
+	persons.push_back({13, L"mary", L"poppins", 20});
+
+	db.Save(persons);
+
+	EXPECT_ANY_THROW(db.Fetch<Person>(15));
 }

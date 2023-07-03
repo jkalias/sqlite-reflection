@@ -35,329 +35,292 @@
 using namespace sqlite_reflection;
 
 BinaryCondition::BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol)
-: left_(left), right_(right), symbol_(symbol)
-{
-}
-
+	: left_(left), right_(right), symbol_(symbol) {}
 
 SingleCondition::SingleCondition(const std::function<std::string()>& expression)
-: expression_(expression)
-{
-}
+	: expression_(expression) {}
 
 std::string SingleCondition::Statement() const {
-    return expression_();
+	return expression_();
 }
 
-
 std::string BinaryCondition::Statement() const {
-    return std::string("(") + left_.Statement() + " " + symbol_ + " " + right_.Statement() + std::string(")");
+	return std::string("(") + left_.Statement() + " " + symbol_ + " " + right_.Statement() + std::string(")");
 }
 
 AndCondition::AndCondition(const QueryCondition& left, const QueryCondition& right)
-: BinaryCondition(left, right, "AND")
-{}
+	: BinaryCondition(left, right, "AND") {}
 
 OrCondition::OrCondition(const QueryCondition& left, const QueryCondition& right)
-: BinaryCondition(left, right, "OR")
-{}
+	: BinaryCondition(left, right, "OR") {}
 
 // ------------------------------------------------------------------------
 
-
-
 Query::Query(sqlite3* db, const Reflection& record)
-: db_(db), record_(record)
-{
-}
+	: db_(db), record_(record) {}
 
 std::string Query::JoinedRecordColumnNames() const {
-    auto column_names = GetRecordColumnNames();
-    return StringUtilities::Join(column_names, ", ");
+	const auto column_names = GetRecordColumnNames();
+	return StringUtilities::Join(column_names, ", ");
 }
 
 std::vector<std::string> Query::GetRecordColumnNames() const {
-    std::vector<std::string> column_names;
-    std::transform(
-                   record_.members.cbegin(),
-                   record_.members.cend(),
-                   std::back_inserter(column_names),
-                   [&](const Reflection::Member& member){ return CustomizedColumnName(member.name); });
-    return column_names;
+	std::vector<std::string> column_names;
+	std::transform(
+		record_.members.cbegin(),
+		record_.members.cend(),
+		std::back_inserter(column_names),
+		[&](const Reflection::Member& member){ return CustomizedColumnName(member.name); });
+	return column_names;
 }
 
 std::string Query::CustomizedColumnName(const std::string& name) const {
-    return name;
+	return name;
 }
 
 // ------------------------------------------------------------------------
 
-
 ExecutionQuery::ExecutionQuery(sqlite3* db, const Reflection& record)
-: Query(db, record)
-{
-}
+	: Query(db, record) {}
 
-void ExecutionQuery::Execute() {
-    auto sql = PrepareSql();
-    if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
-        throw std::domain_error((sql + ": Query could not be executed").data());
-    }
+void ExecutionQuery::Execute() const {
+	const auto sql = PrepareSql();
+	if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
+		throw std::domain_error((sql + ": Query could not be executed").data());
+	}
 }
 
 std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
-    const auto& members = record_.members;
-    std::vector<std::string> values;
-    
-    for (auto j = 0; j < members.size(); j++) {
-        const auto current_column = members[j].name;
-        const auto current_trait = members[j].trait;
-        std::string content;
+	const auto& members = record_.members;
+	std::vector<std::string> values;
 
-        switch (current_trait) {
-        case ReflectionMemberTrait::kInt:
-            {
-                auto& value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
-                content = StringUtilities::String(value);
-                break;
-            }
+	for (auto j = 0; j < members.size(); j++) {
+		const auto current_column = members[j].name;
+		const auto current_trait = members[j].trait;
+		std::string content;
 
-        case ReflectionMemberTrait::kReal:
-            {
-                auto& value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
-                content = StringUtilities::String(value);
-                break;
-            }
+		switch (current_trait) {
+		case ReflectionMemberTrait::kInt:
+			{
+				const auto& value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
+				content = StringUtilities::String(value);
+				break;
+			}
 
-        case ReflectionMemberTrait::kText:
-            {
-                auto& value = (*(std::wstring*)((void*)GetMemberAddress(p, record_, j)));
-                content = StringUtilities::ToUtf8(value);
-                break;
-            }
+		case ReflectionMemberTrait::kReal:
+			{
+				const auto& value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
+				content = StringUtilities::String(value);
+				break;
+			}
 
-        default:
-            break;
-        }
-        values.emplace_back("'" + content + "'");
-    }
-    
-    return values;
+		case ReflectionMemberTrait::kText:
+			{
+				auto& value = (*(std::wstring*)((void*)GetMemberAddress(p, record_, j)));
+				content = StringUtilities::ToUtf8(value);
+				break;
+			}
+
+		default:
+			break;
+		}
+		values.emplace_back("'" + content + "'");
+	}
+
+	return values;
 }
 
 // ------------------------------------------------------------------------
 
-
 CreateTableQuery::CreateTableQuery(sqlite3* db, const Reflection& record)
-: ExecutionQuery(db, record)
-{    
-}
+	: ExecutionQuery(db, record) { }
 
 std::string CreateTableQuery::PrepareSql() const {
-    std::string sql("CREATE TABLE IF NOT EXISTS ");
-    sql += record_.name + " (" + JoinedRecordColumnNames() + ");";
-    return sql;
+	std::string sql("CREATE TABLE IF NOT EXISTS ");
+	sql += record_.name + " (" + JoinedRecordColumnNames() + ");";
+	return sql;
 }
 
 std::string CreateTableQuery::CustomizedColumnName(const std::string& name) const {
-    return name.compare(std::string("id")) == 0
-    ? name + " PRIMARY KEY"
-    : name;
+	return name.compare(std::string("id")) == 0
+		       ? name + " PRIMARY KEY"
+		       : name;
 }
 
 // ------------------------------------------------------------------------
-
 
 DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, int64_t id)
-: ExecutionQuery(db, record), id_(id)
-{
-}
+	: ExecutionQuery(db, record), id_(id) {}
 
 std::string DeleteQuery::PrepareSql() const {
-    std::string sql("DELETE FROM ");
-    sql += record_.name + " WHERE id = '" + StringUtilities::String(id_) + "';";
-    return sql;
+	std::string sql("DELETE FROM ");
+	sql += record_.name + " WHERE id = '" + StringUtilities::String(id_) + "';";
+	return sql;
 }
-
 
 // ------------------------------------------------------------------------
 
-
 InsertQuery::InsertQuery(sqlite3* db, const Reflection& record, void* p)
-: ExecutionQuery(db, record), p_(p)
-{
-}
+	: ExecutionQuery(db, record), p_(p) {}
 
 std::string InsertQuery::PrepareSql() const {
-    std::string sql("INSERT INTO ");
-    sql += record_.name + " (" + JoinedRecordColumnNames() + ") VALUES (";
-    sql += JoinedValues() + ");";
-    return sql;
+	std::string sql("INSERT INTO ");
+	sql += record_.name + " (" + JoinedRecordColumnNames() + ") VALUES (";
+	sql += JoinedValues() + ");";
+	return sql;
 }
 
 std::string InsertQuery::JoinedValues() const {
-    auto values = GetValues(p_);
-    return StringUtilities::Join(values, ", ");
+	const auto values = GetValues(p_);
+	return StringUtilities::Join(values, ", ");
 }
 
 // ------------------------------------------------------------------------
-
 
 UpdateQuery::UpdateQuery(sqlite3* db, const Reflection& record, void* p)
-: ExecutionQuery(db, record), p_(p)
-{
-}
+	: ExecutionQuery(db, record), p_(p) {}
 
 std::string UpdateQuery::PrepareSql() const {
-    std::string sql("UPDATE ");
-    sql += record_.name + " SET ";
-    
-    auto columns = GetRecordColumnNames();
-    auto values = GetValues(p_);
-    
-    std::vector<std::string> columns_with_values;
-    columns_with_values.reserve(values.size());
-    std::transform(columns.begin() + 1,
-                   columns.end(),
-                   values.begin() + 1,
-                   std::back_inserter(columns_with_values),
-                   [](const std::string& column, const std::string& value)
-                   {
-                       return column + "=" + value;
-                   });
-    
-    sql += StringUtilities::Join(columns_with_values, ", ");
-    sql += " WHERE " + columns[0] + "=" + values[0];
-    sql += ";";
-    
-    return sql;
+	std::string sql("UPDATE ");
+	sql += record_.name + " SET ";
+
+	auto columns = GetRecordColumnNames();
+	const auto values = GetValues(p_);
+
+	std::vector<std::string> columns_with_values;
+	columns_with_values.reserve(values.size());
+	std::transform(columns.begin() + 1,
+	               columns.end(),
+	               values.begin() + 1,
+	               std::back_inserter(columns_with_values),
+	               [](const std::string& column, const std::string& value){
+		               return column + "=" + value;
+	               });
+
+	sql += StringUtilities::Join(columns_with_values, ", ");
+	sql += " WHERE " + columns[0] + "=" + values[0];
+	sql += ";";
+
+	return sql;
 }
 
 // ------------------------------------------------------------------------
 
-
 ResultsQuery::ResultsQuery(sqlite3* db, const Reflection& record)
-: Query(db, record), stmt_(nullptr)
-{
-}
+	: Query(db, record), stmt_(nullptr) {}
 
 ResultsQuery::~ResultsQuery() {
-    if (stmt_) {
-        sqlite3_finalize(stmt_);
-    }
+	if (stmt_) {
+		sqlite3_finalize(stmt_);
+	}
 }
 
 QueryResults ResultsQuery::GetResults() {
-    auto sql = PrepareSql();
-    
-    if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
-        sqlite3_close(db_);
-        throw std::runtime_error((sql + ": could not get results").data());
-    }
-    
-    const auto column_count = sqlite3_column_count(stmt_);
-    
-    QueryResults results;
-    results.column_names.reserve(column_count);
-    for (auto i = 0; i < column_count; i++) {
-        results.column_names.emplace_back(sqlite3_column_name(stmt_, i));
-    }
-    
-    while (sqlite3_step(stmt_) != SQLITE_DONE) {
-        std::vector<std::wstring> row;
-        row.reserve(column_count);
-        for (auto col = 0; col < column_count; col++) {
-            auto value = GetColumnValue(col);
-            row.emplace_back(value);
-        }
-        results.row_values.emplace_back(row);
-    }
-    
-    return results;
+	const auto sql = PrepareSql();
+
+	if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
+		sqlite3_close(db_);
+		throw std::runtime_error((sql + ": could not get results").data());
+	}
+
+	const auto column_count = sqlite3_column_count(stmt_);
+
+	QueryResults results;
+	results.column_names.reserve(column_count);
+	for (auto i = 0; i < column_count; i++) {
+		results.column_names.emplace_back(sqlite3_column_name(stmt_, i));
+	}
+
+	while (sqlite3_step(stmt_) != SQLITE_DONE) {
+		std::vector<std::wstring> row;
+		row.reserve(column_count);
+		for (auto col = 0; col < column_count; col++) {
+			auto value = GetColumnValue(col);
+			row.emplace_back(value);
+		}
+		results.row_values.emplace_back(row);
+	}
+
+	return results;
 }
 
-void ResultsQuery::Hydrate(void *p, const QueryResults &query_results, const Reflection &record, size_t i) {
-    for (auto j = 0; j < query_results.column_names.size(); j++) {
-        const auto current_column = query_results.column_names[j];
-        const auto member_index = record.member_index_mapping.at(current_column);
-        const auto current_trait = record.members[member_index].trait;
-        const auto& content = query_results.row_values[i][j];
-        if (content == L"") {
-            continue;
-        }
+void ResultsQuery::Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i) {
+	for (auto j = 0; j < query_results.column_names.size(); j++) {
+		const auto current_column = query_results.column_names[j];
+		const auto member_index = record.member_index_mapping.at(current_column);
+		const auto current_trait = record.members[member_index].trait;
+		const auto& content = query_results.row_values[i][j];
+		if (content == L"") {
+			continue;
+		}
 
-        switch (current_trait) {
-        case ReflectionMemberTrait::kInt:
-            {
-                auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, member_index)));
-                v = StringUtilities::Int(content);
-                break;
-            }
+		switch (current_trait) {
+		case ReflectionMemberTrait::kInt:
+			{
+				auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, member_index)));
+				v = StringUtilities::Int(content);
+				break;
+			}
 
-        case ReflectionMemberTrait::kReal:
-            {
-                auto& v = (*(double*)((void*)GetMemberAddress(p, record, member_index)));
-                v = StringUtilities::Double(content);
-                break;
-            }
+		case ReflectionMemberTrait::kReal:
+			{
+				auto& v = (*(double*)((void*)GetMemberAddress(p, record, member_index)));
+				v = StringUtilities::Double(content);
+				break;
+			}
 
-        case ReflectionMemberTrait::kText:
-            {
-                auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, member_index)));
-                v = content;
-                break;
-            }
+		case ReflectionMemberTrait::kText:
+			{
+				auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, member_index)));
+				v = content;
+				break;
+			}
 
-        default:
-            break;
-        }
-    }
+		default:
+			break;
+		}
+	}
 }
 
-std::wstring ResultsQuery::GetColumnValue(const int col) {
-    const int col_type = sqlite3_column_type(stmt_, col);
-    switch (col_type) {
-        case SQLITE_INTEGER:
-            return std::to_wstring(sqlite3_column_int(stmt_, col));
-            
-        case SQLITE_FLOAT:
-            return std::to_wstring(sqlite3_column_double(stmt_, col));
-            
-        case SQLITE_TEXT:
-        {
-            const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
-            return StringUtilities::FromUtf8(content);
-        }
-            
-        case SQLITE_BLOB:
-            return L"blob";
-            
-        default:
-            return L"";
-    }
+std::wstring ResultsQuery::GetColumnValue(const int col) const {
+	const int col_type = sqlite3_column_type(stmt_, col);
+	switch (col_type) {
+	case SQLITE_INTEGER:
+		return std::to_wstring(sqlite3_column_int(stmt_, col));
+
+	case SQLITE_FLOAT:
+		return std::to_wstring(sqlite3_column_double(stmt_, col));
+
+	case SQLITE_TEXT:
+		{
+			const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
+			return StringUtilities::FromUtf8(content);
+		}
+
+	case SQLITE_BLOB:
+		return L"blob";
+
+	default:
+		return L"";
+	}
 }
 
 // ------------------------------------------------------------------------
 
 FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id)
-: ResultsQuery(db, record), id_(StringUtilities::String(id))
-{
-}
+	: ResultsQuery(db, record), id_(StringUtilities::String(id)) {}
 
 FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record)
-: ResultsQuery(db, record), id_("")
-{
-}
+	: ResultsQuery(db, record), id_("") {}
 
 std::string FetchRecordsQuery::PrepareSql() const {
-    std::string sql("SELECT * FROM ");
-    sql += record_.name;
-    if (std::string("").compare(id_) == 0) {
-        sql += ";";
-    } else {
-        sql += " WHERE id ='" + id_ + "';";
-    }
-    return sql;
+	std::string sql("SELECT * FROM ");
+	sql += record_.name;
+	if (std::string("").compare(id_) == 0) {
+		sql += ";";
+	}
+	else {
+		sql += " WHERE id ='" + id_ + "';";
+	}
+	return sql;
 }
-
-

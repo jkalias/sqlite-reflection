@@ -47,7 +47,7 @@ enum class REFLECTION_EXPORT ReflectionMemberTrait
 struct REFLECTION_EXPORT Reflection
 {
 	Reflection()
-    : size(0) {};
+		: size(0) {};
 
 	class Member
 	{

@@ -35,12 +35,11 @@ struct sqlite3_stmt;
 static std::map<int, std::function<void*(sqlite3_stmt*, int)>> value_callback_mapping;
 
 namespace sqlite_reflection {
-
 	class REFLECTION_EXPORT Database
 	{
 	public:
 		static void Initialize(const std::string& path = "");
-        static void Finalize();
+		static void Finalize();
 		static const Database& Instance();
 
 		Database(Database const&) = delete;
@@ -49,78 +48,78 @@ namespace sqlite_reflection {
 		template <typename T>
 		std::vector<T> FetchAll() const {
 			const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
+			const auto& record = GetRecord(type_id);
 			const auto& query_result = FetchAll(record);
 			return Hydrate<T>(query_result, record);
 		}
-        
-        template <typename T>
-        T Fetch(int64_t id) const {
-            const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
-            const auto& query_result = Fetch(record, id);
-            if (query_result.row_values.size() != 1) {
-                throw std::runtime_error("No record with this id found");
-            }
-            return Hydrate<T>(query_result, record)[0];
-        }
-        
-        template <typename T>
-        void Save(const T& model) const {
-            const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
-            Save((void*)&model, record);
-        }
-        
-        template <typename T>
-        void Save(const std::vector<T>& models) const {
-            const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
-            for (const auto& model: models) {
-                Save((void*)&model, record);
-            }
-        }
-        
-        template <typename T>
-        void Update(const T& model) const {
-            const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
-            Update((void*)&model, record);
-        }
-        
-        template <typename T>
-        void Update(const std::vector<T>& models) const {
-            const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
-            for (const auto& model: models) {
-                Update((void*)&model, record);
-            }
-        }
-        
-        template <typename T>
-        void Delete(const T& model) const {
-            const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
-            Delete(model.id, record);
-        }
-        
-        template <typename T>
-        void Delete(int64_t id) const {
-            const auto type_id = typeid(T).name();
-            const auto& record = GetRecord(type_id);
-            Delete(id, record);
-        }
+
+		template <typename T>
+		T Fetch(int64_t id) const {
+			const auto type_id = typeid(T).name();
+			const auto& record = GetRecord(type_id);
+			const auto& query_result = Fetch(record, id);
+			if (query_result.row_values.size() != 1) {
+				throw std::runtime_error("No record with this id found");
+			}
+			return Hydrate<T>(query_result, record)[0];
+		}
+
+		template <typename T>
+		void Save(const T& model) const {
+			const auto type_id = typeid(T).name();
+			const auto& record = GetRecord(type_id);
+			Save((void*)&model, record);
+		}
+
+		template <typename T>
+		void Save(const std::vector<T>& models) const {
+			const auto type_id = typeid(T).name();
+			const auto& record = GetRecord(type_id);
+			for (const auto& model : models) {
+				Save((void*)&model, record);
+			}
+		}
+
+		template <typename T>
+		void Update(const T& model) const {
+			const auto type_id = typeid(T).name();
+			const auto& record = GetRecord(type_id);
+			Update((void*)&model, record);
+		}
+
+		template <typename T>
+		void Update(const std::vector<T>& models) const {
+			const auto type_id = typeid(T).name();
+			const auto& record = GetRecord(type_id);
+			for (const auto& model : models) {
+				Update((void*)&model, record);
+			}
+		}
+
+		template <typename T>
+		void Delete(const T& model) const {
+			const auto type_id = typeid(T).name();
+			const auto& record = GetRecord(type_id);
+			Delete(model.id, record);
+		}
+
+		template <typename T>
+		void Delete(int64_t id) const {
+			const auto type_id = typeid(T).name();
+			const auto& record = GetRecord(type_id);
+			Delete(id, record);
+		}
 
 	private:
 		static Database* instance_;
 		sqlite3* db_;
 
 		explicit Database(const char* path);
-        
-		QueryResults FetchAll(const Reflection &record) const;
-        
-        QueryResults Fetch(const Reflection &record, int64_t id) const;
-        
+
+		QueryResults FetchAll(const Reflection& record) const;
+
+		QueryResults Fetch(const Reflection& record, int64_t id) const;
+
 		static const Reflection& GetRecord(const std::string& type_id);
 
 		template <typename T>
@@ -128,16 +127,16 @@ namespace sqlite_reflection {
 			std::vector<T> models;
 			for (auto i = 0; i < query_results.row_values.size(); i++) {
 				T model;
-                ResultsQuery::Hydrate((void*)&model, query_results, record, i);
+				ResultsQuery::Hydrate((void*)&model, query_results, record, i);
 				models.emplace_back(model);
 			}
 			return models;
 		}
-        
-        void Save(void *p, const Reflection& record) const;
-        
-        void Update(void *p, const Reflection& record) const;
-        
-        void Delete(int64_t id, const Reflection& record) const;
+
+		void Save(void* p, const Reflection& record) const;
+
+		void Update(void* p, const Reflection& record) const;
+
+		void Delete(int64_t id, const Reflection& record) const;
 	};
 }

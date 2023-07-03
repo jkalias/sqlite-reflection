@@ -31,109 +31,111 @@
 #include "internal/sqlite3.h"
 
 namespace sqlite_reflection {
-    int RegisterValueCallbackInt() {
-        value_callback_mapping[SQLITE_INTEGER] = [](sqlite3_stmt* stmt, int col){
-            return static_cast<void*>(std::make_shared<int>(sqlite3_column_int(stmt, col)).get());
-        };
-        return SQLITE_INTEGER;
-    }
+	int RegisterValueCallbackInt() {
+		value_callback_mapping[SQLITE_INTEGER] = [](sqlite3_stmt* stmt, int col){
+			return static_cast<void*>(std::make_shared<int>(sqlite3_column_int(stmt, col)).get());
+		};
+		return SQLITE_INTEGER;
+	}
 
-    static int int_value_mapping = RegisterValueCallbackInt();
+	static int int_value_mapping = RegisterValueCallbackInt();
 
-    int RegisterValueCallbackFloat() {
-        value_callback_mapping[SQLITE_FLOAT] = [](sqlite3_stmt* stmt, int col){
-            return static_cast<void*>(std::make_shared<double>(sqlite3_column_double(stmt, col)).get());
-        };
-        return SQLITE_FLOAT;
-    }
+	int RegisterValueCallbackFloat() {
+		value_callback_mapping[SQLITE_FLOAT] = [](sqlite3_stmt* stmt, int col){
+			return static_cast<void*>(std::make_shared<double>(sqlite3_column_double(stmt, col)).get());
+		};
+		return SQLITE_FLOAT;
+	}
 
-    static int float_value_mapping = RegisterValueCallbackFloat();
+	static int float_value_mapping = RegisterValueCallbackFloat();
 
-    int RegisterValueCallbackText() {
-        value_callback_mapping[SQLITE_TEXT] = [](sqlite3_stmt* stmt, int col){
-            return (void*)sqlite3_column_text(stmt, col);
-        };
-        return SQLITE_TEXT;
-    }
+	int RegisterValueCallbackText() {
+		value_callback_mapping[SQLITE_TEXT] = [](sqlite3_stmt* stmt, int col){
+			return (void*)sqlite3_column_text(stmt, col);
+		};
+		return SQLITE_TEXT;
+	}
 
-    static int text_value_mapping = RegisterValueCallbackText();
+	static int text_value_mapping = RegisterValueCallbackText();
 
-    int RegisterValueCallbackBlob() {
-        value_callback_mapping[SQLITE_BLOB] = [](sqlite3_stmt* stmt, int col){
-            return (void*)sqlite3_column_blob(stmt, col);
-        };
-        return SQLITE_BLOB;
-    }
+	int RegisterValueCallbackBlob() {
+		value_callback_mapping[SQLITE_BLOB] = [](sqlite3_stmt* stmt, int col){
+			return (void*)sqlite3_column_blob(stmt, col);
+		};
+		return SQLITE_BLOB;
+	}
 
-    static int blob_value_mapping = RegisterValueCallbackBlob();
-    const ReflectionRegister& GetReflectionRegister() {
-        return *GetReflectionRegisterInstance();
-    }
+	static int blob_value_mapping = RegisterValueCallbackBlob();
 
-    // ------------------------------------------------------------------------
+	const ReflectionRegister& GetReflectionRegister() {
+		return *GetReflectionRegisterInstance();
+	}
 
-    Database* Database::instance_ = nullptr;
-    void Database::Initialize(const std::string& path) {
-        if (instance_ != nullptr) {
-            throw std::invalid_argument("Database has already been initialized");
-        }
-        
-        const auto effective_path = path != "" ? path : ":memory:";
-        instance_ = new Database(effective_path.data());
-    }
+	// ------------------------------------------------------------------------
 
-    void Database::Finalize() {
-        if (instance_ != nullptr) {
-            sqlite3_close(instance_->db_);
-            delete instance_;
-            instance_ = nullptr;
-        }
-    }
+	Database* Database::instance_ = nullptr;
 
-    Database::Database(const char* path)
-    : db_(nullptr) {
-        if (sqlite3_open(path, &db_)) {
-            throw std::invalid_argument("Database could not be initialized");
-        }
-        
-        auto& reg = GetReflectionRegister();
-        for (const auto& contents : reg.records) {
-            const auto& record = contents.second;
-            CreateTableQuery query(db_, record);
-            query.Execute();
-        }
-    }
+	void Database::Initialize(const std::string& path) {
+		if (instance_ != nullptr) {
+			throw std::invalid_argument("Database has already been initialized");
+		}
 
-    const Database& Database::Instance() {
-        return *instance_;
-    }
+		const auto effective_path = path != "" ? path : ":memory:";
+		instance_ = new Database(effective_path.data());
+	}
 
-    QueryResults Database::FetchAll(const Reflection &record) const {
-        FetchRecordsQuery query(db_, record);
-        return query.GetResults();
-    }
+	void Database::Finalize() {
+		if (instance_ != nullptr) {
+			sqlite3_close(instance_->db_);
+			delete instance_;
+			instance_ = nullptr;
+		}
+	}
 
-    QueryResults Database::Fetch(const Reflection &record, int64_t id) const {
-        FetchRecordsQuery query(db_, record, id);
-        return query.GetResults();
-    }
+	Database::Database(const char* path)
+		: db_(nullptr) {
+		if (sqlite3_open(path, &db_)) {
+			throw std::invalid_argument("Database could not be initialized");
+		}
 
-    const Reflection& Database::GetRecord(const std::string& type_id) {
-        return GetReflectionRegister().records.at(type_id);
-    }
+		auto& reg = GetReflectionRegister();
+		for (const auto& contents : reg.records) {
+			const auto& record = contents.second;
+			CreateTableQuery query(db_, record);
+			query.Execute();
+		}
+	}
 
-    void Database::Save(void *p, const Reflection& record) const {
-        InsertQuery query(db_, record, p);
-        query.Execute();
-    }
+	const Database& Database::Instance() {
+		return *instance_;
+	}
 
-    void Database::Update(void *p, const Reflection& record) const {
-        UpdateQuery query(db_, record, p);
-        query.Execute();
-    }
+	QueryResults Database::FetchAll(const Reflection& record) const {
+		FetchRecordsQuery query(db_, record);
+		return query.GetResults();
+	}
 
-    void Database::Delete(int64_t id, const Reflection& record) const {
-        DeleteQuery query(db_, record, id);
-        query.Execute();
-    }
+	QueryResults Database::Fetch(const Reflection& record, int64_t id) const {
+		FetchRecordsQuery query(db_, record, id);
+		return query.GetResults();
+	}
+
+	const Reflection& Database::GetRecord(const std::string& type_id) {
+		return GetReflectionRegister().records.at(type_id);
+	}
+
+	void Database::Save(void* p, const Reflection& record) const {
+		InsertQuery query(db_, record, p);
+		query.Execute();
+	}
+
+	void Database::Update(void* p, const Reflection& record) const {
+		UpdateQuery query(db_, record, p);
+		query.Execute();
+	}
+
+	void Database::Delete(int64_t id, const Reflection& record) const {
+		DeleteQuery query(db_, record, id);
+		query.Execute();
+	}
 }
