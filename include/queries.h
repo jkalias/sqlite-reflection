@@ -41,7 +41,7 @@ namespace sqlite_reflection {
 	class REFLECTION_EXPORT SingleCondition final : public QueryCondition
 	{
 	public:
-		SingleCondition(const std::function<std::string()>& expression);
+		explicit SingleCondition(const std::function<std::string()>& expression);
 		std::string Statement() const override;
 
 	protected:
@@ -86,7 +86,7 @@ namespace sqlite_reflection {
 		//public ConditionBuilder
 
 	protected:
-		ConditionBuilder(const Reflection& record)
+		explicit ConditionBuilder(const Reflection& record)
 			: record_(record) { }
 
 		const Reflection& record_;
