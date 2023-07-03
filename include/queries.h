@@ -72,25 +72,25 @@ namespace sqlite_reflection {
 		OrCondition(const QueryCondition& left, const QueryCondition& right);
 	};
 
-	// ------------------------------------------------------------------------
-
-	class REFLECTION_EXPORT ConditionBuilder
-	{
-	public:
-		template <typename T>
-		static ConditionBuilder Init() {
-			const ConditionBuilder builder(GetRecordFromTypeId(typeid(T).name()));
-			return builder;
-		}
-
-		//public ConditionBuilder
-
-	protected:
-		explicit ConditionBuilder(const Reflection& record)
-			: record_(record) { }
-
-		const Reflection& record_;
-	};
+//	// ------------------------------------------------------------------------
+//
+//	class REFLECTION_EXPORT QueryConditionBuilder
+//	{
+//	public:
+//		template <typename T>
+//		static QueryConditionBuilder Init() {
+//			const QueryConditionBuilder builder(GetRecordFromTypeId(typeid(T).name()));
+//			return builder;
+//		}
+//
+//		//public ConditionBuilder
+//
+//	protected:
+//		explicit QueryConditionBuilder(const Reflection& record)
+//			: record_(record) { }
+//
+//		const Reflection& record_;
+//	};
 
 	// ------------------------------------------------------------------------
 
@@ -104,10 +104,10 @@ namespace sqlite_reflection {
 		virtual std::string PrepareSql() const = 0;
 		std::string JoinedRecordColumnNames() const;
 		std::vector<std::string> GetRecordColumnNames() const;
-		virtual std::string CustomizedColumnName(const std::string& name) const;
-
-		sqlite3* db_;
-		const Reflection& record_;
+		virtual std::string CustomizedColumnName(size_t index) const;
+        
+        sqlite3* db_;
+        const Reflection& record_;
 	};
 
 	// ------------------------------------------------------------------------
@@ -133,7 +133,7 @@ namespace sqlite_reflection {
 
 	protected:
 		std::string PrepareSql() const override;
-		std::string CustomizedColumnName(const std::string& name) const override;
+		std::string CustomizedColumnName(size_t index) const override;
 	};
 
 	// ------------------------------------------------------------------------

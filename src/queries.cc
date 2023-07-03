@@ -66,16 +66,15 @@ std::string Query::JoinedRecordColumnNames() const {
 
 std::vector<std::string> Query::GetRecordColumnNames() const {
 	std::vector<std::string> column_names;
-	std::transform(
-		record_.members.cbegin(),
-		record_.members.cend(),
-		std::back_inserter(column_names),
-		[&](const Reflection::Member& member){ return CustomizedColumnName(member.name); });
+    column_names.reserve(record_.members.size());
+    for (auto j = 0; j < record_.members.size(); ++j) {
+        column_names.emplace_back(CustomizedColumnName(j));
+    }
 	return column_names;
 }
 
-std::string Query::CustomizedColumnName(const std::string& name) const {
-	return name;
+std::string Query::CustomizedColumnName(size_t index) const {
+    return record_.members[index].name;
 }
 
 // ------------------------------------------------------------------------
@@ -141,10 +140,14 @@ std::string CreateTableQuery::PrepareSql() const {
 	return sql;
 }
 
-std::string CreateTableQuery::CustomizedColumnName(const std::string& name) const {
-	return name.compare(std::string("id")) == 0
-		       ? name + " PRIMARY KEY"
-		       : name;
+std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
+    auto name = Query::CustomizedColumnName(index);
+    const auto is_id = name.compare(std::string("id")) == 0;
+    name += " " + record_.members[index].column_type;
+    
+	return is_id
+    ? name + " PRIMARY KEY"
+    : name;
 }
 
 // ------------------------------------------------------------------------
@@ -154,7 +157,7 @@ DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, int64_t id)
 
 std::string DeleteQuery::PrepareSql() const {
 	std::string sql("DELETE FROM ");
-	sql += record_.name + " WHERE id = '" + StringUtilities::String(id_) + "';";
+	sql += record_.name + " WHERE id = " + StringUtilities::String(id_) + ";";
 	return sql;
 }
 
@@ -320,7 +323,7 @@ std::string FetchRecordsQuery::PrepareSql() const {
 		sql += ";";
 	}
 	else {
-		sql += " WHERE id ='" + id_ + "';";
+		sql += " WHERE id =" + id_ + ";";
 	}
 	return sql;
 }
