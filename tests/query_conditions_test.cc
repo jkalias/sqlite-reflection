@@ -21,44 +21,44 @@
 // SOFTWARE.
 
 #include <gtest/gtest.h>
-#include "queries.h"
+#include "query_conditions.h"
 
 #include "person.h"
 #include "pet.h"
 
 using namespace sqlite_reflection;
 
-TEST(ConditionsTest, EqualityInt) {
+TEST(QueryConditionsTest, EqualityInt) {
     Equal condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id = 65"));
 }
 
-TEST(ConditionsTest, EqualityString) {
+TEST(QueryConditionsTest, EqualityString) {
     Equal condition(&Person::first_name, std::wstring(L"john"));
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "first_name = 'john'"));
 }
 
-TEST(ConditionsTest, EqualityDouble) {
+TEST(QueryConditionsTest, EqualityDouble) {
     Equal condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "weight = 32.400000"));
 }
 
-TEST(ConditionsTest, InequalityInt) {
+TEST(QueryConditionsTest, InequalityInt) {
     Unequal condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id != 65"));
 }
 
-TEST(ConditionsTest, InequalityString) {
+TEST(QueryConditionsTest, InequalityString) {
     Unequal condition(&Person::first_name, std::wstring(L"john"));
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "first_name != 'john'"));
 }
 
-TEST(ConditionsTest, InequalityDouble) {
+TEST(QueryConditionsTest, InequalityDouble) {
     Unequal condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "weight != 32.400000"));
