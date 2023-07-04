@@ -31,65 +31,89 @@ struct sqlite3;
 struct sqlite3_stmt;
 
 namespace sqlite_reflection {
-	class QueryCondition
-	{
-	public:
-		virtual ~QueryCondition() = default;
-		virtual std::string Statement() const = 0;
-	};
 
-	class REFLECTION_EXPORT SingleCondition final : public QueryCondition
-	{
-	public:
-		explicit SingleCondition(const std::function<std::string()>& expression);
-		std::string Statement() const override;
+class REFLECTION_EXPORT Condition {
+public:
+    template<typename T, typename R>
+    Condition(R T::* fn, R value, const std::string& symbol) {
+        symbol_ = symbol;
+        auto record = GetRecordFromTypeId(typeid(T).name());
+        auto offset = OffsetFromStart(fn);
+        for (auto i = 0; i < record.members.size(); ++i) {
+            if (record.members[i].offset == offset) {
+                member_name_ = record.members[i].name;
+                value_ = GetStringForValue((void*)&value, record.members[i].trait);
+                break;
+            }
+        }
+    }
+    
+    std::string Evaluate() const {
+        return member_name_ + " " + symbol_ + " " + value_;
+    }
+    
+protected:
+    std::string GetStringForValue(void* v, ReflectionMemberTrait trait);
+    
+    std::string symbol_;
+    std::string member_name_;
+    std::string value_;
+};
 
-	protected:
-		const std::function<std::string()>& expression_;
-	};
+class REFLECTION_EXPORT Equal final: public Condition {
+public:
+    template<typename T, typename R>
+    Equal(R T::* fn, R value)
+    : Condition(fn, value, "=") {}
+};
 
-	class BinaryCondition : public QueryCondition
-	{
-	public:
-		BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol);
-		std::string Statement() const override;
+class REFLECTION_EXPORT Unequal final: public Condition {
+public:
+    template<typename T, typename R>
+    Unequal(R T::* fn, R value)
+    : Condition(fn, value, "!=") {}
+};
 
-	protected:
-		const QueryCondition& left_;
-		const QueryCondition& right_;
-		std::string symbol_;
-	};
 
-	class REFLECTION_EXPORT AndCondition final : public BinaryCondition
-	{
-	public:
-		AndCondition(const QueryCondition& left, const QueryCondition& right);
-	};
-
-	class REFLECTION_EXPORT OrCondition final : public BinaryCondition
-	{
-	public:
-		OrCondition(const QueryCondition& left, const QueryCondition& right);
-	};
-
-//	// ------------------------------------------------------------------------
-//
-//	class REFLECTION_EXPORT QueryConditionBuilder
+//	class QueryCondition
 //	{
 //	public:
-//		template <typename T>
-//		static QueryConditionBuilder Init() {
-//			const QueryConditionBuilder builder(GetRecordFromTypeId(typeid(T).name()));
-//			return builder;
-//		}
+//		virtual ~QueryCondition() = default;
+//		virtual std::string Statement() const = 0;
+//	};
 //
-//		//public ConditionBuilder
+//	class REFLECTION_EXPORT SingleCondition final : public QueryCondition
+//	{
+//	public:
+//		explicit SingleCondition(const std::function<std::string()>& expression);
+//		std::string Statement() const override;
 //
 //	protected:
-//		explicit QueryConditionBuilder(const Reflection& record)
-//			: record_(record) { }
+//		const std::function<std::string()>& expression_;
+//	};
 //
-//		const Reflection& record_;
+//	class BinaryCondition : public QueryCondition
+//	{
+//	public:
+//		BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol);
+//		std::string Statement() const override;
+//
+//	protected:
+//		const QueryCondition& left_;
+//		const QueryCondition& right_;
+//		std::string symbol_;
+//	};
+//
+//	class REFLECTION_EXPORT AndCondition final : public BinaryCondition
+//	{
+//	public:
+//		AndCondition(const QueryCondition& left, const QueryCondition& right);
+//	};
+//
+//	class REFLECTION_EXPORT OrCondition final : public BinaryCondition
+//	{
+//	public:
+//		OrCondition(const QueryCondition& left, const QueryCondition& right);
 //	};
 
 	// ------------------------------------------------------------------------
