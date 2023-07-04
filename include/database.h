@@ -127,7 +127,7 @@ namespace sqlite_reflection {
 			std::vector<T> models;
 			for (auto i = 0; i < query_results.row_values.size(); i++) {
 				T model;
-				ResultsQuery::Hydrate((void*)&model, query_results, record, i);
+				FetchRecordsQuery::Hydrate((void*)&model, query_results, record, i);
 				models.emplace_back(model);
 			}
 			return models;

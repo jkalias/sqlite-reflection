@@ -209,121 +209,116 @@ std::string UpdateQuery::PrepareSql() const {
 
 // ------------------------------------------------------------------------
 
-ResultsQuery::ResultsQuery(sqlite3* db, const Reflection& record)
-	: Query(db, record), stmt_(nullptr) {}
-
-ResultsQuery::~ResultsQuery() {
-	if (stmt_) {
-		sqlite3_finalize(stmt_);
-	}
-}
-
-QueryResults ResultsQuery::GetResults() {
-	const auto sql = PrepareSql();
-
-	if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
-		sqlite3_close(db_);
-		throw std::runtime_error((sql + ": could not get results").data());
-	}
-
-	const auto column_count = sqlite3_column_count(stmt_);
-
-	QueryResults results;
-	results.column_names.reserve(column_count);
-	for (auto i = 0; i < column_count; i++) {
-		results.column_names.emplace_back(sqlite3_column_name(stmt_, i));
-	}
-
-	while (sqlite3_step(stmt_) != SQLITE_DONE) {
-		std::vector<std::wstring> row;
-		row.reserve(column_count);
-		for (auto col = 0; col < column_count; col++) {
-			auto value = GetColumnValue(col);
-			row.emplace_back(value);
-		}
-		results.row_values.emplace_back(row);
-	}
-
-	return results;
-}
-
-void ResultsQuery::Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i) {
-	for (auto j = 0; j < query_results.column_names.size(); j++) {
-		const auto current_column = query_results.column_names[j];
-		const auto member_index = record.member_index_mapping.at(current_column);
-		const auto current_trait = record.members[member_index].trait;
-		const auto& content = query_results.row_values[i][j];
-		if (content == L"") {
-			continue;
-		}
-
-		switch (current_trait) {
-		case ReflectionMemberTrait::kInt:
-			{
-				auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, member_index)));
-				v = StringUtilities::Int(content);
-				break;
-			}
-
-		case ReflectionMemberTrait::kReal:
-			{
-				auto& v = (*(double*)((void*)GetMemberAddress(p, record, member_index)));
-				v = StringUtilities::Double(content);
-				break;
-			}
-
-		case ReflectionMemberTrait::kText:
-			{
-				auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, member_index)));
-				v = content;
-				break;
-			}
-
-		default:
-			break;
-		}
-	}
-}
-
-std::wstring ResultsQuery::GetColumnValue(const int col) const {
-	const int col_type = sqlite3_column_type(stmt_, col);
-	switch (col_type) {
-	case SQLITE_INTEGER:
-		return std::to_wstring(sqlite3_column_int(stmt_, col));
-
-	case SQLITE_FLOAT:
-		return std::to_wstring(sqlite3_column_double(stmt_, col));
-
-	case SQLITE_TEXT:
-		{
-			const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
-			return StringUtilities::FromUtf8(content);
-		}
-
-	case SQLITE_BLOB:
-		return L"blob";
-
-	default:
-		return L"";
-	}
-}
-
-// ------------------------------------------------------------------------
-
 FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id)
-	: ResultsQuery(db, record), id_(StringUtilities::String(id)) {}
+    : Query(db, record), stmt_(nullptr), id_(StringUtilities::String(id)) {}
 
 FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record)
-	: ResultsQuery(db, record), id_("") {}
+    : Query(db, record), stmt_(nullptr), id_("") {}
+
+FetchRecordsQuery::~FetchRecordsQuery() {
+    if (stmt_) {
+        sqlite3_finalize(stmt_);
+    }
+}
+
+QueryResults FetchRecordsQuery::GetResults() {
+    const auto sql = PrepareSql();
+
+    if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
+        sqlite3_close(db_);
+        throw std::runtime_error((sql + ": could not get results").data());
+    }
+
+    const auto column_count = sqlite3_column_count(stmt_);
+
+    QueryResults results;
+    results.column_names.reserve(column_count);
+    for (auto i = 0; i < column_count; i++) {
+        results.column_names.emplace_back(sqlite3_column_name(stmt_, i));
+    }
+
+    while (sqlite3_step(stmt_) != SQLITE_DONE) {
+        std::vector<std::wstring> row;
+        row.reserve(column_count);
+        for (auto col = 0; col < column_count; col++) {
+            auto value = GetColumnValue(col);
+            row.emplace_back(value);
+        }
+        results.row_values.emplace_back(row);
+    }
+
+    return results;
+}
+
+void FetchRecordsQuery::Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i) {
+    for (auto j = 0; j < query_results.column_names.size(); j++) {
+        const auto current_column = query_results.column_names[j];
+        const auto member_index = record.member_index_mapping.at(current_column);
+        const auto current_trait = record.members[member_index].trait;
+        const auto& content = query_results.row_values[i][j];
+        if (content == L"") {
+            continue;
+        }
+
+        switch (current_trait) {
+        case ReflectionMemberTrait::kInt:
+            {
+                auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, member_index)));
+                v = StringUtilities::Int(content);
+                break;
+            }
+
+        case ReflectionMemberTrait::kReal:
+            {
+                auto& v = (*(double*)((void*)GetMemberAddress(p, record, member_index)));
+                v = StringUtilities::Double(content);
+                break;
+            }
+
+        case ReflectionMemberTrait::kText:
+            {
+                auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, member_index)));
+                v = content;
+                break;
+            }
+
+        default:
+            break;
+        }
+    }
+}
 
 std::string FetchRecordsQuery::PrepareSql() const {
-	std::string sql("SELECT * FROM ");
-	sql += record_.name;
-	if (std::string("").compare(id_) == 0) {
-		sql += ";";
-	}
-	else {
-		sql += " WHERE id =" + id_ + ";";
-	}
-	return sql;
+    std::string sql("SELECT * FROM ");
+    sql += record_.name;
+    if (std::string("").compare(id_) == 0) {
+        sql += ";";
+    }
+    else {
+        sql += " WHERE id =" + id_ + ";";
+    }
+    return sql;
+}
+
+std::wstring FetchRecordsQuery::GetColumnValue(const int col) const {
+    const int col_type = sqlite3_column_type(stmt_, col);
+    switch (col_type) {
+    case SQLITE_INTEGER:
+        return std::to_wstring(sqlite3_column_int(stmt_, col));
+
+    case SQLITE_FLOAT:
+        return std::to_wstring(sqlite3_column_double(stmt_, col));
+
+    case SQLITE_TEXT:
+        {
+            const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
+            return StringUtilities::FromUtf8(content);
+        }
+
+    case SQLITE_BLOB:
+        return L"blob";
+
+    default:
+        return L"";
+    }
 }

@@ -177,34 +177,23 @@ namespace sqlite_reflection {
 	};
 
 	// ------------------------------------------------------------------------
-	struct QueryResults;
 
-	class REFLECTION_EXPORT ResultsQuery : public Query
-	{
-	public:
-		explicit ResultsQuery(sqlite3* db, const Reflection& record);
-		~ResultsQuery() override;
-
-		QueryResults GetResults();
-		static void Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i);
-
-	protected:
-		sqlite3_stmt* stmt_;
-
-	private:
-		std::wstring GetColumnValue(int col) const;
-	};
-
-	// ------------------------------------------------------------------------
-
-	class REFLECTION_EXPORT FetchRecordsQuery final : public ResultsQuery
+    struct QueryResults;
+	class REFLECTION_EXPORT FetchRecordsQuery final : public Query
 	{
 	public:
 		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id);
 		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record);
+        ~FetchRecordsQuery() override;
+        
+        QueryResults GetResults();
+        static void Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i);
 
 	protected:
 		std::string PrepareSql() const override;
+        std::wstring GetColumnValue(int col) const;
+        
+        sqlite3_stmt* stmt_;
 		std::string id_;
 	};
 }
