@@ -3,6 +3,24 @@
 
 using namespace sqlite_reflection;
 
+std::string ConditionBase::Evaluate() const {
+    return "";
+}
+
+ConditionBase ConditionBase::And(ConditionBase other) const {
+    auto g = other.Evaluate();
+    return AndCondition(*this, other);
+}
+
+ConditionBase ConditionBase::Or(ConditionBase other) const {
+    auto g = other.Evaluate();
+    return OrCondition(*this, other);
+}
+
+std::string Condition::Evaluate() const {
+    return member_name_ + " " + symbol_ + " " + value_;
+}
+
 std::string Condition::GetStringForValue(void *v, ReflectionMemberTrait trait) {
     switch (trait) {
         case ReflectionMemberTrait::kInt:
@@ -26,24 +44,19 @@ std::string Condition::GetStringForValue(void *v, ReflectionMemberTrait trait) {
     }
 }
 
-//BinaryCondition::BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol)
-//    : left_(left), right_(right), symbol_(symbol) {}
-//
-//SingleCondition::SingleCondition(const std::function<std::string()>& expression)
-//    : expression_(expression) {}
-//
-//std::string SingleCondition::Statement() const {
-//    return expression_();
-//}
-//
-//std::string BinaryCondition::Statement() const {
-//    return std::string("(") + left_.Statement() + " " + symbol_ + " " + right_.Statement() + std::string(")");
-//}
-//
-//AndCondition::AndCondition(const QueryCondition& left, const QueryCondition& right)
-//    : BinaryCondition(left, right, "AND") {}
-//
-//OrCondition::OrCondition(const QueryCondition& left, const QueryCondition& right)
-//    : BinaryCondition(left, right, "OR") {}
+BinaryCondition::BinaryCondition(const ConditionBase& left, const ConditionBase& right, const std::string& symbol)
+: left_(left), right_(right), symbol_(symbol)
+{
+}
 
-// ------------------------------------------------------------------------
+std::string BinaryCondition::Evaluate() const {
+    return "(" + left_.Evaluate() + " " + symbol_ + " " + right_.Evaluate() + ")";
+}
+
+AndCondition::AndCondition(const ConditionBase& left, const ConditionBase& right)
+: BinaryCondition(left, right, "AND")
+{}
+
+OrCondition::OrCondition(const ConditionBase& left, const ConditionBase& right)
+: BinaryCondition(left, right, "OR")
+{}

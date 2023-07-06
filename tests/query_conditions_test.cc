@@ -63,3 +63,30 @@ TEST(QueryConditionsTest, InequalityDouble) {
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "weight != 32.400000"));
 }
+
+// greater (or equal) than, smaller (or equal) than
+
+TEST(QueryConditionsTest, And) {
+    Unequal c1(&Person::id, (int64_t)65);
+    Equal c2(&Person::first_name, std::wstring(L"john"));
+    AndCondition c3(c1, c2);
+    auto evalution = c3.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 AND first_name = 'john')"));
+}
+
+TEST(QueryConditionsTest, Or) {
+    Unequal c1(&Person::id, (int64_t)65);
+    Equal c2(&Person::first_name, std::wstring(L"john"));
+    OrCondition c3(c1, c2);
+    auto evalution = c3.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 OR first_name = 'john')"));
+}
+
+TEST(QueryConditionsTest, ConditionBuilder) {
+    auto evaluation = Equal(&Person::id, (int64_t)65)
+        .Or(Equal(&Person::first_name, std::wstring(L"john")))
+        .And(Unequal(&Person::last_name, std::wstring(L"appleseed")))
+        .Evaluate();
+    
+    EXPECT_EQ(0, strcmp(evaluation.data(), "((id == 65 OR first_name == john) AND last_name != appleseed)"));
+}

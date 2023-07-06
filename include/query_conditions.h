@@ -28,7 +28,14 @@
 
 namespace sqlite_reflection {
 
-class REFLECTION_EXPORT Condition {
+class REFLECTION_EXPORT ConditionBase {
+public:
+    virtual std::string Evaluate() const;
+    ConditionBase And(ConditionBase other) const;
+    ConditionBase Or(ConditionBase other) const;
+};
+
+class REFLECTION_EXPORT Condition: public ConditionBase {
 public:
     template<typename T, typename R>
     Condition(R T::* fn, R value, const std::string& symbol) {
@@ -44,9 +51,7 @@ public:
         }
     }
     
-    std::string Evaluate() const {
-        return member_name_ + " " + symbol_ + " " + value_;
-    }
+    std::string Evaluate() const;
     
 protected:
     std::string GetStringForValue(void* v, ReflectionMemberTrait trait);
@@ -69,47 +74,26 @@ public:
     Unequal(R T::* fn, R value)
     : Condition(fn, value, "!=") {}
 };
+
+class REFLECTION_EXPORT BinaryCondition: public ConditionBase {
+public:
+    std::string Evaluate() const;
+    
+protected:
+    BinaryCondition(const ConditionBase& left, const ConditionBase& right, const std::string& symbol);
+    
+    ConditionBase left_;
+    ConditionBase right_;
+    std::string symbol_;
+};
+
+class REFLECTION_EXPORT AndCondition final: public BinaryCondition {
+public:
+    AndCondition(const ConditionBase& left, const ConditionBase& right);
+};
+
+class REFLECTION_EXPORT OrCondition final: public BinaryCondition {
+public:
+    OrCondition(const ConditionBase& left, const ConditionBase& right);
+};
 }
-
-//    class QueryCondition
-//    {
-//    public:
-//        virtual ~QueryCondition() = default;
-//        virtual std::string Statement() const = 0;
-//    };
-//
-//    class REFLECTION_EXPORT SingleCondition final : public QueryCondition
-//    {
-//    public:
-//        explicit SingleCondition(const std::function<std::string()>& expression);
-//        std::string Statement() const override;
-//
-//    protected:
-//        const std::function<std::string()>& expression_;
-//    };
-//
-//    class BinaryCondition : public QueryCondition
-//    {
-//    public:
-//        BinaryCondition(const QueryCondition& left, const QueryCondition& right, const std::string& symbol);
-//        std::string Statement() const override;
-//
-//    protected:
-//        const QueryCondition& left_;
-//        const QueryCondition& right_;
-//        std::string symbol_;
-//    };
-//
-//    class REFLECTION_EXPORT AndCondition final : public BinaryCondition
-//    {
-//    public:
-//        AndCondition(const QueryCondition& left, const QueryCondition& right);
-//    };
-//
-//    class REFLECTION_EXPORT OrCondition final : public BinaryCondition
-//    {
-//    public:
-//        OrCondition(const QueryCondition& left, const QueryCondition& right);
-//    };
-
-    // ------------------------------------------------------------------------
