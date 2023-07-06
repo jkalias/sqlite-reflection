@@ -3,7 +3,7 @@
 
 using namespace sqlite_reflection;
 
-std::string ConditionBase::Evaluate() const {
+std::string EmptyCondition::Evaluate() const {
     return "";
 }
 

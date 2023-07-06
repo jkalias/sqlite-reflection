@@ -187,11 +187,8 @@ std::string UpdateQuery::PrepareSql() const {
 
 // ------------------------------------------------------------------------
 
-FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id)
-    : Query(db, record), stmt_(nullptr), id_(StringUtilities::String(id)) {}
-
-FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record)
-    : Query(db, record), stmt_(nullptr), id_("") {}
+FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, const ConditionBase& condition)
+    : Query(db, record), stmt_(nullptr), condition_(condition) {}
 
 FetchRecordsQuery::~FetchRecordsQuery() {
     if (stmt_) {
@@ -269,13 +266,11 @@ void FetchRecordsQuery::Hydrate(void* p, const QueryResults& query_results, cons
 std::string FetchRecordsQuery::PrepareSql() const {
     std::string sql("SELECT * FROM ");
     sql += record_.name;
-    if (std::string("").compare(id_) == 0) {
-        sql += ";";
+    const auto condition_evaluation = condition_.Evaluate();
+    if (strcmp(condition_evaluation.data(), "") != 0) {
+        sql += " WHERE " + condition_evaluation;
     }
-    else {
-        sql += " WHERE id =" + id_ + ";";
-    }
-    return sql;
+    return sql + ";";
 }
 
 std::wstring FetchRecordsQuery::GetColumnValue(const int col) const {

@@ -28,6 +28,7 @@
 
 #include "reflection.h"
 #include "query_results.h"
+#include "query_conditions.h"
 #include "queries.h"
 
 struct sqlite3;
@@ -49,7 +50,8 @@ namespace sqlite_reflection {
 		std::vector<T> FetchAll() const {
 			const auto type_id = typeid(T).name();
 			const auto& record = GetRecord(type_id);
-			const auto& query_result = FetchAll(record);
+            EmptyCondition empty;
+            const auto& query_result = Fetch(record, empty);
 			return Hydrate<T>(query_result, record);
 		}
 
@@ -57,7 +59,8 @@ namespace sqlite_reflection {
 		T Fetch(int64_t id) const {
 			const auto type_id = typeid(T).name();
 			const auto& record = GetRecord(type_id);
-			const auto& query_result = Fetch(record, id);
+            Equal equal_id_condition(&T::id, id);
+			const auto& query_result = Fetch(record, equal_id_condition);
 			if (query_result.row_values.size() != 1) {
 				throw std::runtime_error("No record with this id found");
 			}
@@ -116,9 +119,7 @@ namespace sqlite_reflection {
 
 		explicit Database(const char* path);
 
-		QueryResults FetchAll(const Reflection& record) const;
-
-		QueryResults Fetch(const Reflection& record, int64_t id) const;
+		QueryResults Fetch(const Reflection& record, const ConditionBase& query_condition) const;
 
 		static const Reflection& GetRecord(const std::string& type_id);
 

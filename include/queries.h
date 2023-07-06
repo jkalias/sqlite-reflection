@@ -26,6 +26,7 @@
 #include <functional>
 
 #include "reflection.h"
+#include "query_conditions.h"
 
 struct sqlite3;
 struct sqlite3_stmt;
@@ -119,8 +120,7 @@ namespace sqlite_reflection {
 	class REFLECTION_EXPORT FetchRecordsQuery final : public Query
 	{
 	public:
-		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, int64_t id);
-		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record);
+		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, const ConditionBase& condition);
         ~FetchRecordsQuery() override;
         
         QueryResults GetResults();
@@ -131,6 +131,6 @@ namespace sqlite_reflection {
         std::wstring GetColumnValue(int col) const;
         
         sqlite3_stmt* stmt_;
-		std::string id_;
+        const ConditionBase& condition_;
 	};
 }

@@ -41,6 +41,9 @@ public:
 
 class REFLECTION_EXPORT Condition: public ConditionBase {
 public:
+    std::string Evaluate() const override;
+    
+protected:
     template<typename T, typename R>
     Condition(R T::* fn, R value, const std::string& symbol) {
         symbol_ = symbol;
@@ -55,14 +58,16 @@ public:
         }
     }
     
-    std::string Evaluate() const override;
-    
-protected:
     std::string GetStringForValue(void* v, ReflectionMemberTrait trait);
     
     std::string symbol_;
     std::string member_name_;
     std::string value_;
+};
+
+class REFLECTION_EXPORT EmptyCondition final: public ConditionBase {
+public:
+    std::string Evaluate() const override;
 };
 
 class REFLECTION_EXPORT Equal final: public Condition {
