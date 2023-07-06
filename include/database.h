@@ -54,6 +54,14 @@ namespace sqlite_reflection {
             const auto& query_result = Fetch(record, empty);
 			return Hydrate<T>(query_result, record);
 		}
+        
+        template <typename T>
+        std::vector<T> Fetch(const ConditionBase& fetch_condition) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            const auto& query_result = Fetch(record, fetch_condition);
+            return Hydrate<T>(query_result, record);
+        }
 
 		template <typename T>
 		T Fetch(int64_t id) const {

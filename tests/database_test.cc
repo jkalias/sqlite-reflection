@@ -234,3 +234,34 @@ TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException) {
 
 	EXPECT_ANY_THROW(db.Fetch<Person>(15));
 }
+
+TEST_F(DatabaseTest, FetchWithCustomCondition) {
+    const auto& db = Database::Instance();
+
+    std::vector<Person> persons;
+
+    persons.push_back({1, L"name1", L"surname1", 13});
+    persons.push_back({2, L"john", L"surname2", 25});
+    persons.push_back({3, L"john", L"surname3", 37});
+    persons.push_back({4, L"jame", L"surname4", 45});
+    persons.push_back({5, L"name5", L"surname5", 56});
+
+    db.Save(persons);
+    
+    auto fetch_condition = GreaterThanOrEqual(&Person::id, 2)
+        .And(SmallerThan(&Person::id, 5))
+        .And(Equal(&Person::first_name, std::wstring(L"john")));
+    
+    auto fetched_persons = db.Fetch<Person>(fetch_condition);
+    EXPECT_EQ(2, fetched_persons.size());
+    
+    EXPECT_EQ(2, fetched_persons[0].id);
+    EXPECT_EQ(L"john", fetched_persons[0].first_name);
+    EXPECT_EQ(L"surname2", fetched_persons[0].last_name);
+    EXPECT_EQ(25, fetched_persons[0].age);
+    
+    EXPECT_EQ(3, fetched_persons[1].id);
+    EXPECT_EQ(L"john", fetched_persons[1].first_name);
+    EXPECT_EQ(L"surname3", fetched_persons[1].last_name);
+    EXPECT_EQ(37, fetched_persons[1].age);
+}
