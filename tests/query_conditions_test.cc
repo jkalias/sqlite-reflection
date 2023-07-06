@@ -64,7 +64,53 @@ TEST(QueryConditionsTest, InequalityDouble) {
     EXPECT_EQ(0, strcmp(evalution.data(), "weight != 32.400000"));
 }
 
-// greater (or equal) than, smaller (or equal) than
+TEST(QueryConditionsTest, GreaterThanInt) {
+    GreaterThan condition(&Person::id, (int64_t)65);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "id > 65"));
+}
+
+TEST(QueryConditionsTest, GreaterThanOrEqualInt) {
+    GreaterThanOrEqual condition(&Person::id, (int64_t)65);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "id >= 65"));
+}
+
+TEST(QueryConditionsTest, GreaterThanDouble) {
+    GreaterThan condition(&Pet::weight, 32.4);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight > 32.400000"));
+}
+
+TEST(QueryConditionsTest, GreaterThanOrEqualDouble) {
+    GreaterThanOrEqual condition(&Pet::weight, 32.4);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight >= 32.400000"));
+}
+
+TEST(QueryConditionsTest, SmallerThanInt) {
+    SmallerThan condition(&Person::id, (int64_t)65);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "id < 65"));
+}
+
+TEST(QueryConditionsTest, SmallerThanEqualInt) {
+    SmallerThanOrEqual condition(&Person::id, (int64_t)65);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "id <= 65"));
+}
+
+TEST(QueryConditionsTest, SmallerThanDouble) {
+    SmallerThan condition(&Pet::weight, 32.4);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight < 32.400000"));
+}
+
+TEST(QueryConditionsTest, SmallerThanOrEqualDouble) {
+    SmallerThanOrEqual condition(&Pet::weight, 32.4);
+    auto evalution = condition.Evaluate();
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight <= 32.400000"));
+}
 
 TEST(QueryConditionsTest, And) {
     Unequal c1(&Person::id, (int64_t)65);

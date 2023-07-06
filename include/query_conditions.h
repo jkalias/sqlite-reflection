@@ -79,6 +79,50 @@ public:
     : Condition(fn, value, "!=") {}
 };
 
+class REFLECTION_EXPORT GreaterThan final: public Condition {
+public:
+    template<typename T>
+    GreaterThan(int64_t T::* fn, int64_t value)
+    : Condition(fn, value, ">") {}
+    
+    template<typename T>
+    GreaterThan(double T::* fn, double value)
+    : Condition(fn, value, ">") {}
+};
+
+class REFLECTION_EXPORT GreaterThanOrEqual final: public Condition {
+public:
+    template<typename T>
+    GreaterThanOrEqual(int64_t T::* fn, int64_t value)
+    : Condition(fn, value, ">=") {}
+    
+    template<typename T>
+    GreaterThanOrEqual(double T::* fn, double value)
+    : Condition(fn, value, ">=") {}
+};
+
+class REFLECTION_EXPORT SmallerThan final: public Condition {
+public:
+    template<typename T>
+    SmallerThan(int64_t T::* fn, int64_t value)
+    : Condition(fn, value, "<") {}
+    
+    template<typename T>
+    SmallerThan(double T::* fn, double value)
+    : Condition(fn, value, "<") {}
+};
+
+class REFLECTION_EXPORT SmallerThanOrEqual final: public Condition {
+public:
+    template<typename T>
+    SmallerThanOrEqual(int64_t T::* fn, int64_t value)
+    : Condition(fn, value, "<=") {}
+    
+    template<typename T>
+    SmallerThanOrEqual(double T::* fn, double value)
+    : Condition(fn, value, "<=") {}
+};
+
 class REFLECTION_EXPORT BinaryCondition: public ConditionBase {
 public:
     std::string Evaluate() const override;
