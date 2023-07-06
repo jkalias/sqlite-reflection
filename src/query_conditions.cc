@@ -7,13 +7,11 @@ std::string ConditionBase::Evaluate() const {
     return "";
 }
 
-ConditionBase ConditionBase::And(ConditionBase other) const {
-    auto g = other.Evaluate();
+AndCondition ConditionBase::And(const ConditionBase& other) const {
     return AndCondition(*this, other);
 }
 
-ConditionBase ConditionBase::Or(ConditionBase other) const {
-    auto g = other.Evaluate();
+OrCondition ConditionBase::Or(const ConditionBase& other) const {
     return OrCondition(*this, other);
 }
 
@@ -45,12 +43,12 @@ std::string Condition::GetStringForValue(void *v, ReflectionMemberTrait trait) {
 }
 
 BinaryCondition::BinaryCondition(const ConditionBase& left, const ConditionBase& right, const std::string& symbol)
-: left_(left), right_(right), symbol_(symbol)
+: left_(&left), right_(&right), symbol_(symbol)
 {
 }
 
 std::string BinaryCondition::Evaluate() const {
-    return "(" + left_.Evaluate() + " " + symbol_ + " " + right_.Evaluate() + ")";
+    return "(" + left_->Evaluate() + " " + symbol_ + " " + right_->Evaluate() + ")";
 }
 
 AndCondition::AndCondition(const ConditionBase& left, const ConditionBase& right)

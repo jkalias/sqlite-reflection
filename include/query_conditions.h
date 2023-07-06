@@ -25,14 +25,18 @@
 #include "reflection.h"
 
 #include <string>
+#include <memory>
 
 namespace sqlite_reflection {
 
+class AndCondition;
+class OrCondition;
+
 class REFLECTION_EXPORT ConditionBase {
 public:
-    virtual std::string Evaluate() const;
-    ConditionBase And(ConditionBase other) const;
-    ConditionBase Or(ConditionBase other) const;
+    virtual std::string Evaluate() const = 0;
+    AndCondition And(const ConditionBase& other) const;
+    OrCondition Or(const ConditionBase& other) const;
 };
 
 class REFLECTION_EXPORT Condition: public ConditionBase {
@@ -51,7 +55,7 @@ public:
         }
     }
     
-    std::string Evaluate() const;
+    std::string Evaluate() const override;
     
 protected:
     std::string GetStringForValue(void* v, ReflectionMemberTrait trait);
@@ -77,13 +81,13 @@ public:
 
 class REFLECTION_EXPORT BinaryCondition: public ConditionBase {
 public:
-    std::string Evaluate() const;
+    std::string Evaluate() const override;
     
 protected:
     BinaryCondition(const ConditionBase& left, const ConditionBase& right, const std::string& symbol);
     
-    ConditionBase left_;
-    ConditionBase right_;
+    const ConditionBase* left_;
+    const ConditionBase* right_;
     std::string symbol_;
 };
 

@@ -82,11 +82,11 @@ TEST(QueryConditionsTest, Or) {
     EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 OR first_name = 'john')"));
 }
 
-TEST(QueryConditionsTest, ConditionBuilder) {
+TEST(QueryConditionsTest, ConditionChaining) {
     auto evaluation = Equal(&Person::id, (int64_t)65)
         .Or(Equal(&Person::first_name, std::wstring(L"john")))
         .And(Unequal(&Person::last_name, std::wstring(L"appleseed")))
         .Evaluate();
     
-    EXPECT_EQ(0, strcmp(evaluation.data(), "((id == 65 OR first_name == john) AND last_name != appleseed)"));
+    EXPECT_EQ(0, strcmp(evaluation.data(), "((id = 65 OR first_name = 'john') AND last_name != 'appleseed')"));
 }
