@@ -19,19 +19,19 @@ std::string Condition::Evaluate() const {
     return member_name_ + " " + symbol_ + " " + value_;
 }
 
-std::string Condition::GetStringForValue(void *v, ReflectionMemberTrait trait) {
-    switch (trait) {
-        case ReflectionMemberTrait::kInt:
+std::string Condition::GetStringForValue(void *v, SqliteStorageClass storage_class) {
+    switch (storage_class) {
+        case SqliteStorageClass::kInt:
         {
             auto value = *(int64_t*)(v);
             return StringUtilities::String(value);
         }
-        case ReflectionMemberTrait::kReal:
+        case SqliteStorageClass::kReal:
         {
             auto value = *(double*)(v);
             return StringUtilities::String(value);
         }
-        case ReflectionMemberTrait::kText:
+        case SqliteStorageClass::kText:
         {
             auto value = *(std::wstring*)(v);
             return "'" + StringUtilities::ToUtf8(value) + "'";

@@ -73,25 +73,25 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 
 	for (auto j = 0; j < members.size(); j++) {
 		const auto current_column = members[j].name;
-		const auto current_trait = members[j].trait;
+		const auto current_storage_class = members[j].storage_class;
 		std::string content;
 
-		switch (current_trait) {
-		case ReflectionMemberTrait::kInt:
+		switch (current_storage_class) {
+		case SqliteStorageClass::kInt:
 			{
 				const auto& value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
 				content = StringUtilities::String(value);
 				break;
 			}
 
-		case ReflectionMemberTrait::kReal:
+		case SqliteStorageClass::kReal:
 			{
 				const auto& value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
 				content = StringUtilities::String(value);
 				break;
 			}
 
-		case ReflectionMemberTrait::kText:
+		case SqliteStorageClass::kText:
 			{
 				auto& value = (*(std::wstring*)((void*)GetMemberAddress(p, record_, j)));
 				content = StringUtilities::ToUtf8(value);
@@ -121,7 +121,7 @@ std::string CreateTableQuery::PrepareSql() const {
 std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
     auto name = Query::CustomizedColumnName(index);
     const auto is_id = name.compare(std::string("id")) == 0;
-    name += " " + record_.member_metadata[index].column_type;
+    name += " " + record_.member_metadata[index].sqlite_column_name;
     
 	return is_id
     ? name + " PRIMARY KEY"
@@ -228,28 +228,28 @@ QueryResults FetchRecordsQuery::GetResults() {
 void FetchRecordsQuery::Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i) {
     for (auto j = 0; j < query_results.column_names.size(); j++) {
         const auto current_column = query_results.column_names[j];
-        const auto current_trait = record.member_metadata[j].trait;
+        const auto current_storage_class = record.member_metadata[j].storage_class;
         const auto& content = query_results.row_values[i][j];
         if (content == L"") {
             continue;
         }
 
-        switch (current_trait) {
-        case ReflectionMemberTrait::kInt:
+        switch (current_storage_class) {
+        case SqliteStorageClass::kInt:
             {
                 auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, j)));
                 v = StringUtilities::Int(content);
                 break;
             }
 
-        case ReflectionMemberTrait::kReal:
+        case SqliteStorageClass::kReal:
             {
                 auto& v = (*(double*)((void*)GetMemberAddress(p, record, j)));
                 v = StringUtilities::Double(content);
                 break;
             }
 
-        case ReflectionMemberTrait::kText:
+        case SqliteStorageClass::kText:
             {
                 auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, j)));
                 v = content;

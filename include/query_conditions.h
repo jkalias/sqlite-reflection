@@ -52,13 +52,13 @@ protected:
         for (auto i = 0; i < record.member_metadata.size(); ++i) {
             if (record.member_metadata[i].offset == offset) {
                 member_name_ = record.member_metadata[i].name;
-                value_ = GetStringForValue((void*)&value, record.member_metadata[i].trait);
+                value_ = GetStringForValue((void*)&value, record.member_metadata[i].storage_class);
                 break;
             }
         }
     }
     
-    std::string GetStringForValue(void* v, ReflectionMemberTrait trait);
+    std::string GetStringForValue(void* v, SqliteStorageClass storage_class);
     
     std::string symbol_;
     std::string member_name_;

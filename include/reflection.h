@@ -20,8 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// todo: rename all reflection to Record etc.
-
 #ifndef REFLECTION_INTERNAL
 #define REFLECTION_INTERNAL
 
@@ -36,8 +34,11 @@
 #include <stddef.h>
 #endif
 
-/// The trait of given struct member, for which SQLite-related reflection is enabled
-enum class REFLECTION_EXPORT ReflectionMemberTrait
+// todo: blob is missing
+// todo: saving/retrieving dates
+
+/// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
+enum class REFLECTION_EXPORT SqliteStorageClass
 {
 	kInt,
 	kReal,
@@ -55,36 +56,37 @@ struct REFLECTION_EXPORT Reflection
 	class MemberMetadata
 	{
 	public:
-		MemberMetadata(const std::string& _name, ReflectionMemberTrait _trait, size_t _offset)
-			: name(_name), trait(_trait), column_type(ToColumnType(_trait)), offset(_offset) { }
+		MemberMetadata(const std::string& _name, SqliteStorageClass _storage_class, size_t _offset)
+			: name(_name), storage_class(_storage_class), sqlite_column_name(ToSqliteColumnName(_storage_class)), offset(_offset) { }
 
-        /// The struct member name, as defined in the source code
+        /// The struct variable member name, as defined in the source code
 		std::string name;
         
-        /// The trait of this struct member, as defined by its type in the source code
-		ReflectionMemberTrait trait;
+        /// The storage class of this struct member, as defined by its type in the source code
+        /// https://www.tutorialspoint.com/sqlite/sqlite_data_types.htm
+		SqliteStorageClass storage_class;
         
-        /// The name of the column for this member in the corresponding SQLite Table of this struct
-		std::string column_type;
+        /// The name of the column for this member in the corresponding SQLite table of its containing struct
+		std::string sqlite_column_name;
         
         /// The memory offset in bytes of this member from the struct's start, including any padding bits
 		size_t offset;
 
 	private:
-        /// Helper for conversion between member trait and SQLite column name
-		static const char* ToColumnType(const ReflectionMemberTrait trait) {
-			switch (trait) {
-			case ReflectionMemberTrait::kInt:
+        /// Helper for conversion between member storage class and SQLite column name
+		static const char* ToSqliteColumnName(const SqliteStorageClass storage_class) {
+			switch (storage_class) {
+			case SqliteStorageClass::kInt:
 				return "INTEGER";
-			case ReflectionMemberTrait::kReal:
+			case SqliteStorageClass::kReal:
 				return "REAL";
-			case ReflectionMemberTrait::kText:
+			case SqliteStorageClass::kText:
 				return "TEXT";
-			case ReflectionMemberTrait::kBlob:
+			case SqliteStorageClass::kBlob:
 				return "BLOB";
 			default:
                 {
-                    throw std::domain_error("Implementation error: trait is not supported");
+                    throw std::domain_error("Implementation error: storage class is not supported");
                     return "";
                 }
 			}
@@ -228,11 +230,11 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
             reflectable.name = name;
 
             // store member metadata
-            DEFINE_MEMBER(id, ReflectionMemberTrait::kInt)
-#define MEMBER_INT(R)                           DEFINE_MEMBER(R, ReflectionMemberTrait::kInt)
-#define MEMBER_REAL(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kReal)
-#define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, ReflectionMemberTrait::kText)
-#define MEMBER_BLOB(L, R)                       DEFINE_MEMBER(R, ReflectionMemberTrait::kBlob)
+            DEFINE_MEMBER(id, SqliteStorageClass::kInt)
+#define MEMBER_INT(R)                           DEFINE_MEMBER(R, SqliteStorageClass::kInt)
+#define MEMBER_REAL(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kReal)
+#define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kText)
+#define MEMBER_BLOB(L, R)                       DEFINE_MEMBER(R, SqliteStorageClass::kBlob)
 #define FUNC(SIGNATURE)
             FIELDS
 #undef MEMBER_INT
