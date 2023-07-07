@@ -44,15 +44,15 @@ std::string Query::JoinedRecordColumnNames() const {
 
 std::vector<std::string> Query::GetRecordColumnNames() const {
 	std::vector<std::string> column_names;
-    column_names.reserve(record_.members.size());
-    for (auto j = 0; j < record_.members.size(); ++j) {
+    column_names.reserve(record_.member_metadata.size());
+    for (auto j = 0; j < record_.member_metadata.size(); ++j) {
         column_names.emplace_back(CustomizedColumnName(j));
     }
 	return column_names;
 }
 
 std::string Query::CustomizedColumnName(size_t index) const {
-    return record_.members[index].name;
+    return record_.member_metadata[index].name;
 }
 
 // ------------------------------------------------------------------------
@@ -68,7 +68,7 @@ void ExecutionQuery::Execute() const {
 }
 
 std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
-	const auto& members = record_.members;
+	const auto& members = record_.member_metadata;
 	std::vector<std::string> values;
 
 	for (auto j = 0; j < members.size(); j++) {
@@ -121,7 +121,7 @@ std::string CreateTableQuery::PrepareSql() const {
 std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
     auto name = Query::CustomizedColumnName(index);
     const auto is_id = name.compare(std::string("id")) == 0;
-    name += " " + record_.members[index].column_type;
+    name += " " + record_.member_metadata[index].column_type;
     
 	return is_id
     ? name + " PRIMARY KEY"
@@ -228,8 +228,7 @@ QueryResults FetchRecordsQuery::GetResults() {
 void FetchRecordsQuery::Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i) {
     for (auto j = 0; j < query_results.column_names.size(); j++) {
         const auto current_column = query_results.column_names[j];
-        const auto member_index = record.member_index_mapping.at(current_column);
-        const auto current_trait = record.members[member_index].trait;
+        const auto current_trait = record.member_metadata[j].trait;
         const auto& content = query_results.row_values[i][j];
         if (content == L"") {
             continue;
@@ -238,21 +237,21 @@ void FetchRecordsQuery::Hydrate(void* p, const QueryResults& query_results, cons
         switch (current_trait) {
         case ReflectionMemberTrait::kInt:
             {
-                auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, member_index)));
+                auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, j)));
                 v = StringUtilities::Int(content);
                 break;
             }
 
         case ReflectionMemberTrait::kReal:
             {
-                auto& v = (*(double*)((void*)GetMemberAddress(p, record, member_index)));
+                auto& v = (*(double*)((void*)GetMemberAddress(p, record, j)));
                 v = StringUtilities::Double(content);
                 break;
             }
 
         case ReflectionMemberTrait::kText:
             {
-                auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, member_index)));
+                auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, j)));
                 v = content;
                 break;
             }

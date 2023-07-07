@@ -49,10 +49,10 @@ protected:
         symbol_ = symbol;
         auto record = GetRecordFromTypeId(typeid(T).name());
         auto offset = OffsetFromStart(fn);
-        for (auto i = 0; i < record.members.size(); ++i) {
-            if (record.members[i].offset == offset) {
-                member_name_ = record.members[i].name;
-                value_ = GetStringForValue((void*)&value, record.members[i].trait);
+        for (auto i = 0; i < record.member_metadata.size(); ++i) {
+            if (record.member_metadata[i].offset == offset) {
+                member_name_ = record.member_metadata[i].name;
+                value_ = GetStringForValue((void*)&value, record.member_metadata[i].trait);
                 break;
             }
         }
