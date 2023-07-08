@@ -90,6 +90,17 @@ namespace sqlite_reflection {
 			}
 			return Hydrate<T>(query_result, record)[0];
 		}
+        
+        /// Retrieves the max id of a given record from the database
+        /// This corresponds to SELECT MAX(id) FROM TABLE in the SQL syntax
+        template <typename T>
+        int64_t GetMaxId() const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            FetchMaxIdQuery query(db_, record);
+            const auto max_id = query.GetMaxId();
+            return max_id;
+        }
 
         /// Saves a given record in the database.
         /// This corresponds to an INSERT query in the SQL syntax

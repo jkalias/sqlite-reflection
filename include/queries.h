@@ -129,6 +129,20 @@ namespace sqlite_reflection {
 		void* p_;
 	};
 
+    /// A query for retrieving the max id of a given record from the database
+    class REFLECTION_EXPORT FetchMaxIdQuery final : public Query
+    {
+    public:
+        explicit FetchMaxIdQuery(sqlite3* db, const Reflection& record);
+        ~FetchMaxIdQuery() override;
+        
+        /// Retrieve the max id currently used for the given record type
+        int64_t GetMaxId();
+
+    protected:
+        std::string PrepareSql() const override;
+        sqlite3_stmt* stmt_;
+    };
 
     struct FetchQueryResults;
 

@@ -182,6 +182,40 @@ std::string UpdateQuery::PrepareSql() const {
 	return sql;
 }
 
+FetchMaxIdQuery::FetchMaxIdQuery(sqlite3* db, const Reflection& record)
+: Query(db, record), stmt_(nullptr) {}
+
+FetchMaxIdQuery::~FetchMaxIdQuery() {
+    if (stmt_) {
+        sqlite3_finalize(stmt_);
+    }
+}
+
+std::string FetchMaxIdQuery::PrepareSql() const {
+    return "SELECT MAX(id) FROM " + record_.name + ";";
+}
+
+int64_t FetchMaxIdQuery::GetMaxId() {
+    const auto sql = PrepareSql();
+
+    if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
+        sqlite3_close(db_);
+        throw std::runtime_error("Could not retrieve max id for table " + record_.name);
+    }
+
+    const auto column_count = sqlite3_column_count(stmt_);
+    if (column_count != 1) {
+        throw std::runtime_error("Number of columns for max id is wrong for table " + record_.name);
+    }
+    
+    if (sqlite3_step(stmt_) != SQLITE_ROW) {
+        throw std::runtime_error("Row result could not be read for max id of table " + record_.name);
+    }
+    
+    const auto max_id = sqlite3_column_int(stmt_, 0);
+    return max_id;
+}
+
 FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase& predicate)
     : Query(db, record), stmt_(nullptr), predicate_(predicate) {}
 

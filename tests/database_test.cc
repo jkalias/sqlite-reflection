@@ -265,3 +265,20 @@ TEST_F(DatabaseTest, FetchWithCustomCondition) {
     EXPECT_EQ(L"surname3", fetched_persons[1].last_name);
     EXPECT_EQ(37, fetched_persons[1].age);
 }
+
+TEST_F(DatabaseTest, ReadMaxId) {
+    const auto& db = Database::Instance();
+
+    std::vector<Person> persons;
+
+    persons.push_back({52, L"john", L"appleseed", 28});
+    persons.push_back({156, L"mary", L"poppins", 20});
+
+    db.Save(persons);
+    
+    const auto max_id_person = db.GetMaxId<Person>();
+    EXPECT_EQ(156, max_id_person);
+    
+    const auto max_id_pet = db.GetMaxId<Pet>();
+    EXPECT_EQ(0, max_id_pet);
+}
