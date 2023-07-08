@@ -27,7 +27,7 @@
 #include <map>
 
 #include "reflection.h"
-#include "query_results.h"
+#include "fetch_query_results.h"
 #include "query_conditions.h"
 #include "queries.h"
 
@@ -127,12 +127,12 @@ namespace sqlite_reflection {
 
 		explicit Database(const char* path);
 
-		QueryResults Fetch(const Reflection& record, const ConditionBase& query_condition) const;
+		FetchQueryResults Fetch(const Reflection& record, const ConditionBase& query_condition) const;
 
 		static const Reflection& GetRecord(const std::string& type_id);
 
 		template <typename T>
-		std::vector<T> Hydrate(const QueryResults& query_results, const Reflection& record) const {
+		std::vector<T> Hydrate(const FetchQueryResults& query_results, const Reflection& record) const {
 			std::vector<T> models;
 			for (auto i = 0; i < query_results.row_values.size(); i++) {
 				T model;

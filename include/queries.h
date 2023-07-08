@@ -116,15 +116,15 @@ namespace sqlite_reflection {
 
 	// ------------------------------------------------------------------------
 
-    struct QueryResults;
+    struct FetchQueryResults;
 	class REFLECTION_EXPORT FetchRecordsQuery final : public Query
 	{
 	public:
 		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, const ConditionBase& condition);
         ~FetchRecordsQuery() override;
         
-        QueryResults GetResults();
-        static void Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i);
+        FetchQueryResults GetResults();
+        static void Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i);
 
 	protected:
 		std::string PrepareSql() const override;

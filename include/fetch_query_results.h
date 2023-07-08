@@ -25,7 +25,8 @@
 #include <vector>
 
 namespace sqlite_reflection {
-	struct QueryResults
+    /// A wrapper of the results of an SQLite SELECT query
+	struct FetchQueryResults
 	{
 		std::vector<std::string> column_names;
 		std::vector<std::vector<std::wstring>> row_values;

@@ -30,7 +30,7 @@
 
 #include "internal/sqlite3.h"
 #include "internal/string_utilities.h"
-#include "query_results.h"
+#include "fetch_query_results.h"
 
 using namespace sqlite_reflection;
 
@@ -196,7 +196,7 @@ FetchRecordsQuery::~FetchRecordsQuery() {
     }
 }
 
-QueryResults FetchRecordsQuery::GetResults() {
+FetchQueryResults FetchRecordsQuery::GetResults() {
     const auto sql = PrepareSql();
 
     if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
@@ -206,7 +206,7 @@ QueryResults FetchRecordsQuery::GetResults() {
 
     const auto column_count = sqlite3_column_count(stmt_);
 
-    QueryResults results;
+    FetchQueryResults results;
     results.column_names.reserve(column_count);
     for (auto i = 0; i < column_count; i++) {
         results.column_names.emplace_back(sqlite3_column_name(stmt_, i));
@@ -225,7 +225,7 @@ QueryResults FetchRecordsQuery::GetResults() {
     return results;
 }
 
-void FetchRecordsQuery::Hydrate(void* p, const QueryResults& query_results, const Reflection& record, size_t i) {
+void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i) {
     for (auto j = 0; j < query_results.column_names.size(); j++) {
         const auto current_column = query_results.column_names[j];
         const auto current_storage_class = record.member_metadata[j].storage_class;
