@@ -27,6 +27,8 @@
 #include <vector>
 
 namespace sqlite_reflection {
+    /// Some useful string utility functions converting back and forth
+    /// between strings and concrete types used by SQLite
 	class REFLECTION_EXPORT StringUtilities
 	{
 	public:

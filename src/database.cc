@@ -31,11 +31,11 @@
 #include "internal/sqlite3.h"
 
 namespace sqlite_reflection {
+    Database* Database::instance_ = nullptr;
+
 	const ReflectionRegister& GetReflectionRegister() {
 		return *GetReflectionRegisterInstance();
 	}
-
-	Database* Database::instance_ = nullptr;
 
 	void Database::Initialize(const std::string& path) {
 		if (instance_ != nullptr) {
