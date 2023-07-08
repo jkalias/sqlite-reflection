@@ -60,9 +60,16 @@ ExecutionQuery::ExecutionQuery(sqlite3* db, const Reflection& record)
 
 void ExecutionQuery::Execute() const {
 	const auto sql = PrepareSql();
+    if (sqlite3_exec(db_, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr)) {
+        throw std::domain_error("Fatal error in transaction start");
+    }
 	if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
+        sqlite3_exec(db_, "ROLLBACK;", nullptr, nullptr, nullptr);
 		throw std::domain_error((sql + ": Query could not be executed").data());
 	}
+    if (sqlite3_exec(db_, "COMMIT;", nullptr, nullptr, nullptr)) {
+        throw std::domain_error("Fatal error in transaction commit");
+    }
 }
 
 std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
