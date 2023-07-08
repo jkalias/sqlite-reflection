@@ -56,23 +56,30 @@ public:
     
 protected:
     template<typename T, typename R>
-    QueryPredicate(R T::* fn, R value, const std::string& symbol) {
+    QueryPredicate(R T::* fn, R value, const std::string& symbol, std::function<std::string(void*, SqliteStorageClass)> value_retrieval) {
         symbol_ = symbol;
         auto record = GetRecordFromTypeId(typeid(T).name());
         auto offset = OffsetFromStart(fn);
         for (auto i = 0; i < record.member_metadata.size(); ++i) {
             if (record.member_metadata[i].offset == offset) {
                 member_name_ = record.member_metadata[i].name;
-                value_ = GetStringForValue((void*)&value, record.member_metadata[i].storage_class);
+                value_ = value_retrieval((void*)&value, record.member_metadata[i].storage_class);
                 break;
             }
         }
     }
     
+    template<typename T, typename R>
+    QueryPredicate(R T::* fn, R value, const std::string& symbol)
+    : QueryPredicate(fn, value, symbol, [&](void* v, SqliteStorageClass storage_class) {
+        return GetStringForValue(v, storage_class);
+    })
+    {}
+    
     /// Returns a textual representation of the value used for the current query, against which the
     /// struct member (defined from the pointer-to-member function) will be compared. The value needs
     /// to be type-erased, so that the header file is not bloated with unnecessary implementation details
-    std::string GetStringForValue(void* v, SqliteStorageClass storage_class);
+    virtual std::string GetStringForValue(void* v, SqliteStorageClass storage_class) const;
     
     /// The symbol used for the comparison, for example "=" for equality
     std::string symbol_;
@@ -108,6 +115,22 @@ public:
     template<typename T, typename R>
     Unequal(R T::* fn, R value)
     : QueryPredicate(fn, value, "!=") {}
+};
+
+/// A wrapper for a similarity predicate, for which the value of the
+/// struct member is required to be similar to a given control value
+class REFLECTION_EXPORT Like final: public QueryPredicate {
+public:
+    template<typename T, typename R>
+    Like(R T::* fn, R value)
+    : QueryPredicate(fn, value, "LIKE", [&](void* v, SqliteStorageClass storage_class) {
+        return GetStringForValue(v, storage_class);
+    })
+    {}
+    
+protected:
+    std::string GetStringForValue(void* v, SqliteStorageClass storage_class) const override;
+    static std::string Remove(const std::string& source, const std::string& substring);
 };
 
 /// A wrapper for a comparison predicate, for which the value of the

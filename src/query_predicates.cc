@@ -3,6 +3,10 @@
 
 using namespace sqlite_reflection;
 
+const std::string single_quote("'");
+const std::string space(" ");
+const std::string percent("%");
+
 std::string EmptyPredicate::Evaluate() const {
     return "";
 }
@@ -16,10 +20,10 @@ OrPredicate QueryPredicateBase::Or(const QueryPredicateBase& other) const {
 }
 
 std::string QueryPredicate::Evaluate() const {
-    return member_name_ + " " + symbol_ + " " + value_;
+    return member_name_ + space + symbol_ + space + value_;
 }
 
-std::string QueryPredicate::GetStringForValue(void *v, SqliteStorageClass storage_class) {
+std::string QueryPredicate::GetStringForValue(void *v, SqliteStorageClass storage_class) const {
     switch (storage_class) {
         case SqliteStorageClass::kInt:
         {
@@ -34,12 +38,28 @@ std::string QueryPredicate::GetStringForValue(void *v, SqliteStorageClass storag
         case SqliteStorageClass::kText:
         {
             auto value = *(std::wstring*)(v);
-            return "'" + StringUtilities::ToUtf8(value) + "'";
+            return single_quote + StringUtilities::ToUtf8(value) + single_quote;
         }
         default:
             throw std::domain_error("Blob cannot be compared against equality");
             break;
     }
+}
+
+std::string Like::GetStringForValue(void* v, SqliteStorageClass storage_class) const {
+    auto value = QueryPredicate::GetStringForValue(v, storage_class);
+    value = Remove(value, single_quote);
+    return single_quote + percent + value + percent + single_quote;
+}
+
+std::string Like::Remove(const std::string& source, const std::string& substring) {
+    auto copy = source;
+    auto it = copy.find(substring);
+    while (it != std::string::npos) {
+        copy.erase(it, substring.length());
+        it = copy.find(substring);
+    }
+    return copy;
 }
 
 BinaryPredicate::BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol)
@@ -48,7 +68,7 @@ BinaryPredicate::BinaryPredicate(const QueryPredicateBase& left, const QueryPred
 }
 
 std::string BinaryPredicate::Evaluate() const {
-    return "(" + left_->Evaluate() + " " + symbol_ + " " + right_->Evaluate() + ")";
+    return "(" + left_->Evaluate() + space + symbol_ + space + right_->Evaluate() + ")";
 }
 
 AndPredicate::AndPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)

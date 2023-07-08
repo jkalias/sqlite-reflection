@@ -28,91 +28,91 @@
 
 using namespace sqlite_reflection;
 
-TEST(QueryConditionsTest, EqualityInt) {
+TEST(QueryPredicatesTest, EqualityInt) {
     Equal condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id = 65"));
 }
 
-TEST(QueryConditionsTest, EqualityString) {
+TEST(QueryPredicatesTest, EqualityString) {
     Equal condition(&Person::first_name, std::wstring(L"john"));
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "first_name = 'john'"));
 }
 
-TEST(QueryConditionsTest, EqualityDouble) {
+TEST(QueryPredicatesTest, EqualityDouble) {
     Equal condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
-    EXPECT_EQ(0, strcmp(evalution.data(), "weight = 32.400000"));
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight = 32.4"));
 }
 
-TEST(QueryConditionsTest, InequalityInt) {
+TEST(QueryPredicatesTest, InequalityInt) {
     Unequal condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id != 65"));
 }
 
-TEST(QueryConditionsTest, InequalityString) {
+TEST(QueryPredicatesTest, InequalityString) {
     Unequal condition(&Person::first_name, std::wstring(L"john"));
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "first_name != 'john'"));
 }
 
-TEST(QueryConditionsTest, InequalityDouble) {
+TEST(QueryPredicatesTest, InequalityDouble) {
     Unequal condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
-    EXPECT_EQ(0, strcmp(evalution.data(), "weight != 32.400000"));
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight != 32.4"));
 }
 
-TEST(QueryConditionsTest, GreaterThanInt) {
+TEST(QueryPredicatesTest, GreaterThanInt) {
     GreaterThan condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id > 65"));
 }
 
-TEST(QueryConditionsTest, GreaterThanOrEqualInt) {
+TEST(QueryPredicatesTest, GreaterThanOrEqualInt) {
     GreaterThanOrEqual condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id >= 65"));
 }
 
-TEST(QueryConditionsTest, GreaterThanDouble) {
+TEST(QueryPredicatesTest, GreaterThanDouble) {
     GreaterThan condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
-    EXPECT_EQ(0, strcmp(evalution.data(), "weight > 32.400000"));
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight > 32.4"));
 }
 
-TEST(QueryConditionsTest, GreaterThanOrEqualDouble) {
+TEST(QueryPredicatesTest, GreaterThanOrEqualDouble) {
     GreaterThanOrEqual condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
-    EXPECT_EQ(0, strcmp(evalution.data(), "weight >= 32.400000"));
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight >= 32.4"));
 }
 
-TEST(QueryConditionsTest, SmallerThanInt) {
+TEST(QueryPredicatesTest, SmallerThanInt) {
     SmallerThan condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id < 65"));
 }
 
-TEST(QueryConditionsTest, SmallerThanEqualInt) {
+TEST(QueryPredicatesTest, SmallerThanEqualInt) {
     SmallerThanOrEqual condition(&Person::id, (int64_t)65);
     auto evalution = condition.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "id <= 65"));
 }
 
-TEST(QueryConditionsTest, SmallerThanDouble) {
+TEST(QueryPredicatesTest, SmallerThanDouble) {
     SmallerThan condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
-    EXPECT_EQ(0, strcmp(evalution.data(), "weight < 32.400000"));
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight < 32.4"));
 }
 
-TEST(QueryConditionsTest, SmallerThanOrEqualDouble) {
+TEST(QueryPredicatesTest, SmallerThanOrEqualDouble) {
     SmallerThanOrEqual condition(&Pet::weight, 32.4);
     auto evalution = condition.Evaluate();
-    EXPECT_EQ(0, strcmp(evalution.data(), "weight <= 32.400000"));
+    EXPECT_EQ(0, strcmp(evalution.data(), "weight <= 32.4"));
 }
 
-TEST(QueryConditionsTest, And) {
+TEST(QueryPredicatesTest, And) {
     Unequal c1(&Person::id, (int64_t)65);
     Equal c2(&Person::first_name, std::wstring(L"john"));
     AndPredicate c3(c1, c2);
@@ -120,7 +120,7 @@ TEST(QueryConditionsTest, And) {
     EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 AND first_name = 'john')"));
 }
 
-TEST(QueryConditionsTest, Or) {
+TEST(QueryPredicatesTest, Or) {
     Unequal c1(&Person::id, (int64_t)65);
     Equal c2(&Person::first_name, std::wstring(L"john"));
     OrPredicate c3(c1, c2);
@@ -128,7 +128,7 @@ TEST(QueryConditionsTest, Or) {
     EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 OR first_name = 'john')"));
 }
 
-TEST(QueryConditionsTest, ConditionChaining) {
+TEST(QueryPredicatesTest, ConditionChaining) {
     auto evaluation = Equal(&Person::id, (int64_t)65)
         .Or(Equal(&Person::first_name, std::wstring(L"john")))
         .And(Unequal(&Person::last_name, std::wstring(L"appleseed")))

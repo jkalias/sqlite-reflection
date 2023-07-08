@@ -53,7 +53,13 @@ double StringUtilities::Double(const std::wstring& s) {
 }
 
 std::string StringUtilities::String(double value) {
-	return std::to_string(value);
+    auto textual_representation = std::to_string(value);
+    if (textual_representation.find(".") != std::string::npos) {
+        while (textual_representation.length() > 0 && textual_representation[textual_representation.length() - 1] == '0') {
+            textual_representation.erase(textual_representation.end() - 1);
+        }
+    }
+	return textual_representation;
 }
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {

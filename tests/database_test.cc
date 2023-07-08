@@ -25,6 +25,7 @@
 
 #include "person.h"
 #include "pet.h"
+#include "company.h"
 
 using namespace sqlite_reflection;
 
@@ -235,7 +236,112 @@ TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException) {
 	EXPECT_ANY_THROW(db.Fetch<Person>(15));
 }
 
-TEST_F(DatabaseTest, FetchWithCustomCondition) {
+TEST_F(DatabaseTest, FetchWithSimilarPredicateString) {
+    const auto& db = Database::Instance();
+
+    std::vector<Company> company;
+
+    company.push_back({1, L"Paul", 32, L"California", 20000.0});
+    company.push_back({2, L"Allen", 25, L"Texas", 15000.0});
+    company.push_back({3, L"Teddy", 23, L"Norway", 20000.0});
+    company.push_back({4, L"Mark", 25, L"Rich-Mond", 65000.0});
+    company.push_back({5, L"David", 27, L"Texas", 85000.0});
+    company.push_back({6, L"Kim", 22, L"South-Hall", 45000.0});
+    company.push_back({7, L"Janes", 24, L"Houston", 10000.0});
+
+    db.Save(company);
+    
+    auto fetch_condition = Like(&Company::address, std::wstring(L"-"));
+    
+    auto fetched_persons = db.Fetch<Company>(fetch_condition);
+    EXPECT_EQ(2, fetched_persons.size());
+    
+    EXPECT_EQ(4, fetched_persons[0].id);
+    EXPECT_EQ(L"Mark", fetched_persons[0].name);
+    EXPECT_EQ(25, fetched_persons[0].age);
+    EXPECT_EQ(L"Rich-Mond", fetched_persons[0].address);
+    EXPECT_EQ(65000.0, fetched_persons[0].salary);
+    
+    EXPECT_EQ(6, fetched_persons[1].id);
+    EXPECT_EQ(L"Kim", fetched_persons[1].name);
+    EXPECT_EQ(22, fetched_persons[1].age);
+    EXPECT_EQ(L"South-Hall", fetched_persons[1].address);
+    EXPECT_EQ(45000.0, fetched_persons[1].salary);
+}
+
+TEST_F(DatabaseTest, FetchWithSimilarPredicateDouble) {
+    const auto& db = Database::Instance();
+
+    std::vector<Company> company;
+
+    company.push_back({1, L"Paul", 32, L"California", 20000.0});
+    company.push_back({2, L"Allen", 25, L"Texas", 15000.0});
+    company.push_back({3, L"Teddy", 23, L"Norway", 20000.0});
+    company.push_back({4, L"Mark", 25, L"Rich-Mond", 65000.0});
+    company.push_back({5, L"David", 27, L"Texas", 85000.0});
+    company.push_back({6, L"Kim", 22, L"South-Hall", 45000.0});
+    company.push_back({7, L"Janes", 24, L"Houston", 10000.0});
+
+    db.Save(company);
+    
+    auto fetch_condition = Like(&Company::salary, 5000.0);
+    
+    auto fetched_persons = db.Fetch<Company>(fetch_condition);
+    EXPECT_EQ(4, fetched_persons.size());
+    
+    EXPECT_EQ(2, fetched_persons[0].id);
+    EXPECT_EQ(L"Allen", fetched_persons[0].name);
+    EXPECT_EQ(25, fetched_persons[0].age);
+    EXPECT_EQ(L"Texas", fetched_persons[0].address);
+    EXPECT_EQ(15000, fetched_persons[0].salary);
+    
+    EXPECT_EQ(4, fetched_persons[1].id);
+    EXPECT_EQ(L"Mark", fetched_persons[1].name);
+    EXPECT_EQ(25, fetched_persons[1].age);
+    EXPECT_EQ(L"Rich-Mond", fetched_persons[1].address);
+    EXPECT_EQ(65000, fetched_persons[1].salary);
+    
+    EXPECT_EQ(5, fetched_persons[2].id);
+    EXPECT_EQ(L"David", fetched_persons[2].name);
+    EXPECT_EQ(27, fetched_persons[2].age);
+    EXPECT_EQ(L"Texas", fetched_persons[2].address);
+    EXPECT_EQ(85000, fetched_persons[2].salary);
+    
+    EXPECT_EQ(6, fetched_persons[3].id);
+    EXPECT_EQ(L"Kim", fetched_persons[3].name);
+    EXPECT_EQ(22, fetched_persons[3].age);
+    EXPECT_EQ(L"South-Hall", fetched_persons[3].address);
+    EXPECT_EQ(45000.0, fetched_persons[3].salary);
+}
+
+TEST_F(DatabaseTest, FetchWithSimilarPredicateInt) {
+    const auto& db = Database::Instance();
+
+    std::vector<Company> company;
+
+    company.push_back({1, L"Paul", 32, L"California", 20000.0});
+    company.push_back({2, L"Allen", 25, L"Texas", 15000.0});
+    company.push_back({3, L"Teddy", 23, L"Norway", 20000.0});
+    company.push_back({4, L"Mark", 25, L"Rich-Mond", 65000.0});
+    company.push_back({5, L"David", 27, L"Texas", 85000.0});
+    company.push_back({6, L"Kim", 22, L"South-Hall", 45000.0});
+    company.push_back({7, L"Janes", 24, L"Houston", 10000.0});
+
+    db.Save(company);
+    
+    auto fetch_condition = Like(&Company::age, (int64_t)7);
+    
+    auto fetched_persons = db.Fetch<Company>(fetch_condition);
+    EXPECT_EQ(1, fetched_persons.size());
+    
+    EXPECT_EQ(5, fetched_persons[0].id);
+    EXPECT_EQ(L"David", fetched_persons[0].name);
+    EXPECT_EQ(27, fetched_persons[0].age);
+    EXPECT_EQ(L"Texas", fetched_persons[0].address);
+    EXPECT_EQ(85000, fetched_persons[0].salary);
+}
+
+TEST_F(DatabaseTest, FetchWithCompoundPredicate) {
     const auto& db = Database::Instance();
 
     std::vector<Person> persons;
