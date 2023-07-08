@@ -31,47 +31,9 @@
 #include "internal/sqlite3.h"
 
 namespace sqlite_reflection {
-	int RegisterValueCallbackInt() {
-		value_callback_mapping[SQLITE_INTEGER] = [](sqlite3_stmt* stmt, int col){
-			return static_cast<void*>(std::make_shared<int>(sqlite3_column_int(stmt, col)).get());
-		};
-		return SQLITE_INTEGER;
-	}
-
-	static int int_value_mapping = RegisterValueCallbackInt();
-
-	int RegisterValueCallbackFloat() {
-		value_callback_mapping[SQLITE_FLOAT] = [](sqlite3_stmt* stmt, int col){
-			return static_cast<void*>(std::make_shared<double>(sqlite3_column_double(stmt, col)).get());
-		};
-		return SQLITE_FLOAT;
-	}
-
-	static int float_value_mapping = RegisterValueCallbackFloat();
-
-	int RegisterValueCallbackText() {
-		value_callback_mapping[SQLITE_TEXT] = [](sqlite3_stmt* stmt, int col){
-			return (void*)sqlite3_column_text(stmt, col);
-		};
-		return SQLITE_TEXT;
-	}
-
-	static int text_value_mapping = RegisterValueCallbackText();
-
-	int RegisterValueCallbackBlob() {
-		value_callback_mapping[SQLITE_BLOB] = [](sqlite3_stmt* stmt, int col){
-			return (void*)sqlite3_column_blob(stmt, col);
-		};
-		return SQLITE_BLOB;
-	}
-
-	static int blob_value_mapping = RegisterValueCallbackBlob();
-
 	const ReflectionRegister& GetReflectionRegister() {
 		return *GetReflectionRegisterInstance();
 	}
-
-	// ------------------------------------------------------------------------
 
 	Database* Database::instance_ = nullptr;
 
@@ -110,8 +72,8 @@ namespace sqlite_reflection {
 		return *instance_;
 	}
 
-	FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase& query_condition) const {
-		FetchRecordsQuery query(db_, record, query_condition);
+	FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase& predicate) const {
+		FetchRecordsQuery query(db_, record, predicate);
 		return query.GetResults();
 	}
 

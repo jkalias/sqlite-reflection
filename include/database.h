@@ -33,19 +33,31 @@
 
 struct sqlite3;
 struct sqlite3_stmt;
-static std::map<int, std::function<void*(sqlite3_stmt*, int)>> value_callback_mapping;
 
 namespace sqlite_reflection {
+    /// A wrapper of an SQLite database, enabling type-safe and compile-time CRUD operations,
+    /// encapsulating the C-based API of the underlying SQLite engine
 	class REFLECTION_EXPORT Database
 	{
 	public:
+        /// Initializes the SQLite database singleton at a given file path.
+        /// This function should be called before any operation is performed on the database.
+        /// During initialization all reflectable structs/records are registered and their corresponding tables are created in the database.
+        /// If the path is empty, an in-memory database is created.
 		static void Initialize(const std::string& path = "");
+        
+        /// This should, ideally,  be called before the program finishes execution, so that
+        /// the database connection is closed.
 		static void Finalize();
+        
+        /// Retrieves the database singleton wrapper for further operations
 		static const Database& Instance();
 
 		Database(Database const&) = delete;
 		void operator=(Database const&) = delete;
 
+        /// Retrieves all entries of a given record from the database.
+        /// This corresponds to a SELECT query in the SQL syntax
 		template <typename T>
 		std::vector<T> FetchAll() const {
 			const auto type_id = typeid(T).name();
@@ -55,14 +67,18 @@ namespace sqlite_reflection {
 			return Hydrate<T>(query_result, record);
 		}
         
+        /// Retrieves all entries of a given record from the database, which match a given predicate.
+        /// This corresponds to a SELECT query in the SQL syntax
         template <typename T>
-        std::vector<T> Fetch(const QueryPredicateBase& fetch_condition) const {
+        std::vector<T> Fetch(const QueryPredicateBase& predicate) const {
             const auto type_id = typeid(T).name();
             const auto& record = GetRecord(type_id);
-            const auto& query_result = Fetch(record, fetch_condition);
+            const auto& query_result = Fetch(record, predicate);
             return Hydrate<T>(query_result, record);
         }
 
+        /// Retrieves a single entry of a given record from the database, which matches a given id.
+        /// This corresponds to a SELECT query in the SQL syntax
 		template <typename T>
 		T Fetch(int64_t id) const {
 			const auto type_id = typeid(T).name();
@@ -75,6 +91,8 @@ namespace sqlite_reflection {
 			return Hydrate<T>(query_result, record)[0];
 		}
 
+        /// Saves a given record in the database.
+        /// This corresponds to an INSERT query in the SQL syntax
 		template <typename T>
 		void Save(const T& model) const {
 			const auto type_id = typeid(T).name();
@@ -82,6 +100,8 @@ namespace sqlite_reflection {
 			Save((void*)&model, record);
 		}
 
+        /// Saves multiple records iteratively in the database.
+        /// This corresponds to an INSERT query in the SQL syntax
 		template <typename T>
 		void Save(const std::vector<T>& models) const {
 			const auto type_id = typeid(T).name();
@@ -91,6 +111,8 @@ namespace sqlite_reflection {
 			}
 		}
 
+        /// Updates a given record in the database.
+        /// This corresponds to an UPDATE query in the SQL syntax
 		template <typename T>
 		void Update(const T& model) const {
 			const auto type_id = typeid(T).name();
@@ -98,6 +120,8 @@ namespace sqlite_reflection {
 			Update((void*)&model, record);
 		}
 
+        /// Updates multiple records iteratively in the database.
+        /// This corresponds to an UPDATE query in the SQL syntax
 		template <typename T>
 		void Update(const std::vector<T>& models) const {
 			const auto type_id = typeid(T).name();
@@ -107,6 +131,8 @@ namespace sqlite_reflection {
 			}
 		}
 
+        /// Deletes a given record from the database.
+        /// This corresponds to an DELETE query in the SQL syntax
 		template <typename T>
 		void Delete(const T& model) const {
 			const auto type_id = typeid(T).name();
@@ -114,6 +140,8 @@ namespace sqlite_reflection {
 			Delete(model.id, record);
 		}
 
+        /// Deletes a given record from the database, which matches a given id.
+        /// This corresponds to an DELETE query in the SQL syntax
 		template <typename T>
 		void Delete(int64_t id) const {
 			const auto type_id = typeid(T).name();
@@ -122,15 +150,17 @@ namespace sqlite_reflection {
 		}
 
 	private:
-		static Database* instance_;
-		sqlite3* db_;
-
 		explicit Database(const char* path);
-
-		FetchQueryResults Fetch(const Reflection& record, const QueryPredicateBase& query_condition) const;
-
+        
+        /// Executes a fetch query (SELECT) for a given record with a given predicate,
+        /// and returns the results in a textual representation
+		FetchQueryResults Fetch(const Reflection& record, const QueryPredicateBase& predicate) const;
+        
+        /// Returns a record type from its type information, retrieved from typeid(...).name()
 		static const Reflection& GetRecord(const std::string& type_id);
 
+        /// Creates concrete record types with initialized members,
+        /// based on the textual representation of results from a fetch query
 		template <typename T>
 		std::vector<T> Hydrate(const FetchQueryResults& query_results, const Reflection& record) const {
 			std::vector<T> models;
@@ -141,11 +171,17 @@ namespace sqlite_reflection {
 			}
 			return models;
 		}
-
+        
+        /// Saves a single record in the database
 		void Save(void* p, const Reflection& record) const;
-
+        
+        /// Updates a single record in the database
 		void Update(void* p, const Reflection& record) const;
-
+        
+        /// Deletes a single record from the database
 		void Delete(int64_t id, const Reflection& record) const;
+        
+        static Database* instance_;
+        sqlite3* db_;
 	};
 }

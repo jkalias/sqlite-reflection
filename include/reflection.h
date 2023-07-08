@@ -34,6 +34,7 @@
 #include <stddef.h>
 #endif
 
+// todo: operations in transactions
 // todo: blob is missing
 // todo: saving/retrieving dates
 // todo: save should determine id automatically, and not require it to be predefined
