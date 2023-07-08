@@ -36,6 +36,7 @@
 
 // todo: blob is missing
 // todo: saving/retrieving dates
+// todo: save should determine id automatically, and not require it to be predefined
 
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
 enum class REFLECTION_EXPORT SqliteStorageClass

@@ -56,7 +56,7 @@ namespace sqlite_reflection {
 		}
         
         template <typename T>
-        std::vector<T> Fetch(const ConditionBase& fetch_condition) const {
+        std::vector<T> Fetch(const QueryConditionBase& fetch_condition) const {
             const auto type_id = typeid(T).name();
             const auto& record = GetRecord(type_id);
             const auto& query_result = Fetch(record, fetch_condition);
@@ -127,7 +127,7 @@ namespace sqlite_reflection {
 
 		explicit Database(const char* path);
 
-		FetchQueryResults Fetch(const Reflection& record, const ConditionBase& query_condition) const;
+		FetchQueryResults Fetch(const Reflection& record, const QueryConditionBase& query_condition) const;
 
 		static const Reflection& GetRecord(const std::string& type_id);
 

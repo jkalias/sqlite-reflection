@@ -32,6 +32,8 @@ struct sqlite3;
 struct sqlite3_stmt;
 
 namespace sqlite_reflection {
+    /// A wrapper of all SQLite queries, encapsulating the preparation and
+    /// execution of queries against the SQLite database
 	class REFLECTION_EXPORT Query
 	{
 	public:
@@ -39,17 +41,29 @@ namespace sqlite_reflection {
 
 	protected:
 		Query(sqlite3* db, const Reflection& record);
+        
+        /// A textual representation of the given query, in SQL language
 		virtual std::string PrepareSql() const = 0;
+        
+        /// Returns a comma-separated string of all struct member names
 		std::string JoinedRecordColumnNames() const;
+        
+        /// Returns all struct member names in textual format
 		std::vector<std::string> GetRecordColumnNames() const;
+        
+        /// Hook for customization of a given table column name, used primarily
+        /// for marking the column corresponding to id as PRIMARY KEY
 		virtual std::string CustomizedColumnName(size_t index) const;
         
         sqlite3* db_;
         const Reflection& record_;
 	};
 
-	// ------------------------------------------------------------------------
-
+    /// A query for which no results are expected, such as
+    /// CREATE TABLE
+    /// UPDATE
+    /// INSERT
+    /// DELETE
 	class REFLECTION_EXPORT ExecutionQuery : public Query
 	{
 	public:
@@ -61,8 +75,9 @@ namespace sqlite_reflection {
 		std::vector<std::string> GetValues(void* p) const;
 	};
 
-	// ------------------------------------------------------------------------
-
+    /// A query for creating a table for a given reflectable struct. When the database
+    /// is initialized, a table for every registered reflectable struct is created
+    /// This maps to CREATE TABLE IF NOT EXISTS  in SQL
 	class REFLECTION_EXPORT CreateTableQuery final : public ExecutionQuery
 	{
 	public:
@@ -74,8 +89,8 @@ namespace sqlite_reflection {
 		std::string CustomizedColumnName(size_t index) const override;
 	};
 
-	// ------------------------------------------------------------------------
-
+    /// A query to delete a given record from the database, by means of its id
+    /// This maps to DELETE in SQL
 	class REFLECTION_EXPORT DeleteQuery final : public ExecutionQuery
 	{
 	public:
@@ -87,8 +102,8 @@ namespace sqlite_reflection {
 		int64_t id_;
 	};
 
-	// ------------------------------------------------------------------------
-
+    /// A query to insert a given record to the database, by supplying a given type-erased struct instance
+    /// This maps to INSERT INTO in SQL
 	class REFLECTION_EXPORT InsertQuery final : public ExecutionQuery
 	{
 	public:
@@ -101,8 +116,8 @@ namespace sqlite_reflection {
 		void* p_;
 	};
 
-	// ------------------------------------------------------------------------
-
+    /// A query to update a given record to the database, by supplying a given type-erased struct instance
+    /// This maps to UPDATE in SQL
 	class REFLECTION_EXPORT UpdateQuery final : public ExecutionQuery
 	{
 	public:
@@ -114,16 +129,23 @@ namespace sqlite_reflection {
 		void* p_;
 	};
 
-	// ------------------------------------------------------------------------
 
     struct FetchQueryResults;
+
+    /// A query for retrieving all records from the database, which match a given predicate condition
+    /// This maps to SELECT * in SQL
 	class REFLECTION_EXPORT FetchRecordsQuery final : public Query
 	{
 	public:
-		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, const ConditionBase& condition);
+		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryConditionBase& predicate);
         ~FetchRecordsQuery() override;
         
+        /// Returns a textual representation of the results of the query
         FetchQueryResults GetResults();
+        
+        /// Reconstructs all record member values based on their concrete type,
+        /// based on the textual representation of the corresponding row result
+        /// of the fetch query
         static void Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i);
 
 	protected:
@@ -131,6 +153,6 @@ namespace sqlite_reflection {
         std::wstring GetColumnValue(int col) const;
         
         sqlite3_stmt* stmt_;
-        const ConditionBase& condition_;
+        const QueryConditionBase& predicate_;
 	};
 }

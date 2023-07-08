@@ -55,8 +55,6 @@ std::string Query::CustomizedColumnName(size_t index) const {
     return record_.member_metadata[index].name;
 }
 
-// ------------------------------------------------------------------------
-
 ExecutionQuery::ExecutionQuery(sqlite3* db, const Reflection& record)
 	: Query(db, record) {}
 
@@ -107,8 +105,6 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 	return values;
 }
 
-// ------------------------------------------------------------------------
-
 CreateTableQuery::CreateTableQuery(sqlite3* db, const Reflection& record)
 	: ExecutionQuery(db, record) { }
 
@@ -128,8 +124,6 @@ std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
     : name;
 }
 
-// ------------------------------------------------------------------------
-
 DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, int64_t id)
 	: ExecutionQuery(db, record), id_(id) {}
 
@@ -138,8 +132,6 @@ std::string DeleteQuery::PrepareSql() const {
 	sql += record_.name + " WHERE id = " + StringUtilities::String(id_) + ";";
 	return sql;
 }
-
-// ------------------------------------------------------------------------
 
 InsertQuery::InsertQuery(sqlite3* db, const Reflection& record, void* p)
 	: ExecutionQuery(db, record), p_(p) {}
@@ -155,8 +147,6 @@ std::string InsertQuery::JoinedValues() const {
 	const auto values = GetValues(p_);
 	return StringUtilities::Join(values, ", ");
 }
-
-// ------------------------------------------------------------------------
 
 UpdateQuery::UpdateQuery(sqlite3* db, const Reflection& record, void* p)
 	: ExecutionQuery(db, record), p_(p) {}
@@ -185,10 +175,8 @@ std::string UpdateQuery::PrepareSql() const {
 	return sql;
 }
 
-// ------------------------------------------------------------------------
-
-FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, const ConditionBase& condition)
-    : Query(db, record), stmt_(nullptr), condition_(condition) {}
+FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryConditionBase& predicate)
+    : Query(db, record), stmt_(nullptr), predicate_(predicate) {}
 
 FetchRecordsQuery::~FetchRecordsQuery() {
     if (stmt_) {
@@ -265,7 +253,7 @@ void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results,
 std::string FetchRecordsQuery::PrepareSql() const {
     std::string sql("SELECT * FROM ");
     sql += record_.name;
-    const auto condition_evaluation = condition_.Evaluate();
+    const auto condition_evaluation = predicate_.Evaluate();
     if (strcmp(condition_evaluation.data(), "") != 0) {
         sql += " WHERE " + condition_evaluation;
     }

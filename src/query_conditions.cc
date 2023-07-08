@@ -7,19 +7,19 @@ std::string EmptyCondition::Evaluate() const {
     return "";
 }
 
-AndCondition ConditionBase::And(const ConditionBase& other) const {
+AndCondition QueryConditionBase::And(const QueryConditionBase& other) const {
     return AndCondition(*this, other);
 }
 
-OrCondition ConditionBase::Or(const ConditionBase& other) const {
+OrCondition QueryConditionBase::Or(const QueryConditionBase& other) const {
     return OrCondition(*this, other);
 }
 
-std::string Condition::Evaluate() const {
+std::string QueryCondition::Evaluate() const {
     return member_name_ + " " + symbol_ + " " + value_;
 }
 
-std::string Condition::GetStringForValue(void *v, SqliteStorageClass storage_class) {
+std::string QueryCondition::GetStringForValue(void *v, SqliteStorageClass storage_class) {
     switch (storage_class) {
         case SqliteStorageClass::kInt:
         {
@@ -42,7 +42,7 @@ std::string Condition::GetStringForValue(void *v, SqliteStorageClass storage_cla
     }
 }
 
-BinaryCondition::BinaryCondition(const ConditionBase& left, const ConditionBase& right, const std::string& symbol)
+BinaryCondition::BinaryCondition(const QueryConditionBase& left, const QueryConditionBase& right, const std::string& symbol)
 : left_(&left), right_(&right), symbol_(symbol)
 {
 }
@@ -51,10 +51,10 @@ std::string BinaryCondition::Evaluate() const {
     return "(" + left_->Evaluate() + " " + symbol_ + " " + right_->Evaluate() + ")";
 }
 
-AndCondition::AndCondition(const ConditionBase& left, const ConditionBase& right)
+AndCondition::AndCondition(const QueryConditionBase& left, const QueryConditionBase& right)
 : BinaryCondition(left, right, "AND")
 {}
 
-OrCondition::OrCondition(const ConditionBase& left, const ConditionBase& right)
+OrCondition::OrCondition(const QueryConditionBase& left, const QueryConditionBase& right)
 : BinaryCondition(left, right, "OR")
 {}
