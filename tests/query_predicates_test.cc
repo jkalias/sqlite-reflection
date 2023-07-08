@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include <gtest/gtest.h>
-#include "query_conditions.h"
+#include "query_predicates.h"
 
 #include "person.h"
 #include "pet.h"
@@ -115,7 +115,7 @@ TEST(QueryConditionsTest, SmallerThanOrEqualDouble) {
 TEST(QueryConditionsTest, And) {
     Unequal c1(&Person::id, (int64_t)65);
     Equal c2(&Person::first_name, std::wstring(L"john"));
-    AndCondition c3(c1, c2);
+    AndPredicate c3(c1, c2);
     auto evalution = c3.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 AND first_name = 'john')"));
 }
@@ -123,7 +123,7 @@ TEST(QueryConditionsTest, And) {
 TEST(QueryConditionsTest, Or) {
     Unequal c1(&Person::id, (int64_t)65);
     Equal c2(&Person::first_name, std::wstring(L"john"));
-    OrCondition c3(c1, c2);
+    OrPredicate c3(c1, c2);
     auto evalution = c3.Evaluate();
     EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 OR first_name = 'john')"));
 }

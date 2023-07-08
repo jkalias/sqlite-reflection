@@ -175,7 +175,7 @@ std::string UpdateQuery::PrepareSql() const {
 	return sql;
 }
 
-FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryConditionBase& predicate)
+FetchRecordsQuery::FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase& predicate)
     : Query(db, record), stmt_(nullptr), predicate_(predicate) {}
 
 FetchRecordsQuery::~FetchRecordsQuery() {

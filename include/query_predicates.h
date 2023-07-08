@@ -7,7 +7,7 @@
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// furnished to do so, subject to the following predicates:
 //
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
@@ -29,34 +29,34 @@
 
 namespace sqlite_reflection {
 
-class AndCondition;
-class OrCondition;
+class AndPredicate;
+class OrPredicate;
 
-/// The base class of all WHERE conditions used in SQLite queries
-class REFLECTION_EXPORT QueryConditionBase {
+/// The base class of all WHERE predicates used in SQLite queries
+class REFLECTION_EXPORT QueryPredicateBase {
 public:
-    /// Returns a textual representation of the condition, ready to be consumed by the SELECT query
+    /// Returns a textual representation of the predicate, ready to be consumed by the SELECT query
     virtual std::string Evaluate() const = 0;
     
-    /// Returns a compound condition, which requires that both the current
-    /// and the other condition are valid at the same time
-    AndCondition And(const QueryConditionBase& other) const;
+    /// Returns a compound predicate, which requires that both the current
+    /// and the other predicate are valid at the same time
+    AndPredicate And(const QueryPredicateBase& other) const;
     
-    /// Returns a compound condition, which requires that either  the current
-    /// or the other condition are valid
-    OrCondition Or(const QueryConditionBase& other) const;
+    /// Returns a compound predicate, which requires that either the current
+    /// or the other predicate are valid
+    OrPredicate Or(const QueryPredicateBase& other) const;
 };
 
-/// A wrapper of a query condition, which can be constructed from
+/// A wrapper of a query predicate, which can be constructed from
 /// a pointer-to-member function of a reflectable struct, thus enabling
 /// type safety and compile-time guarantees, that the query is indeed valid
-class REFLECTION_EXPORT QueryCondition: public QueryConditionBase {
+class REFLECTION_EXPORT QueryPredicate: public QueryPredicateBase {
 public:
     std::string Evaluate() const override;
     
 protected:
     template<typename T, typename R>
-    QueryCondition(R T::* fn, R value, const std::string& symbol) {
+    QueryPredicate(R T::* fn, R value, const std::string& symbol) {
         symbol_ = symbol;
         auto record = GetRecordFromTypeId(typeid(T).name());
         auto offset = OffsetFromStart(fn);
@@ -86,105 +86,105 @@ protected:
     std::string value_;
 };
 
-/// A wrapper for an empty condition, used to fetch all elements of an SQLite table
-class REFLECTION_EXPORT EmptyCondition final: public QueryConditionBase {
+/// A wrapper for an empty predicate, used to fetch all elements of an SQLite table
+class REFLECTION_EXPORT EmptyPredicate final: public QueryPredicateBase {
 public:
     std::string Evaluate() const override;
 };
 
-/// A wrapper for an equality condition, for which the value of the
+/// A wrapper for an equality predicate, for which the value of the
 /// struct member is required to be equal to a given control value
-class REFLECTION_EXPORT Equal final: public QueryCondition {
+class REFLECTION_EXPORT Equal final: public QueryPredicate {
 public:
     template<typename T, typename R>
     Equal(R T::* fn, R value)
-    : QueryCondition(fn, value, "=") {}
+    : QueryPredicate(fn, value, "=") {}
 };
 
-/// A wrapper for an inequality condition, for which the value of the
+/// A wrapper for an inequality predicate, for which the value of the
 /// struct member is required to be unequal to a given control value
-class REFLECTION_EXPORT Unequal final: public QueryCondition {
+class REFLECTION_EXPORT Unequal final: public QueryPredicate {
 public:
     template<typename T, typename R>
     Unequal(R T::* fn, R value)
-    : QueryCondition(fn, value, "!=") {}
+    : QueryPredicate(fn, value, "!=") {}
 };
 
-/// A wrapper for a comparison condition, for which the value of the
+/// A wrapper for a comparison predicate, for which the value of the
 /// struct member is required to be greater than a given control value
-class REFLECTION_EXPORT GreaterThan final: public QueryCondition {
+class REFLECTION_EXPORT GreaterThan final: public QueryPredicate {
 public:
     template<typename T>
     GreaterThan(int64_t T::* fn, int64_t value)
-    : QueryCondition(fn, value, ">") {}
+    : QueryPredicate(fn, value, ">") {}
     
     template<typename T>
     GreaterThan(double T::* fn, double value)
-    : QueryCondition(fn, value, ">") {}
+    : QueryPredicate(fn, value, ">") {}
 };
 
-/// A wrapper for a comparison condition, for which the value of the
+/// A wrapper for a comparison predicate, for which the value of the
 /// struct member is required to be greater than or equal to a given control value
-class REFLECTION_EXPORT GreaterThanOrEqual final: public QueryCondition {
+class REFLECTION_EXPORT GreaterThanOrEqual final: public QueryPredicate {
 public:
     template<typename T>
     GreaterThanOrEqual(int64_t T::* fn, int64_t value)
-    : QueryCondition(fn, value, ">=") {}
+    : QueryPredicate(fn, value, ">=") {}
     
     template<typename T>
     GreaterThanOrEqual(double T::* fn, double value)
-    : QueryCondition(fn, value, ">=") {}
+    : QueryPredicate(fn, value, ">=") {}
 };
 
-/// A wrapper for a comparison condition, for which the value of the
+/// A wrapper for a comparison predicate, for which the value of the
 /// struct member is required to be smaller than a given control value
-class REFLECTION_EXPORT SmallerThan final: public QueryCondition {
+class REFLECTION_EXPORT SmallerThan final: public QueryPredicate {
 public:
     template<typename T>
     SmallerThan(int64_t T::* fn, int64_t value)
-    : QueryCondition(fn, value, "<") {}
+    : QueryPredicate(fn, value, "<") {}
     
     template<typename T>
     SmallerThan(double T::* fn, double value)
-    : QueryCondition(fn, value, "<") {}
+    : QueryPredicate(fn, value, "<") {}
 };
 
-/// A wrapper for a comparison condition, for which the value of the
+/// A wrapper for a comparison predicate, for which the value of the
 /// struct member is required to be smaller than or equal to a given control value
-class REFLECTION_EXPORT SmallerThanOrEqual final: public QueryCondition {
+class REFLECTION_EXPORT SmallerThanOrEqual final: public QueryPredicate {
 public:
     template<typename T>
     SmallerThanOrEqual(int64_t T::* fn, int64_t value)
-    : QueryCondition(fn, value, "<=") {}
+    : QueryPredicate(fn, value, "<=") {}
     
     template<typename T>
     SmallerThanOrEqual(double T::* fn, double value)
-    : QueryCondition(fn, value, "<=") {}
+    : QueryPredicate(fn, value, "<=") {}
 };
 
-/// A wrapper of a compound condition, which combines two other conditions,
-/// allowing the construction of more complex conditions from elementary conditions
-class REFLECTION_EXPORT BinaryCondition: public QueryConditionBase {
+/// A wrapper of a compound predicate, which combines two other predicates,
+/// allowing the construction of more complex predicates from elementary predicates
+class REFLECTION_EXPORT BinaryPredicate: public QueryPredicateBase {
 public:
     std::string Evaluate() const override;
     
 protected:
-    BinaryCondition(const QueryConditionBase& left, const QueryConditionBase& right, const std::string& symbol);
+    BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol);
     
-    const QueryConditionBase* left_;
-    const QueryConditionBase* right_;
+    const QueryPredicateBase* left_;
+    const QueryPredicateBase* right_;
     std::string symbol_;
 };
 
-/// A compound condition, which requires that both conditions are valid at the same time
-class REFLECTION_EXPORT AndCondition final: public BinaryCondition {
+/// A compound predicate, which requires that both predicates are valid at the same time
+class REFLECTION_EXPORT AndPredicate final: public BinaryPredicate {
 public:
-    AndCondition(const QueryConditionBase& left, const QueryConditionBase& right);
+    AndPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right);
 };
 
-/// A compound condition, which requires that either condition is valid
-class REFLECTION_EXPORT OrCondition final: public BinaryCondition {
+/// A compound predicate, which requires that either predicate is valid
+class REFLECTION_EXPORT OrPredicate final: public BinaryPredicate {
 public:
-    OrCondition(const QueryConditionBase& left, const QueryConditionBase& right);
+    OrPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right);
 };
 }

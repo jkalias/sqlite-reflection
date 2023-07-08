@@ -1,25 +1,25 @@
-#include "query_conditions.h"
+#include "query_predicates.h"
 #include "internal/string_utilities.h"
 
 using namespace sqlite_reflection;
 
-std::string EmptyCondition::Evaluate() const {
+std::string EmptyPredicate::Evaluate() const {
     return "";
 }
 
-AndCondition QueryConditionBase::And(const QueryConditionBase& other) const {
-    return AndCondition(*this, other);
+AndPredicate QueryPredicateBase::And(const QueryPredicateBase& other) const {
+    return AndPredicate(*this, other);
 }
 
-OrCondition QueryConditionBase::Or(const QueryConditionBase& other) const {
-    return OrCondition(*this, other);
+OrPredicate QueryPredicateBase::Or(const QueryPredicateBase& other) const {
+    return OrPredicate(*this, other);
 }
 
-std::string QueryCondition::Evaluate() const {
+std::string QueryPredicate::Evaluate() const {
     return member_name_ + " " + symbol_ + " " + value_;
 }
 
-std::string QueryCondition::GetStringForValue(void *v, SqliteStorageClass storage_class) {
+std::string QueryPredicate::GetStringForValue(void *v, SqliteStorageClass storage_class) {
     switch (storage_class) {
         case SqliteStorageClass::kInt:
         {
@@ -42,19 +42,19 @@ std::string QueryCondition::GetStringForValue(void *v, SqliteStorageClass storag
     }
 }
 
-BinaryCondition::BinaryCondition(const QueryConditionBase& left, const QueryConditionBase& right, const std::string& symbol)
+BinaryPredicate::BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol)
 : left_(&left), right_(&right), symbol_(symbol)
 {
 }
 
-std::string BinaryCondition::Evaluate() const {
+std::string BinaryPredicate::Evaluate() const {
     return "(" + left_->Evaluate() + " " + symbol_ + " " + right_->Evaluate() + ")";
 }
 
-AndCondition::AndCondition(const QueryConditionBase& left, const QueryConditionBase& right)
-: BinaryCondition(left, right, "AND")
+AndPredicate::AndPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)
+: BinaryPredicate(left, right, "AND")
 {}
 
-OrCondition::OrCondition(const QueryConditionBase& left, const QueryConditionBase& right)
-: BinaryCondition(left, right, "OR")
+OrPredicate::OrPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)
+: BinaryPredicate(left, right, "OR")
 {}

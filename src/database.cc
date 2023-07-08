@@ -110,7 +110,7 @@ namespace sqlite_reflection {
 		return *instance_;
 	}
 
-	FetchQueryResults Database::Fetch(const Reflection& record, const QueryConditionBase& query_condition) const {
+	FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase& query_condition) const {
 		FetchRecordsQuery query(db_, record, query_condition);
 		return query.GetResults();
 	}
