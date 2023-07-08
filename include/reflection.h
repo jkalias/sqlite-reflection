@@ -27,6 +27,7 @@
 #include <map>
 #include <string>
 #include <functional>
+#include <ctime>
 
 #include "reflection_export.h"
 
@@ -37,11 +38,13 @@
 // todo: saving/retrieving dates
 
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
+/// https://www.sqlite.org/datatype3.html
 enum class REFLECTION_EXPORT SqliteStorageClass
 {
 	kInt,
 	kReal,
-	kText
+	kText,
+    kDateTime
 };
 
 /// A struct holding all information needed for introspection of user-defined structs
@@ -80,6 +83,8 @@ struct REFLECTION_EXPORT Reflection
 				return "REAL";
 			case SqliteStorageClass::kText:
 				return "TEXT";
+            case SqliteStorageClass::kDateTime:
+                return "DATETIME";
 			default:
                 {
                     throw std::domain_error("Implementation error: storage class is not supported");
@@ -117,10 +122,6 @@ size_t OffsetFromStart(R T::* fn) {
 #define CAT(A, B) CAT_NOEXPAND(A, B)
 
 #define DEFINE_MEMBER(R, T)	reflectable.member_metadata.push_back(Reflection::MemberMetadata(STR(R), T, offsetof(struct REFLECTABLE, R)));
-
-#define ASSIGN_COPY_NOCAT(x) x = _r.x;
-#define ASSIGN_COPY(x) ASSIGN_COPY_NOCAT(x)
-#define COPY_MEMBER(x) ASSIGN_COPY(x)
 
 /// A singleton object which holds all reflectable structs, and is guaranteed to be
 /// instantiated before main.cpp starts
@@ -169,43 +170,27 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_INT(R)				    MEMBER_DECLARE(int64_t, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
+#define MEMBER_DATETIME(R)              MEMBER_DECLARE(std::time_t, R)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_DECLARE
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
+#undef MEMBER_DATETIME
 #undef FUNC
-
-        // assignment operator
-        const REFLECTABLE& operator = (const REFLECTABLE& _r)
-        {
-            if (&_r == this) {
-                return *this;
-            }
-            // copy members
-            id = _r.id;
-#define MEMBER_INT(R)					    COPY_MEMBER(R)
-#define MEMBER_REAL(R)					    COPY_MEMBER(R)
-#define MEMBER_TEXT(R)		                COPY_MEMBER(R)
-#define FUNC(SIGNATURE)
-            FIELDS
-#undef MEMBER_INT
-#undef MEMBER_REAL
-#undef MEMBER_TEXT
-#undef FUNC
-            return *this;
-        };
 
         // custom function declaration
 #define MEMBER_INT(R)
 #define MEMBER_REAL(R)
 #define MEMBER_TEXT(R)
-#define FUNC(SIGNATURE) SIGNATURE;
+#define MEMBER_DATETIME(R)
+#define FUNC(SIGNATURE)                 SIGNATURE;
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
+#undef MEMBER_DATETIME
 #undef FUNC
     };
 
@@ -224,11 +209,13 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_INT(R)                           DEFINE_MEMBER(R, SqliteStorageClass::kInt)
 #define MEMBER_REAL(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kReal)
 #define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kText)
+#define MEMBER_DATETIME(R)                      DEFINE_MEMBER(R, SqliteStorageClass::kDateTime)
 #define FUNC(SIGNATURE)
             FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
+#undef MEMBER_DATETIME
 #undef FUNC
         }
         return name;

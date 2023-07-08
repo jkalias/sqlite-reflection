@@ -40,6 +40,11 @@ std::string QueryPredicate::GetStringForValue(void *v, SqliteStorageClass storag
             auto value = *(std::wstring*)(v);
             return single_quote + StringUtilities::ToUtf8(value) + single_quote;
         }
+        case SqliteStorageClass::kDateTime:
+        {
+            auto value = *(std::time_t*)(v);
+            return single_quote + StringUtilities::String(value) + single_quote;
+        }
         default:
             throw std::domain_error("Blob cannot be compared against equality");
             break;

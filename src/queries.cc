@@ -102,6 +102,13 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 				content = StringUtilities::ToUtf8(value);
 				break;
 			}
+                
+        case SqliteStorageClass::kDateTime:
+            {
+                auto& value = (*(std::time_t*)((void*)GetMemberAddress(p, record_, j)));
+                content = StringUtilities::String(value);
+                break;
+            }
 
 		default:
 			break;
@@ -282,6 +289,13 @@ void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results,
             {
                 auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, j)));
                 v = content;
+                break;
+            }
+                
+        case SqliteStorageClass::kDateTime:
+            {
+                auto& v = (*(std::time_t*)((void*)GetMemberAddress(p, record, j)));
+                v = StringUtilities::ToTime(content);
                 break;
             }
 
