@@ -34,7 +34,6 @@
 #include <stddef.h>
 #endif
 
-// todo: blob is missing
 // todo: saving/retrieving dates
 
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
@@ -42,8 +41,7 @@ enum class REFLECTION_EXPORT SqliteStorageClass
 {
 	kInt,
 	kReal,
-	kText,
-	kBlob
+	kText
 };
 
 /// A struct holding all information needed for introspection of user-defined structs
@@ -82,8 +80,6 @@ struct REFLECTION_EXPORT Reflection
 				return "REAL";
 			case SqliteStorageClass::kText:
 				return "TEXT";
-			case SqliteStorageClass::kBlob:
-				return "BLOB";
 			default:
                 {
                     throw std::domain_error("Implementation error: storage class is not supported");
@@ -173,14 +169,12 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_INT(R)				    MEMBER_DECLARE(int64_t, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
-#define MEMBER_BLOB(L, R)				MEMBER_DECLARE(L, R)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_DECLARE
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
-#undef MEMBER_BLOB
 #undef FUNC
 
         // assignment operator
@@ -194,13 +188,11 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_INT(R)					    COPY_MEMBER(R)
 #define MEMBER_REAL(R)					    COPY_MEMBER(R)
 #define MEMBER_TEXT(R)		                COPY_MEMBER(R)
-#define MEMBER_BLOB(L, R)				    COPY_MEMBER(R)
 #define FUNC(SIGNATURE)
             FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
-#undef MEMBER_BLOB
 #undef FUNC
             return *this;
         };
@@ -209,13 +201,11 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_INT(R)
 #define MEMBER_REAL(R)
 #define MEMBER_TEXT(R)
-#define MEMBER_BLOB(L, R)
 #define FUNC(SIGNATURE) SIGNATURE;
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
-#undef MEMBER_BLOB
 #undef FUNC
     };
 
@@ -234,13 +224,11 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_INT(R)                           DEFINE_MEMBER(R, SqliteStorageClass::kInt)
 #define MEMBER_REAL(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kReal)
 #define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kText)
-#define MEMBER_BLOB(L, R)                       DEFINE_MEMBER(R, SqliteStorageClass::kBlob)
 #define FUNC(SIGNATURE)
             FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
-#undef MEMBER_BLOB
 #undef FUNC
         }
         return name;

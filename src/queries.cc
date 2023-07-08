@@ -316,9 +316,6 @@ std::wstring FetchRecordsQuery::GetColumnValue(const int col) const {
             return StringUtilities::FromUtf8(content);
         }
 
-    case SQLITE_BLOB:
-        return L"blob";
-
     default:
         return L"";
     }
