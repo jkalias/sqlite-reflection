@@ -35,7 +35,19 @@
 #include <stddef.h>
 #endif
 
-// todo: saving/retrieving dates
+// todo: saving/retrieving dates (get/set local/utc time functions)
+// todo: cpp+20 for date type
+// todo: template specialization for int64_t and wchar_t*
+
+// todo: bool member type
+// todo: delete with custom predicate
+
+// todo: BETWEEN / IN / NOT IN predicate
+// todo: raw sql queries
+// todo: save with automatic id
+
+// todo: nullable types
+// todo: relations
 
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
 /// https://www.sqlite.org/datatype3.html

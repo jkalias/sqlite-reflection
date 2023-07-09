@@ -85,14 +85,14 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 		case SqliteStorageClass::kInt:
 			{
 				const auto& value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::String(value);
+				content = StringUtilities::FromInt(value);
 				break;
 			}
 
 		case SqliteStorageClass::kReal:
 			{
 				const auto& value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::String(value);
+				content = StringUtilities::FromDouble(value);
 				break;
 			}
 
@@ -106,7 +106,7 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
         case SqliteStorageClass::kDateTime:
             {
                 auto& value = (*(std::time_t*)((void*)GetMemberAddress(p, record_, j)));
-                content = StringUtilities::String(value);
+                content = StringUtilities::FromTime(value);
                 break;
             }
 
@@ -143,7 +143,7 @@ DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, int64_t id)
 
 std::string DeleteQuery::PrepareSql() const {
 	std::string sql("DELETE FROM ");
-	sql += record_.name + " WHERE id = " + StringUtilities::String(id_) + ";";
+	sql += record_.name + " WHERE id = " + StringUtilities::FromInt(id_) + ";";
 	return sql;
 }
 
@@ -274,14 +274,14 @@ void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results,
         case SqliteStorageClass::kInt:
             {
                 auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, j)));
-                v = StringUtilities::Int(content);
+                v = StringUtilities::ToInt(content);
                 break;
             }
 
         case SqliteStorageClass::kReal:
             {
                 auto& v = (*(double*)((void*)GetMemberAddress(p, record, j)));
-                v = StringUtilities::Double(content);
+                v = StringUtilities::ToDouble(content);
                 break;
             }
 

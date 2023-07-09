@@ -35,7 +35,7 @@
 
 using namespace sqlite_reflection;
 
-int64_t StringUtilities::Int(const std::wstring& s) {
+int64_t StringUtilities::ToInt(const std::wstring& s) {
     int result = 0;
     try {
         result = std::stoi(s);
@@ -44,11 +44,11 @@ int64_t StringUtilities::Int(const std::wstring& s) {
     return result;
 }
 
-std::string StringUtilities::String(int64_t value) {
+std::string StringUtilities::FromInt(int64_t value) {
     return std::to_string(value);
 }
 
-double StringUtilities::Double(const std::wstring& s) {
+double StringUtilities::ToDouble(const std::wstring& s) {
     double result = 0.0;
     try {
         result = std::stod(s);
@@ -57,7 +57,7 @@ double StringUtilities::Double(const std::wstring& s) {
     return result;
 }
 
-std::string StringUtilities::String(double value) {
+std::string StringUtilities::FromDouble(double value) {
     auto textual_representation = std::to_string(value);
     if (textual_representation.find(".") != std::string::npos) {
         while (textual_representation.length() > 0 && textual_representation[textual_representation.length() - 1] == '0') {
@@ -98,7 +98,7 @@ std::time_t StringUtilities::ToTime(const std::wstring& utc_iso_8601_string) {
     return time_point;
 }
 
-std::string StringUtilities::String(const std::time_t& time) {
+std::string StringUtilities::FromTime(const std::time_t& time) {
     auto ptm = gmtime(&time);
     std::stringstream sstr;
     sstr << std::put_time(ptm, "%FT%TZ");
