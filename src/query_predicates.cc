@@ -11,30 +11,12 @@ std::string EmptyPredicate::Evaluate() const {
 	return "";
 }
 
-std::shared_ptr<QueryPredicateBase> EmptyPredicate::Clone() const {
-	return std::shared_ptr<QueryPredicateBase>(new EmptyPredicate());
-}
-
-Equal::Equal(const std::string& symbol, const std::string& member_name, const std::string& value)
-	: QueryPredicate(symbol, member_name, value) { }
-
-std::shared_ptr<QueryPredicateBase> Equal::Clone() const {
-	return std::shared_ptr<QueryPredicateBase>(new Equal(symbol_, member_name_, value_));
-}
-
-Unequal::Unequal(const std::string& symbol, const std::string& member_name, const std::string& value)
-	: QueryPredicate(symbol, member_name, value) { }
-
-std::shared_ptr<QueryPredicateBase> Unequal::Clone() const {
-	return std::shared_ptr<QueryPredicateBase>(new Unequal(symbol_, member_name_, value_));
-}
-
 AndPredicate QueryPredicateBase::And(const QueryPredicateBase& other) const {
-	return AndPredicate(*Clone(), *other.Clone());
+	return AndPredicate(*this, other);
 }
 
 OrPredicate QueryPredicateBase::Or(const QueryPredicateBase& other) const {
-	return OrPredicate(*Clone(), *other.Clone());
+	return OrPredicate(*this, other);
 }
 
 std::string QueryPredicate::Evaluate() const {
@@ -85,23 +67,15 @@ std::string Like::Remove(const std::string& source, const std::string& substring
 	return copy;
 }
 
-BinaryPredicate::BinaryPredicate(QueryPredicateBase* left, QueryPredicateBase* right, const std::string& symbol)
-	: left_(left->Clone().get()), right_(right->Clone().get()), symbol_(symbol) {}
+BinaryPredicate::BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol)
+	: left_(&left), right_(&right), symbol_(symbol) {}
 
 std::string BinaryPredicate::Evaluate() const {
 	return "(" + left_->Evaluate() + space + symbol_ + space + right_->Evaluate() + ")";
 }
 
 AndPredicate::AndPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)
-	: BinaryPredicate(left.Clone(), right.Clone(), "AND") {}
-
-std::shared_ptr<QueryPredicateBase> AndPredicate::Clone() const {
-	return std::shared_ptr<QueryPredicateBase>(new AndPredicate(*left_, *right_));
-}
+	: BinaryPredicate(left, right, "AND") {}
 
 OrPredicate::OrPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)
 	: BinaryPredicate(left, right, "OR") {}
-
-std::shared_ptr<QueryPredicateBase> OrPredicate::Clone() const {
-	return std::shared_ptr<QueryPredicateBase>(new OrPredicate(*left_, *right_));
-}

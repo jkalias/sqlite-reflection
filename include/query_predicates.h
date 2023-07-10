@@ -47,8 +47,6 @@ namespace sqlite_reflection {
 		/// Returns a compound predicate, which requires that either the current
 		/// or the other predicate are valid
 		OrPredicate Or(const QueryPredicateBase& other) const;
-
-		virtual std::shared_ptr<QueryPredicateBase> Clone() const = 0;
 	};
 
 	/// A wrapper of a query predicate, which can be constructed from
@@ -85,11 +83,6 @@ namespace sqlite_reflection {
 		/// to be type-erased, so that the header file is not bloated with unnecessary implementation details
 		virtual std::string GetStringForValue(void* v, SqliteStorageClass storage_class) const;
 
-		QueryPredicate(const std::string &symbol, const std::string& member_name, const std::string& value)
-			: symbol_(symbol), member_name_(member_name), value_(value)
-		{	
-		}
-
 		/// The symbol used for the comparison, for example "=" for equality
 		std::string symbol_;
 
@@ -107,8 +100,6 @@ namespace sqlite_reflection {
 	{
 	public:
 		std::string Evaluate() const override;
-
-		std::shared_ptr<QueryPredicateBase> Clone() const override;
 	};
 
 	/// A wrapper for an equality predicate, for which the value of the
@@ -119,10 +110,6 @@ namespace sqlite_reflection {
 		template <typename T, typename R>
 		Equal(R T::* fn, R value)
 			: QueryPredicate(fn, value, "=") {}
-
-		std::shared_ptr<QueryPredicateBase> Clone() const override;
-	protected:
-		Equal(const std::string& symbol, const std::string& member_name, const std::string& value);
 	};
 
 	/// A wrapper for an inequality predicate, for which the value of the
@@ -133,10 +120,6 @@ namespace sqlite_reflection {
 		template <typename T, typename R>
 		Unequal(R T::* fn, R value)
 			: QueryPredicate(fn, value, "!=") {}
-
-		std::shared_ptr<QueryPredicateBase> Clone() const override;
-	protected:
-		Unequal(const std::string& symbol, const std::string& member_name, const std::string& value);
 	};
 
 	/// A wrapper for a similarity predicate, for which the value of the
@@ -219,10 +202,10 @@ namespace sqlite_reflection {
 		std::string Evaluate() const override;
 
 	protected:
-		BinaryPredicate(QueryPredicateBase* left, QueryPredicateBase* right, const std::string& symbol);
+		BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol);
 
-		std::shared_ptr<QueryPredicateBase> left_;
-		std::shared_ptr<QueryPredicateBase> right_;
+		const QueryPredicateBase* left_;
+		const QueryPredicateBase* right_;
 		std::string symbol_;
 	};
 
@@ -231,7 +214,6 @@ namespace sqlite_reflection {
 	{
 	public:
 		AndPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right);
-		std::shared_ptr<QueryPredicateBase> Clone() const override;
 	};
 
 	/// A compound predicate, which requires that either predicate is valid
@@ -239,6 +221,5 @@ namespace sqlite_reflection {
 	{
 	public:
 		OrPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right);
-		std::shared_ptr<QueryPredicateBase> Clone() const override;
 	};
 }
