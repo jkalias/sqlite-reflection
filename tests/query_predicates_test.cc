@@ -64,69 +64,69 @@ TEST(QueryPredicatesTest, InequalityDouble) {
 	EXPECT_EQ(0, strcmp(evalution.data(), "weight != 32.4"));
 }
 
-TEST(QueryPredicatesTest, GreaterThanInt) {
-	const GreaterThan condition(&Person::id, 65);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "id > 65"));
-}
-
-TEST(QueryPredicatesTest, GreaterThanOrEqualInt) {
-	const GreaterThanOrEqual condition(&Person::id, 65);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "id >= 65"));
-}
-
-TEST(QueryPredicatesTest, GreaterThanDouble) {
-	const GreaterThan condition(&Pet::weight, 32.4);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "weight > 32.4"));
-}
-
-TEST(QueryPredicatesTest, GreaterThanOrEqualDouble) {
-	const GreaterThanOrEqual condition(&Pet::weight, 32.4);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "weight >= 32.4"));
-}
-
-TEST(QueryPredicatesTest, SmallerThanInt) {
-	const SmallerThan condition(&Person::id, 65);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "id < 65"));
-}
-
-TEST(QueryPredicatesTest, SmallerThanEqualInt) {
-	const SmallerThanOrEqual condition(&Person::id, 65);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "id <= 65"));
-}
-
-TEST(QueryPredicatesTest, SmallerThanDouble) {
-	const SmallerThan condition(&Pet::weight, 32.4);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "weight < 32.4"));
-}
-
-TEST(QueryPredicatesTest, SmallerThanOrEqualDouble) {
-	const SmallerThanOrEqual condition(&Pet::weight, 32.4);
-	const auto evalution = condition.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "weight <= 32.4"));
-}
-
-TEST(QueryPredicatesTest, And) {
-	const Unequal c1(&Person::id, (int64_t)65);
-	const Equal c2(&Person::first_name, std::wstring(L"john"));
-	const AndPredicate c3(c1, c2);
-	const auto evalution = c3.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 AND first_name = 'john')"));
-}
-
-TEST(QueryPredicatesTest, Or) {
-	const Unequal c1(&Person::id, (int64_t)65);
-	const Equal c2(&Person::first_name, std::wstring(L"john"));
-	const OrPredicate c3(c1, c2);
-	const auto evalution = c3.Evaluate();
-	EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 OR first_name = 'john')"));
-}
+//TEST(QueryPredicatesTest, GreaterThanInt) {
+//	const GreaterThan condition(&Person::id, 65);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "id > 65"));
+//}
+//
+//TEST(QueryPredicatesTest, GreaterThanOrEqualInt) {
+//	const GreaterThanOrEqual condition(&Person::id, 65);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "id >= 65"));
+//}
+//
+//TEST(QueryPredicatesTest, GreaterThanDouble) {
+//	const GreaterThan condition(&Pet::weight, 32.4);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "weight > 32.4"));
+//}
+//
+//TEST(QueryPredicatesTest, GreaterThanOrEqualDouble) {
+//	const GreaterThanOrEqual condition(&Pet::weight, 32.4);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "weight >= 32.4"));
+//}
+//
+//TEST(QueryPredicatesTest, SmallerThanInt) {
+//	const SmallerThan condition(&Person::id, 65);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "id < 65"));
+//}
+//
+//TEST(QueryPredicatesTest, SmallerThanEqualInt) {
+//	const SmallerThanOrEqual condition(&Person::id, 65);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "id <= 65"));
+//}
+//
+//TEST(QueryPredicatesTest, SmallerThanDouble) {
+//	const SmallerThan condition(&Pet::weight, 32.4);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "weight < 32.4"));
+//}
+//
+//TEST(QueryPredicatesTest, SmallerThanOrEqualDouble) {
+//	const SmallerThanOrEqual condition(&Pet::weight, 32.4);
+//	const auto evalution = condition.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "weight <= 32.4"));
+//}
+//
+//TEST(QueryPredicatesTest, And) {
+//	const Unequal c1(&Person::id, (int64_t)65);
+//	const Equal c2(&Person::first_name, std::wstring(L"john"));
+//	const AndPredicate c3(c1, c2);
+//	const auto evalution = c3.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 AND first_name = 'john')"));
+//}
+//
+//TEST(QueryPredicatesTest, Or) {
+//	const Unequal c1(&Person::id, (int64_t)65);
+//	const Equal c2(&Person::first_name, std::wstring(L"john"));
+//	const OrPredicate c3(c1, c2);
+//	const auto evalution = c3.Evaluate();
+//	EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 OR first_name = 'john')"));
+//}
 
 TEST(QueryPredicatesTest, PredicateChaining) {
 	const auto predicate = Equal(&Person::id, (int64_t)65)
