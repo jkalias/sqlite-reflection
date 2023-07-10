@@ -27,7 +27,7 @@ source_group("internal" FILES ${HEADERS_INTERNAL})
 add_library(${LIBNAME} SHARED ${HEADERS} ${HEADERS_INTERNAL} ${SOURCES})
 
 if(CMAKE_HOST_UNIX AND NOT CMAKE_HOST_APPLE)
-target_link_libraries(${LIBNAME} PUBLIC tbb)
+target_link_libraries(${LIBNAME} PUBLIC tbb dl)
 endif()
 
 # creates preprocessor definition used for library exports
