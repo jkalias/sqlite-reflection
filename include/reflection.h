@@ -31,7 +31,9 @@
 
 #include "reflection_export.h"
 
-#if !defined(_WIN32) && !defined(WIN32)
+#ifdef _WIN32
+#include <stdexcept>
+#else
 #include <stddef.h>
 #endif
 

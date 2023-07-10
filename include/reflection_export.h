@@ -33,7 +33,7 @@
 #pragma warning(disable : 4244) // warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data
 #endif
 
-#if defined(_WIN32) || defined(WIN32)
+#ifdef _WIN32
 #ifdef BUILD_SQLITE_REFLECTION
 #define REFLECTION_EXPORT __declspec( dllexport )
 #else
