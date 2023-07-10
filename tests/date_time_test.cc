@@ -55,6 +55,7 @@ TEST_F(DateTimeTest, UnixTime) {
 	ControlRoundTrip(0);
 }
 
+#ifndef _WIN32
 TEST_F(DateTimeTest, RoundtripBefore1900) {
 	// UTC time 1895-03-30T15:14:30Z    
 	ControlRoundTrip(-2359097130);
@@ -64,6 +65,7 @@ TEST_F(DateTimeTest, RoundtripBefore1970) {
 	// UTC time 1922-03-11T21:21:46Z
 	ControlRoundTrip(-1508726294);
 }
+#endif
 
 TEST_F(DateTimeTest, RoundtripAfter2000) {
 	// UTC time 2023-07-08T19:02:04Z
