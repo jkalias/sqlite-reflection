@@ -28,6 +28,10 @@
 #include <iterator>
 #include <stdexcept>
 
+#ifdef __linux__
+#include <string.h>
+#endif
+
 #include "internal/sqlite3.h"
 #include "internal/string_utilities.h"
 #include "fetch_query_results.h"

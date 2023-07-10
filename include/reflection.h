@@ -28,12 +28,11 @@
 #include <string>
 #include <functional>
 #include <ctime>
+#include <stdexcept>
 
 #include "reflection_export.h"
 
-#ifdef _WIN32
-#include <stdexcept>
-#else
+#ifndef _WIN32
 #include <stddef.h>
 #endif
 
@@ -150,7 +149,7 @@ struct REFLECTION_EXPORT ReflectionRegister
 /// Retrieves the singleton in a safe manner, creating it if needed
 REFLECTION_EXPORT ReflectionRegister* GetReflectionRegisterInstance();
 
-/// Retrieve the registered record from its unique identifer, generated from typeid(...).name()
+/// Retrieve the registered record from its unique identifier, generated from typeid(...).name()
 REFLECTION_EXPORT Reflection& GetRecordFromTypeId(const std::string& type_id);
 
 /// Retrieves the start memory address of a given member for this record, by providing its index

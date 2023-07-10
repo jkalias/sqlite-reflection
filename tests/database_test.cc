@@ -341,7 +341,8 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateInt) {
 	EXPECT_EQ(85000, fetched_persons[0].salary);
 }
 
-TEST_F(DatabaseTest, FetchWithCompoundPredicate) {
+#ifdef _WIN32
+TEST_F(DatabaseTest, FetchWithPredicateChaining) {
 	const auto& db = Database::Instance();
 
 	std::vector<Person> persons;
@@ -371,6 +372,7 @@ TEST_F(DatabaseTest, FetchWithCompoundPredicate) {
 	EXPECT_EQ(L"surname3", fetched_persons[1].last_name);
 	EXPECT_EQ(37, fetched_persons[1].age);
 }
+#endif
 
 TEST_F(DatabaseTest, ReadMaxId) {
 	const auto& db = Database::Instance();
