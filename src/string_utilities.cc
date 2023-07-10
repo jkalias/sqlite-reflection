@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "internal/string_utilities.h"
+#include "internal/gmtime.h"
 
 #include <codecvt>
 #include <numeric>
@@ -84,7 +85,7 @@ std::time_t StringUtilities::ToTime(const std::wstring& utc_iso_8601_string) {
 	std::tm time_tm{};
 
 	const auto date_string = ToUtf8(utc_iso_8601_string);
-	sscanf(date_string.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second);
+	sscanf(date_string.c_str(), "%d-%d-%dT%d:%d:%d", &year, &month, &day, &hour, &minute, &second);
 
 	time_tm.tm_year = year - 1900;
 	time_tm.tm_mon = month - 1;
@@ -94,15 +95,17 @@ std::time_t StringUtilities::ToTime(const std::wstring& utc_iso_8601_string) {
 	time_tm.tm_sec = second;
 	time_tm.tm_isdst = -1;
 
-	const auto time_point = timegm(&time_tm);
+	const auto time_point = mktime64(&time_tm);
 	return time_point;
 }
 
 std::string StringUtilities::FromTime(const std::time_t& time) {
-	const auto ptm = gmtime(&time);
-	std::stringstream sstr;
-	sstr << std::put_time(ptm, "%FT%TZ");
-	return sstr.str();
+    struct tm ptm{};
+    time64_t t = time;
+    gmtime64_r(&t, &ptm);
+    std::stringstream sstr;
+    sstr << std::put_time(&ptm, "%FT%T");
+    return sstr.str();
 }
 
 std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {

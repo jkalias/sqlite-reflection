@@ -50,29 +50,32 @@ void ControlRoundTrip(const time_t time_point) {
 	EXPECT_EQ(time_point, retrieved[0].creation_date);
 }
 
-TEST_F(DateTimeTest, UnixTime) {
-	// UTC time 1970-01-01T00:00:00Z
+TEST_F(DateTimeTest, UnixEpoch) {
+	// UTC time 1970-01-01T00:00:00
 	ControlRoundTrip(0);
 }
 
-#ifndef _WIN32
+TEST_F(DateTimeTest, RoundtripBefore1000) {
+    // UTC time 944-11-06T10:17:07
+    ControlRoundTrip(-32350628573);
+}
+
 TEST_F(DateTimeTest, RoundtripBefore1900) {
-	// UTC time 1895-03-30T15:14:30Z    
+	// UTC time 1895-03-30T15:14:30
 	ControlRoundTrip(-2359097130);
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1970) {
-	// UTC time 1922-03-11T21:21:46Z
+	// UTC time 1922-03-11T21:21:46
 	ControlRoundTrip(-1508726294);
 }
-#endif
 
 TEST_F(DateTimeTest, RoundtripAfter2000) {
-	// UTC time 2023-07-08T19:02:04Z
+	// UTC time 2023-07-08T19:02:04
 	ControlRoundTrip(1688842924);
 }
 
 TEST_F(DateTimeTest, RoundtripAfter2038) {
-	// UTC time 2043-12-07T08:25:35Z
+	// UTC time 2043-12-07T08:25:35
 	ControlRoundTrip(2333089535);
 }
