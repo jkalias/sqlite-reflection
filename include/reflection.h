@@ -58,7 +58,7 @@ enum class REFLECTION_EXPORT SqliteStorageClass
 	kInt,
 	kReal,
 	kText,
-    kDateTime
+	kDateTime
 };
 
 /// A struct holding all information needed for introspection of user-defined structs
@@ -67,28 +67,28 @@ enum class REFLECTION_EXPORT SqliteStorageClass
 /// A reflectable struct meant to be saved in SQLite is also called in this project a "record"
 struct REFLECTION_EXPORT Reflection
 {
-    /// This holds the metadata of a given struct member
+	/// This holds the metadata of a given struct member
 	class MemberMetadata
 	{
 	public:
 		MemberMetadata(const std::string& _name, SqliteStorageClass _storage_class, size_t _offset)
 			: name(_name), storage_class(_storage_class), sqlite_column_name(ToSqliteColumnName(_storage_class)), offset(_offset) { }
 
-        /// The struct variable member name, as defined in the source code
+		/// The struct variable member name, as defined in the source code
 		std::string name;
-        
-        /// The storage class of this struct member, as defined by its type in the source code
-        /// https://www.tutorialspoint.com/sqlite/sqlite_data_types.htm
+
+		/// The storage class of this struct member, as defined by its type in the source code
+		/// https://www.tutorialspoint.com/sqlite/sqlite_data_types.htm
 		SqliteStorageClass storage_class;
-        
-        /// The name of the column for this member in the corresponding SQLite table of its containing struct
+
+		/// The name of the column for this member in the corresponding SQLite table of its containing struct
 		std::string sqlite_column_name;
-        
-        /// The memory offset in bytes of this member from the struct's start, including any padding bits
+
+		/// The memory offset in bytes of this member from the struct's start, including any padding bits
 		size_t offset;
 
 	private:
-        /// Helper for conversion between member storage class and SQLite column name
+		/// Helper for conversion between member storage class and SQLite column name
 		static const char* ToSqliteColumnName(const SqliteStorageClass storage_class) {
 			switch (storage_class) {
 			case SqliteStorageClass::kInt:
@@ -97,21 +97,21 @@ struct REFLECTION_EXPORT Reflection
 				return "REAL";
 			case SqliteStorageClass::kText:
 				return "TEXT";
-            case SqliteStorageClass::kDateTime:
-                return "DATETIME";
+			case SqliteStorageClass::kDateTime:
+				return "DATETIME";
 			default:
-                {
-                    throw std::domain_error("Implementation error: storage class is not supported");
-                    return "";
-                }
+				{
+					throw std::domain_error("Implementation error: storage class is not supported");
+					return "";
+				}
 			}
 		}
 	};
 
-    /// The name of the corresponding struct, for which reflection is enabled, as defined in the source code
+	/// The name of the corresponding struct, for which reflection is enabled, as defined in the source code
 	std::string name;
-    
-    /// All member metadata
+
+	/// All member metadata
 	std::vector<MemberMetadata> member_metadata;
 };
 
@@ -141,9 +141,9 @@ size_t OffsetFromStart(R T::* fn) {
 /// instantiated before main.cpp starts
 struct REFLECTION_EXPORT ReflectionRegister
 {
-    /// The keys are NOT the names of each struct as defined in source code,
-    /// but the identifiers returned from typeid(...).name(), which are typically
-    /// mangled in C++ and are compiler-specific
+	/// The keys are NOT the names of each struct as defined in source code,
+	/// but the identifiers returned from typeid(...).name(), which are typically
+	/// mangled in C++ and are compiler-specific
 	std::map<std::string, Reflection> records;
 };
 

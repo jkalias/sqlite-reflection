@@ -31,7 +31,7 @@
 #include "internal/sqlite3.h"
 
 namespace sqlite_reflection {
-    Database* Database::instance_ = nullptr;
+	Database* Database::instance_ = nullptr;
 
 	const ReflectionRegister& GetReflectionRegister() {
 		return *GetReflectionRegisterInstance();
@@ -72,7 +72,7 @@ namespace sqlite_reflection {
 		return *instance_;
 	}
 
-	FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase& predicate) const {
+	FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase* predicate) const {
 		FetchRecordsQuery query(db_, record, predicate);
 		return query.GetResults();
 	}
