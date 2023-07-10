@@ -39,6 +39,7 @@
 #pragma once
 
 #include <time.h>
+#include <cstdint>
 
 namespace sqlite_reflection {
 typedef int64_t time64_t;

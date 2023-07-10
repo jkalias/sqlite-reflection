@@ -131,7 +131,9 @@ static struct tm *_gmtime64_r (const time_t * now, time64_t * _t, struct tm *p)
     p->tm_hour = v_tm_hour;
     p->tm_mon = v_tm_mon;
     p->tm_wday = v_tm_wday;
+#ifndef _WIN32
     p->tm_zone = "UTC";
+#endif
     return p;
 }
 
@@ -187,8 +189,13 @@ static struct tm *_localtime64_r (const time_t * now, time64_t * _t, struct tm *
     while (tm.tm_year > (2037 - 1900))
         tm.tm_year -= 28;
     t = mktime64 (&tm);
-    localtime_r (&t, &tm_localtime);
-    gmtime_r (&t, &tm_gmtime);
+#ifdef _WIN32
+    _localtime64_s(&tm_localtime, &t);
+    _gmtime64_s(&tm_localtime, &t);
+#else
+    localtime_r(&t, &tm_localtime);
+    gmtime_r(&t, &tm_gmtime);
+#endif
     tl = *_t;
     tl += (mktime64 (&tm_localtime) - mktime64 (&tm_gmtime));
     _gmtime64_r (now, &tl, p);
