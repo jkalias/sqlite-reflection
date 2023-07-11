@@ -38,182 +38,170 @@
 
 /* DOCUMENTATION: See http://2038bug.com/pivotal_gmtime_doc.html */
 
+// ReSharper disable CppCStyleCast
+
 #include "internal/gmtime.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <time.h>
 
 namespace sqlite_reflection {
-const char pivotal_gmtime_r_stamp[] =
-"pivotal_gmtime_r. Copyright (C) 2009  Paul Sheer. Terms and "
-"conditions apply. Visit http://2038bug.com/ for more info.";
+	typedef int64_t time64_t;
 
-typedef int64_t time64_t;
-
-static const int days[4][13] = {
-    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
-    {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366},
-};
+	static const int days[4][13] = {
+		{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+		{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+		{0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
+		{0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366},
+	};
 
 #define LEAP_CHECK(n)	((!(((n) + 1900) % 400) || (!(((n) + 1900) % 4) && (((n) + 1900) % 100))) != 0)
 #define WRAP(a,b,m)	((a) = ((a) <  0  ) ? ((b)--, (a) + (m)) : (a))
 
-time64_t pivot_time_t (const time_t * now, time64_t * _t)
-{
-    time64_t t;
-    t = *_t;
-    if (now && sizeof (time_t) == 4) {
-        time_t _now;
-        _now = *now;
-        if (_now < 1231500000 /* Jan 2009 - date of writing */ )
-            _now = 2147483647;
-        if ((time64_t) t + ((time64_t) 1 << 31) < (time64_t) _now)
-            t += (time64_t) 1 << 32;
-    }
-    return t;
-}
+	time64_t PivotTimeT(const time_t* now, const time64_t* _t) {
+		time64_t t = *_t;
+		if (now && sizeof(time_t) == 4) {
+			time_t _now;
+			_now = *now;
+			if (_now < 1231500000 /* Jan 2009 - date of writing */)
+				_now = 2147483647;
+			if (t + ((time64_t)1 << 31) < _now)
+				t += (time64_t)1 << 32;
+		}
+		return t;
+	}
 
-static struct tm *_gmtime64_r (const time_t * now, time64_t * _t, struct tm *p)
-{
-    int v_tm_sec, v_tm_min, v_tm_hour, v_tm_mon, v_tm_wday, v_tm_tday;
-    int leap;
-    time64_t t;
-    long m;
-    t = pivot_time_t(now, _t);
-    v_tm_sec = ((time64_t) t % (time64_t) 60);
-    t /= 60;
-    v_tm_min = ((time64_t) t % (time64_t) 60);
-    t /= 60;
-    v_tm_hour = ((time64_t) t % (time64_t) 24);
-    t /= 24;
-    v_tm_tday = t;
-    WRAP (v_tm_sec, v_tm_min, 60);
-    WRAP (v_tm_min, v_tm_hour, 60);
-    WRAP (v_tm_hour, v_tm_tday, 24);
-    if ((v_tm_wday = (v_tm_tday + 4) % 7) < 0)
-        v_tm_wday += 7;
-    m = (long) v_tm_tday;
-    if (m >= 0) {
-        p->tm_year = 70;
-        leap = LEAP_CHECK (p->tm_year);
-        while (m >= (long) days[leap + 2][12]) {
-            m -= (long) days[leap + 2][12];
-            p->tm_year++;
-            leap = LEAP_CHECK (p->tm_year);
-        }
-        v_tm_mon = 0;
-        while (m >= (long) days[leap][v_tm_mon]) {
-            m -= (long) days[leap][v_tm_mon];
-            v_tm_mon++;
-        }
-    } else {
-        p->tm_year = 69;
-        leap = LEAP_CHECK (p->tm_year);
-        while (m < (long) -days[leap + 2][12]) {
-            m += (long) days[leap + 2][12];
-            p->tm_year--;
-            leap = LEAP_CHECK (p->tm_year);
-        }
-        v_tm_mon = 11;
-        while (m < (long) -days[leap][v_tm_mon]) {
-            m += (long) days[leap][v_tm_mon];
-            v_tm_mon--;
-        }
-        m += (long) days[leap][v_tm_mon];
-    }
-    p->tm_mday = (int) m + 1;
-    p->tm_yday = days[leap + 2][v_tm_mon] + m;
-    p->tm_sec = v_tm_sec;
-    p->tm_min = v_tm_min;
-    p->tm_hour = v_tm_hour;
-    p->tm_mon = v_tm_mon;
-    p->tm_wday = v_tm_wday;
+	static tm* GmTime64R(const time_t* now, time64_t* _t, tm* p) {
+		int v_tm_mon, v_tm_wday;
+		int leap;
+		time64_t t = PivotTimeT(now, _t);
+		int v_tm_sec = (t % (time64_t)60);
+		t /= 60;
+		int v_tm_min = (t % (time64_t)60);
+		t /= 60;
+		int v_tm_hour = (t % (time64_t)24);
+		t /= 24;
+		int v_tm_tday = t;
+		WRAP(v_tm_sec, v_tm_min, 60);
+		WRAP(v_tm_min, v_tm_hour, 60);
+		WRAP(v_tm_hour, v_tm_tday, 24);
+		if ((v_tm_wday = (v_tm_tday + 4) % 7) < 0)
+			v_tm_wday += 7;
+		long m = v_tm_tday;
+		if (m >= 0) {
+			p->tm_year = 70;
+			leap = LEAP_CHECK(p->tm_year);
+			while (m >= (long)days[leap + 2][12]) {
+				m -= (long)days[leap + 2][12];
+				p->tm_year++;
+				leap = LEAP_CHECK(p->tm_year);
+			}
+			v_tm_mon = 0;
+			while (m >= (long)days[leap][v_tm_mon]) {
+				m -= (long)days[leap][v_tm_mon];
+				v_tm_mon++;
+			}
+		}
+		else {
+			p->tm_year = 69;
+			leap = LEAP_CHECK(p->tm_year);
+			while (m < (long)-days[leap + 2][12]) {
+				m += (long)days[leap + 2][12];
+				p->tm_year--;
+				leap = LEAP_CHECK(p->tm_year);
+			}
+			v_tm_mon = 11;
+			while (m < (long)-days[leap][v_tm_mon]) {
+				m += (long)days[leap][v_tm_mon];
+				v_tm_mon--;
+			}
+			m += (long)days[leap][v_tm_mon];
+		}
+		p->tm_mday = (int)m + 1;
+		p->tm_yday = days[leap + 2][v_tm_mon] + m;
+		p->tm_sec = v_tm_sec;
+		p->tm_min = v_tm_min;
+		p->tm_hour = v_tm_hour;
+		p->tm_mon = v_tm_mon;
+		p->tm_wday = v_tm_wday;
 #ifndef _WIN32
     p->tm_zone = "UTC";
 #endif
-    return p;
-}
+		return p;
+	}
 
-struct tm *gmtime64_r (const time64_t * _t, struct tm *p)
-{
-    time64_t t;
-    t = *_t;
-    return _gmtime64_r (NULL, &t, p);
-}
+	tm* GmTime64R(const time64_t* std_time, tm* p) {
+		time64_t t;
+		t = *std_time;
+		return GmTime64R(nullptr, &t, p);
+	}
 
-struct tm *pivotal_gmtime_r (const time_t * now, const time_t * _t, struct tm *p)
-{
-    time64_t t;
-    t = *_t;
-    return _gmtime64_r (now, &t, p);
-}
+	tm* PivotalGmtimeR(const time_t* now, const time_t* std_time, tm* p) {
+		time64_t t;
+		t = *std_time;
+		return GmTime64R(now, &t, p);
+	}
 
-time64_t mktime64 (struct tm * t)
-{
-    int i, y;
-    long day = 0;
-    time64_t r;
-    if (t->tm_year < 70) {
-        y = 69;
-        do {
-            day -= 365 + LEAP_CHECK (y);
-            y--;
-        } while (y >= t->tm_year);
-    } else {
-        y = 70;
-        while (y < t->tm_year) {
-            day += 365 + LEAP_CHECK (y);
-            y++;
-        }
-    }
-    for (i = 0; i < t->tm_mon; i++)
-        day += days[LEAP_CHECK (t->tm_year)][i];
-    day += t->tm_mday - 1;
-    t->tm_wday = (int) ((day + 4) % 7);
-    r = (time64_t) day *86400;
-    r += t->tm_hour * 3600;
-    r += t->tm_min * 60;
-    r += t->tm_sec;
-    return r;
-}
+	time64_t MkTime64(tm* t) {
+		int y;
+		long day = 0;
+		if (t->tm_year < 70) {
+			y = 69;
+			do {
+				day -= 365 + LEAP_CHECK(y);
+				y--;
+			}
+			while (y >= t->tm_year);
+		}
+		else {
+			y = 70;
+			while (y < t->tm_year) {
+				day += 365 + LEAP_CHECK(y);
+				y++;
+			}
+		}
+		for (int i = 0; i < t->tm_mon; i++)
+			day += days[LEAP_CHECK(t->tm_year)][i];
+		day += t->tm_mday - 1;
+		t->tm_wday = (int)((day + 4) % 7);
+		time64_t r = (time64_t)day * 86400;
+		r += t->tm_hour * 3600;
+		r += t->tm_min * 60;
+		r += t->tm_sec;
+		return r;
+	}
 
-static struct tm *_localtime64_r (const time_t * now, time64_t * _t, struct tm *p)
-{
-    time64_t tl;
-    time_t t;
-    struct tm tm, tm_localtime, tm_gmtime;
-    _gmtime64_r (now, _t, &tm);
-    while (tm.tm_year > (2037 - 1900))
-        tm.tm_year -= 28;
-    t = mktime64 (&tm);
+	static tm* _localtime64_r(const time_t* now, time64_t* t, tm* p) {
+		time64_t tl;
+		time_t std_time;
+		tm tm, tm_localtime, tm_gmtime;
+		GmTime64R(now, t, &tm);
+		while (tm.tm_year > (2037 - 1900))
+			tm.tm_year -= 28;
+		std_time = MkTime64(&tm);
 #ifdef _WIN32
-    _localtime64_s(&tm_localtime, &t);
-    _gmtime64_s(&tm_localtime, &t);
+		_localtime64_s(&tm_localtime, &std_time);
+		_gmtime64_s(&tm_localtime, &std_time);
 #else
-    localtime_r(&t, &tm_localtime);
-    gmtime_r(&t, &tm_gmtime);
+		localtime_r(&t, &tm_localtime);
+		gmtime_r(&t, &tm_gmtime);
 #endif
-    tl = *_t;
-    tl += (mktime64 (&tm_localtime) - mktime64 (&tm_gmtime));
-    _gmtime64_r (now, &tl, p);
-    p->tm_isdst = tm_localtime.tm_isdst;
-    return p;
-}
+		tl = *t;
+		tl += (MkTime64(&tm_localtime) - MkTime64(&tm_gmtime));
+		GmTime64R(now, &tl, p);
+		p->tm_isdst = tm_localtime.tm_isdst;
+		return p;
+	}
 
-struct tm *pivotal_localtime_r (const time_t * now, const time_t * _t, struct tm *p)
-{
-    time64_t tl;
-    tl = *_t;
-    return _localtime64_r (now, &tl, p);
-}
+	tm* PivotalLocaltimeR(const time_t* now, const time_t* t, tm* p) {
+		time64_t tl;
+		tl = *t;
+		return _localtime64_r(now, &tl, p);
+	}
 
-struct tm *localtime64_r (const time64_t * _t, struct tm *p)
-{
-    time64_t tl;
-    tl = *_t;
-    return _localtime64_r (NULL, &tl, p);
-}
+	tm* Localtime64R(const time64_t* t, tm* p) {
+		time64_t tl;
+		tl = *t;
+		return _localtime64_r(nullptr, &tl, p);
+	}
 }

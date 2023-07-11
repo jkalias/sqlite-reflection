@@ -95,17 +95,17 @@ std::time_t StringUtilities::ToTime(const std::wstring& utc_iso_8601_string) {
 	time_tm.tm_sec = second;
 	time_tm.tm_isdst = -1;
 
-	const auto time_point = mktime64(&time_tm);
+	const auto time_point = MkTime64(&time_tm);
 	return time_point;
 }
 
 std::string StringUtilities::FromTime(const std::time_t& time) {
-    struct tm ptm{};
-    time64_t t = time;
-    gmtime64_r(&t, &ptm);
-    std::stringstream sstr;
-    sstr << std::put_time(&ptm, "%FT%T");
-    return sstr.str();
+	tm ptm{};
+	const time64_t t = time;
+	GmTime64R(&t, &ptm);
+	std::stringstream sstr;
+	sstr << std::put_time(&ptm, "%FT%T");
+	return sstr.str();
 }
 
 std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {

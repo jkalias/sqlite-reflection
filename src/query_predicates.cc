@@ -47,7 +47,6 @@ std::string QueryPredicate::GetStringForValue(void* v, SqliteStorageClass storag
 		}
 	default:
 		throw std::domain_error("Blob cannot be compared against equality");
-		break;
 	}
 }
 

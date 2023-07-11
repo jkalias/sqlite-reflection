@@ -42,12 +42,12 @@
 #include <cstdint>
 
 namespace sqlite_reflection {
-typedef int64_t time64_t;
+	typedef int64_t time64_t;
 
-time64_t pivot_time_t (const time_t * now, time64_t * _t);
-struct tm *gmtime64_r (const time64_t * _t, struct tm *p);
-struct tm *pivotal_gmtime_r (const time_t * now, const time_t * _t, struct tm *p);
-time64_t mktime64 (struct tm * t);
-struct tm *pivotal_localtime_r (const time_t * now, const time_t * _t, struct tm *p);
-struct tm *localtime64_r (const time64_t * _t, struct tm *p);
+	time64_t PivotTimeT(const time_t* now, const time64_t* _t);
+	tm* GmTime64R(const time64_t* std_time, tm* p);
+	tm* PivotalGmtimeR(const time_t* now, const time_t* std_time, tm* p);
+	time64_t MkTime64(tm* t);
+	tm* PivotalLocaltimeR(const time_t* now, const time_t* t, tm* p);
+	tm* Localtime64R(const time64_t* t, tm* p);
 }
