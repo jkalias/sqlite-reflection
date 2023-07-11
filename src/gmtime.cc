@@ -183,8 +183,8 @@ namespace sqlite_reflection {
 		_localtime64_s(&tm_localtime, &std_time);
 		_gmtime64_s(&tm_localtime, &std_time);
 #else
-		localtime_r(&t, &tm_localtime);
-		gmtime_r(&t, &tm_gmtime);
+		localtime_r(&std_time, &tm_localtime);
+		gmtime_r(&std_time, &tm_gmtime);
 #endif
 		tl = *t;
 		tl += (MkTime64(&tm_localtime) - MkTime64(&tm_gmtime));
