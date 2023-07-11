@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include <string>
-
 #define REFLECTABLE DatetimeContainer
 #define FIELDS \
 MEMBER_DATETIME(creation_date)

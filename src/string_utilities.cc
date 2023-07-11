@@ -25,9 +25,7 @@
 
 #include <codecvt>
 #include <numeric>
-#include <time.h>
 #include <sstream>
-#include <iomanip>
 #ifndef _WIN32
 #include <locale>
 #else
@@ -78,34 +76,6 @@ std::wstring StringUtilities::FromUtf8(const char* utf8_string) {
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 	auto wide_string = converter.from_bytes(utf8_string);
 	return wide_string;
-}
-
-std::time_t StringUtilities::ToTime(const std::wstring& utc_iso_8601_string) {
-	int year, month, day, hour, minute, second;
-	std::tm time_tm{};
-
-	const auto date_string = ToUtf8(utc_iso_8601_string);
-	sscanf(date_string.c_str(), "%d-%d-%dT%d:%d:%d", &year, &month, &day, &hour, &minute, &second);
-
-	time_tm.tm_year = year - 1900;
-	time_tm.tm_mon = month - 1;
-	time_tm.tm_mday = day;
-	time_tm.tm_hour = hour;
-	time_tm.tm_min = minute;
-	time_tm.tm_sec = second;
-	time_tm.tm_isdst = -1;
-
-	const auto time_point = MkTime64(&time_tm);
-	return time_point;
-}
-
-std::string StringUtilities::FromTime(const std::time_t& time) {
-	tm ptm{};
-	const time64_t t = time;
-	GmTime64R(&t, &ptm);
-	std::stringstream sstr;
-	sstr << std::put_time(&ptm, "%FT%T");
-	return sstr.str();
 }
 
 std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {

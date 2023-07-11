@@ -27,7 +27,6 @@
 #include <map>
 #include <string>
 #include <functional>
-#include <ctime>
 #include <stdexcept>
 
 #include "reflection_export.h"
@@ -157,7 +156,7 @@ REFLECTION_EXPORT Reflection& GetRecordFromTypeId(const std::string& type_id);
 ///
 /// example:
 /// struct Person {
-///     double weight;          <---- corresponds to index 0
+///     double weight;        <---- corresponds to index 0
 ///     std::wstring name;    <---- corresponds to index 1
 /// }
 ///
@@ -166,6 +165,8 @@ REFLECTION_EXPORT Reflection& GetRecordFromTypeId(const std::string& type_id);
 REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size_t i);
 
 #endif // REFLECTION_INTERNAL
+
+#include "time_point.h"
 
 #if defined (REFLECTABLE) && defined (FIELDS)
 
@@ -183,7 +184,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_INT(R)				    MEMBER_DECLARE(int64_t, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
-#define MEMBER_DATETIME(R)              MEMBER_DECLARE(std::time_t, R)
+#define MEMBER_DATETIME(R)              MEMBER_DECLARE(sqlite_reflection::TimePoint, R)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_DECLARE

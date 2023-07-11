@@ -38,44 +38,44 @@ class DateTimeTest : public ::testing::Test
 	}
 };
 
-void ControlRoundTrip(const time_t time_point) {
+void ControlRoundTrip(const time64_t time_point, const wchar_t* utc_time_stamp) {
 	DatetimeContainer f;
-	f.creation_date = time_point;
+	f.creation_date = TimePoint(time_point);
 
 	const auto& db = Database::Instance();
 	db.Save(f);
 
 	const auto retrieved = db.FetchAll<DatetimeContainer>();
 	EXPECT_EQ(1, retrieved.size());
-	EXPECT_EQ(time_point, retrieved[0].creation_date);
+
+	const auto timestamp = retrieved[0].creation_date.UtcTimestamp();
+	EXPECT_EQ(std::wstring(utc_time_stamp), timestamp);
 }
 
 TEST_F(DateTimeTest, UnixEpoch) {
-	// UTC time 1970-01-01T00:00:00
-	ControlRoundTrip(0);
+	ControlRoundTrip(0, L"1970-01-01T00:00:00");
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1000) {
-	// UTC time 944-11-06T10:17:07
-	ControlRoundTrip(-32350628573);
+#ifdef _WIN32
+	ControlRoundTrip(-32350628573LL, L"0944-11-06T10:17:07");
+#else
+	ControlRoundTrip(-32350628573LL, L"944-11-06T10:17:07");
+#endif
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1900) {
-	// UTC time 1895-03-30T15:14:30
-	ControlRoundTrip(-2359097130);
+	ControlRoundTrip(-2359097130LL, L"1895-03-30T15:14:30");
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1970) {
-	// UTC time 1922-03-11T21:21:46
-	ControlRoundTrip(-1508726294);
+	ControlRoundTrip(-1508726294, L"1922-03-11T21:21:46");
 }
 
 TEST_F(DateTimeTest, RoundtripAfter2000) {
-	// UTC time 2023-07-08T19:02:04
-	ControlRoundTrip(1688842924);
+	ControlRoundTrip(1688842924, L"2023-07-08T19:02:04");
 }
 
 TEST_F(DateTimeTest, RoundtripAfter2038) {
-	// UTC time 2043-12-07T08:25:35
-	ControlRoundTrip(2333089535);
+	ControlRoundTrip(2333089535, L"2043-12-07T08:25:35");
 }

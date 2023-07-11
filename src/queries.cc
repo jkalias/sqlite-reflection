@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
 #include "queries.h"
 
 #include <string>
@@ -109,8 +108,8 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 
 		case SqliteStorageClass::kDateTime:
 			{
-				auto& value = (*(std::time_t*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::FromTime(value);
+				auto& value = (*(TimePoint*)((void*)GetMemberAddress(p, record_, j)));
+				content = StringUtilities::ToUtf8(value.UtcTimestamp());
 				break;
 			}
 
@@ -298,8 +297,8 @@ void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results,
 
 		case SqliteStorageClass::kDateTime:
 			{
-				auto& v = (*(std::time_t*)((void*)GetMemberAddress(p, record, j)));
-				v = StringUtilities::ToTime(content);
+				auto& v = (*(TimePoint*)((void*)GetMemberAddress(p, record, j)));
+				v = TimePoint::FromUtcTime(content);
 				break;
 			}
 

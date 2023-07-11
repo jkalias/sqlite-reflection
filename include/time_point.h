@@ -7,7 +7,7 @@
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// furnished to do so, subject to the following predicates:
 //
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
@@ -21,27 +21,27 @@
 // SOFTWARE.
 
 #pragma once
+
 #include "reflection_export.h"
 
 #include <string>
-#include <vector>
+#include <stdint.h>
 
 namespace sqlite_reflection {
-	/// Some useful string utility functions converting back and forth
-	/// between strings and concrete types used by SQLite
-	class REFLECTION_EXPORT StringUtilities
+	typedef int64_t time64_t;
+
+	class REFLECTION_EXPORT TimePoint
 	{
 	public:
-		static int64_t ToInt(const std::wstring& s);
-		static std::string FromInt(int64_t value);
+		TimePoint();
+		explicit TimePoint(const time64_t& time_since_unix_epoch);
+		static TimePoint FromUtcTime(const std::wstring& utc_iso_8601_string);
+		static TimePoint FromLocalTime(const std::wstring& timestamp);
 
-		static double ToDouble(const std::wstring& s);
-		static std::string FromDouble(double value);
+		std::wstring UtcTimestamp() const;
+		std::wstring LocalTimestamp() const;
 
-		static std::string ToUtf8(const std::wstring& wide_string);
-		static std::wstring FromUtf8(const char* utf8_string);
-
-		static std::string Join(const std::vector<std::string>& list, const std::string& separator);
-		static std::string Join(const std::vector<std::string>& list, char c);
+	private:
+		time64_t time_point_;
 	};
 }
