@@ -32,6 +32,9 @@
 
 using namespace sqlite_reflection;
 using namespace std::chrono;
+#if HAS_LEGACY_CHRONO
+using namespace date;
+#endif
 
 static std::wstring iso_format = L"%FT%T";
 
@@ -53,9 +56,8 @@ TimePoint TimePoint::FromSystemTime(const std::wstring &iso_8601_string) {
 }
 
 std::wstring TimePoint::SystemTime() const {
-    auto now = std::chrono::system_clock::now();
-    auto today = date::floor<days>(now);
-    
+    auto time_stamp_days = date::floor<date::days>(time_stamp_);
     std::stringstream ss;
-    ss << today << ' ' << date::make_time(now - today) << " UTC";
+    ss << time_stamp_days << "T" << date::make_time(time_stamp_ - time_stamp_days) << " UTC";
+    return StringUtilities::FromUtf8(ss.str().c_str());
 }

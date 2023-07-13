@@ -38,7 +38,7 @@ class DateTimeTest : public ::testing::Test
 	}
 };
 
-void ControlRoundTrip(const sys_seconds time_point, const wchar_t* sys_time) {
+void ControlRoundTrip(const sys_seconds& time_point, const wchar_t* sys_time) {
 	DatetimeContainer f;
 	f.creation_date = TimePoint(time_point);
 
@@ -48,7 +48,7 @@ void ControlRoundTrip(const sys_seconds time_point, const wchar_t* sys_time) {
 	const auto retrieved = db.FetchAll<DatetimeContainer>();
 	EXPECT_EQ(1, retrieved.size());
 
-	const auto system_time = retrieved[0].creation_date.SystemTime()();
+	const auto system_time = retrieved[0].creation_date.SystemTime();
 	EXPECT_EQ(std::wstring(sys_time), system_time);
 }
 
