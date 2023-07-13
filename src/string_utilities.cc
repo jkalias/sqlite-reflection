@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 #include "internal/string_utilities.h"
-#include "internal/gmtime.h"
 
 #include <codecvt>
 #include <numeric>

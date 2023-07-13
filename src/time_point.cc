@@ -22,51 +22,40 @@
 
 #include "time_point.h"
 
-#include "internal/gmtime.h"
+#if HAS_LEGACY_CHRONO
+#include "internal/date.h"
+#endif
 #include "internal/string_utilities.h"
 
 #include <sstream>
 #include <iomanip>
 
 using namespace sqlite_reflection;
+using namespace std::chrono;
+
+static std::wstring iso_format = L"%FT%T";
 
 TimePoint::TimePoint()
-	: time_point_(0) {}
+: time_stamp_() {}
 
-TimePoint::TimePoint(const time64_t& time_since_unix_epoch)
-	: time_point_(time_since_unix_epoch) {}
+TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch)
+: time_stamp_(time_since_unix_epoch) {}
 
-TimePoint TimePoint::FromUtcTime(const std::wstring& utc_iso_8601_string) {
-	int year, month, day, hour, minute, second;
-	std::tm time_tm{};
-
-	const auto date_string = StringUtilities::ToUtf8(utc_iso_8601_string);
-	sscanf(date_string.c_str(), "%d-%d-%dT%d:%d:%d", &year, &month, &day, &hour, &minute, &second);
-
-	time_tm.tm_year = year - 1900;
-	time_tm.tm_mon = month - 1;
-	time_tm.tm_mday = day;
-	time_tm.tm_hour = hour;
-	time_tm.tm_min = minute;
-	time_tm.tm_sec = second;
-	time_tm.tm_isdst = -1;
-
-	const auto time_point = MkTime64(&time_tm);
-	return TimePoint(time_point);
+TimePoint TimePoint::FromSystemTime(const std::wstring &iso_8601_string) {
+    std::wistringstream in{iso_8601_string};
+    sys_seconds time_stamp;
+#if HAS_LEGACY_CHRONO
+    in >> date::parse(iso_format, time_stamp);
+#else
+    in >> parse(iso_format, tp);
+#endif
+    return TimePoint(time_stamp);
 }
 
-std::wstring TimePoint::UtcTimestamp() const {
-	tm ptm{};
-	GmTime64R(&time_point_, &ptm);
-	std::stringstream sstr;
-	sstr << std::put_time(&ptm, "%FT%T");
-	return StringUtilities::FromUtf8(sstr.str().data());
-}
-
-std::wstring TimePoint::LocalTimestamp() const {
-	tm ptm{};
-	Localtime64R(&time_point_, &ptm);
-	std::stringstream sstr;
-	sstr << std::put_time(&ptm, "%FT%T");
-	return StringUtilities::FromUtf8(sstr.str().data());
+std::wstring TimePoint::SystemTime() const {
+    auto now = std::chrono::system_clock::now();
+    auto today = date::floor<days>(now);
+    
+    std::stringstream ss;
+    ss << today << ' ' << date::make_time(now - today) << " UTC";
 }

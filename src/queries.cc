@@ -109,7 +109,7 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 		case SqliteStorageClass::kDateTime:
 			{
 				auto& value = (*(TimePoint*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::ToUtf8(value.UtcTimestamp());
+				content = StringUtilities::ToUtf8(value.SystemTime());
 				break;
 			}
 
@@ -298,7 +298,7 @@ void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results,
 		case SqliteStorageClass::kDateTime:
 			{
 				auto& v = (*(TimePoint*)((void*)GetMemberAddress(p, record, j)));
-				v = TimePoint::FromUtcTime(content);
+				v = TimePoint::FromSystemTime(content);
 				break;
 			}
 

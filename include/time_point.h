@@ -25,23 +25,31 @@
 #include "reflection_export.h"
 
 #include <string>
-#include <stdint.h>
+#include <chrono>
+
+#if __cplusplus < 201907L
+#define HAS_LEGACY_CHRONO 1
+#else
+#define HAS_LEGACY_CHRONO 0
+#endif
+
+#if HAS_LEGACY_CHRONO
+typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> sys_seconds;
+#endif
 
 namespace sqlite_reflection {
-	typedef int64_t time64_t;
-
 	class REFLECTION_EXPORT TimePoint
 	{
 	public:
 		TimePoint();
-		explicit TimePoint(const time64_t& time_since_unix_epoch);
-		static TimePoint FromUtcTime(const std::wstring& utc_iso_8601_string);
-		static TimePoint FromLocalTime(const std::wstring& timestamp);
+		explicit TimePoint(const sys_seconds& time_since_unix_epoch);
+		static TimePoint FromSystemTime(const std::wstring& iso_8601_string);
+		//static TimePoint FromLocalTime(const std::wstring& timestamp);
 
-		std::wstring UtcTimestamp() const;
-		std::wstring LocalTimestamp() const;
+		std::wstring SystemTime() const;
+		//std::wstring LocalTimestamp() const;
 
 	private:
-		time64_t time_point_;
+        sys_seconds time_stamp_;
 	};
 }

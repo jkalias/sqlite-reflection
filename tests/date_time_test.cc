@@ -38,7 +38,7 @@ class DateTimeTest : public ::testing::Test
 	}
 };
 
-void ControlRoundTrip(const time64_t time_point, const wchar_t* utc_time_stamp) {
+void ControlRoundTrip(const sys_seconds time_point, const wchar_t* sys_time) {
 	DatetimeContainer f;
 	f.creation_date = TimePoint(time_point);
 
@@ -48,8 +48,8 @@ void ControlRoundTrip(const time64_t time_point, const wchar_t* utc_time_stamp) 
 	const auto retrieved = db.FetchAll<DatetimeContainer>();
 	EXPECT_EQ(1, retrieved.size());
 
-	const auto timestamp = retrieved[0].creation_date.UtcTimestamp();
-	EXPECT_EQ(std::wstring(utc_time_stamp), timestamp);
+	const auto system_time = retrieved[0].creation_date.SystemTime()();
+	EXPECT_EQ(std::wstring(sys_time), system_time);
 }
 
 TEST_F(DateTimeTest, UnixEpoch) {
