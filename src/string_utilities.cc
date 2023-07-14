@@ -27,8 +27,6 @@
 #include <sstream>
 #ifndef _WIN32
 #include <locale>
-#else
-#define timegm _mkgmtime
 #endif
 
 using namespace sqlite_reflection;
