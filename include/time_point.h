@@ -42,6 +42,7 @@ namespace sqlite_reflection {
 	{
 	public:
 		TimePoint();
+		explicit TimePoint(const int64_t& seconds_since_unix_epoch);
 		explicit TimePoint(const sys_seconds& time_since_unix_epoch);
 		static TimePoint FromSystemTime(const std::wstring& iso_8601_string);
 		//static TimePoint FromLocalTime(const std::wstring& timestamp);

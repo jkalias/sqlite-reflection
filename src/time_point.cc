@@ -21,9 +21,9 @@
 // SOFTWARE.
 
 #include "time_point.h"
-
 #if HAS_LEGACY_CHRONO
 #include "internal/date.h"
+using namespace date;
 #endif
 #include "internal/string_utilities.h"
 
@@ -32,32 +32,27 @@
 
 using namespace sqlite_reflection;
 using namespace std::chrono;
-#if HAS_LEGACY_CHRONO
-using namespace date;
-#endif
 
 static std::wstring iso_format = L"%FT%T";
 
-TimePoint::TimePoint()
-: time_stamp_() {}
+TimePoint::TimePoint() {}
+
+TimePoint::TimePoint(const int64_t& seconds_since_unix_epoch)
+	: time_stamp_(seconds(seconds_since_unix_epoch)) {}
 
 TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch)
-: time_stamp_(time_since_unix_epoch) {}
+	: time_stamp_(time_since_unix_epoch) {}
 
-TimePoint TimePoint::FromSystemTime(const std::wstring &iso_8601_string) {
-    std::wistringstream in{iso_8601_string};
-    sys_seconds time_stamp;
-#if HAS_LEGACY_CHRONO
-    in >> date::parse(iso_format, time_stamp);
-#else
-    in >> parse(iso_format, tp);
-#endif
-    return TimePoint(time_stamp);
+TimePoint TimePoint::FromSystemTime(const std::wstring& iso_8601_string) {
+	std::wistringstream in{iso_8601_string};
+	sys_seconds time_stamp;
+	in >> parse(iso_format, time_stamp);
+	return TimePoint(time_stamp);
 }
 
 std::wstring TimePoint::SystemTime() const {
-    auto time_stamp_days = date::floor<date::days>(time_stamp_);
-    std::stringstream ss;
-    ss << time_stamp_days << "T" << date::make_time(time_stamp_ - time_stamp_days) << " UTC";
-    return StringUtilities::FromUtf8(ss.str().c_str());
+	const auto tp = date::floor<days>(time_stamp_);
+	std::stringstream ss;
+	ss << tp << "T" << make_time(time_stamp_ - tp) << " UTC";
+	return StringUtilities::FromUtf8(ss.str().c_str());
 }
