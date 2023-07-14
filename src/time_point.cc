@@ -29,7 +29,10 @@
 
 using namespace sqlite_reflection;
 using namespace std::chrono;
-using namespace date;
+
+#ifndef HAS_LEGACY_CHRONO
+#define make_time hh_mm_ss
+#endif
 
 static std::wstring iso_format = L"%FT%T";
 
@@ -44,7 +47,7 @@ TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch)
 TimePoint TimePoint::FromSystemTime(const std::wstring& iso_8601_string) {
 	std::wistringstream in{iso_8601_string};
 	sys_seconds time_stamp;
-	in >> parse(iso_format, time_stamp);
+	in >> date::parse(iso_format, time_stamp);
 	return TimePoint(time_stamp);
 }
 
