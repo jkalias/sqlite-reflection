@@ -23,13 +23,11 @@
 #include "queries.h"
 
 #include <string>
+#include <cstring>
+#include <string.h>
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
-
-#ifdef __linux__
-#include <string.h>
-#endif
 
 #include "internal/sqlite3.h"
 #include "internal/string_utilities.h"
