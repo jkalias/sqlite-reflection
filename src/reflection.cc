@@ -38,8 +38,8 @@ Reflection& GetRecordFromTypeId(const std::string& type_id) {
 	return meta_struct;
 }
 
-char* GetMemberAddress(void* p, const Reflection& record, const size_t i) {
-	const auto struct_start = static_cast<char*>(p);
+char* GetMemberAddress(void* precord, const Reflection& record, const size_t i) {
+	const auto struct_start = static_cast<char*>(precord);
 	const size_t var_offset = record.member_metadata[i].offset;
 	return struct_start + var_offset;
 }

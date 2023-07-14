@@ -35,6 +35,8 @@
 
 #if HAS_LEGACY_CHRONO
 typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> sys_seconds;
+#else
+using namespace std::chrono;
 #endif
 
 namespace sqlite_reflection {

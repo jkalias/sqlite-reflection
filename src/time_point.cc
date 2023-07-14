@@ -21,10 +21,6 @@
 // SOFTWARE.
 
 #include "time_point.h"
-#if HAS_LEGACY_CHRONO
-#include "internal/date.h"
-using namespace date;
-#endif
 #include "internal/string_utilities.h"
 
 #include <sstream>
@@ -32,6 +28,13 @@ using namespace date;
 
 using namespace sqlite_reflection;
 using namespace std::chrono;
+
+#if HAS_LEGACY_CHRONO
+#include "internal/date.h"
+using namespace date;
+#else
+#define make_time hh_mm_ss
+#endif
 
 static std::wstring iso_format = L"%FT%T";
 
@@ -51,7 +54,7 @@ TimePoint TimePoint::FromSystemTime(const std::wstring& iso_8601_string) {
 }
 
 std::wstring TimePoint::SystemTime() const {
-	const auto tp = date::floor<days>(time_stamp_);
+	const auto tp = floor<days>(time_stamp_);
 	std::stringstream ss;
 	ss << tp << "T" << make_time(time_stamp_ - tp) << " UTC";
 	return StringUtilities::FromUtf8(ss.str().c_str());

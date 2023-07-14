@@ -98,10 +98,7 @@ struct REFLECTION_EXPORT Reflection
 			case SqliteStorageClass::kDateTime:
 				return "DATETIME";
 			default:
-				{
-					throw std::domain_error("Implementation error: storage class is not supported");
-					return "";
-				}
+				throw std::domain_error("Implementation error: storage class is not supported");
 			}
 		}
 	};

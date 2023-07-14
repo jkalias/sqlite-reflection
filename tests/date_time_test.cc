@@ -58,7 +58,11 @@ TEST_F(DateTimeTest, UnixEpoch) {
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1000) {
+#ifdef _WIN32
+	ControlRoundTrip(-32350628573LL, L"0944-11-06T10:17:07 UTC");
+#else
 	ControlRoundTrip(-32350628573LL, L"944-11-06T10:17:07 UTC");
+#endif
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1900) {
