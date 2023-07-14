@@ -28,18 +28,14 @@
 #include <iomanip>
 
 using namespace sqlite_reflection;
-using namespace std::chrono;
-
-#ifndef HAS_LEGACY_CHRONO
-#define make_time hh_mm_ss
-#endif
+using namespace date;
 
 static std::wstring iso_format = L"%FT%T";
 
 TimePoint::TimePoint() {}
 
 TimePoint::TimePoint(const int64_t& seconds_since_unix_epoch)
-	: time_stamp_(seconds(seconds_since_unix_epoch)) {}
+	: time_stamp_(std::chrono::seconds(seconds_since_unix_epoch)) {}
 
 TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch)
 	: time_stamp_(time_since_unix_epoch) {}
@@ -47,7 +43,7 @@ TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch)
 TimePoint TimePoint::FromSystemTime(const std::wstring& iso_8601_string) {
 	std::wistringstream in{iso_8601_string};
 	sys_seconds time_stamp;
-	in >> date::parse(iso_format, time_stamp);
+	in >> parse(iso_format, time_stamp);
 	return TimePoint(time_stamp);
 }
 
