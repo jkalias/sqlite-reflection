@@ -22,19 +22,14 @@
 
 #include "time_point.h"
 #include "internal/string_utilities.h"
+#include "internal/date.h"
 
 #include <sstream>
 #include <iomanip>
 
 using namespace sqlite_reflection;
 using namespace std::chrono;
-
-#if HAS_LEGACY_CHRONO
-#include "internal/date.h"
 using namespace date;
-#else
-#define make_time hh_mm_ss
-#endif
 
 static std::wstring iso_format = L"%FT%T";
 

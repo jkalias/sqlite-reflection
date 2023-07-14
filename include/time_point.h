@@ -27,17 +27,7 @@
 #include <string>
 #include <chrono>
 
-#if __cplusplus < 201907L
-#define HAS_LEGACY_CHRONO 1
-#else
-#define HAS_LEGACY_CHRONO 0
-#endif
-
-#if HAS_LEGACY_CHRONO
 typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> sys_seconds;
-#else
-using namespace std::chrono;
-#endif
 
 namespace sqlite_reflection {
 	class REFLECTION_EXPORT TimePoint
