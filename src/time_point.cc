@@ -28,7 +28,13 @@
 #include <iomanip>
 
 using namespace sqlite_reflection;
+#if __cplusplus < 201907L
+#define LEGACY_CHRONO
+#endif
+
+#ifdef LEGACY_CHRONO
 using namespace date;
+#endif
 
 static std::wstring iso_format = L"%FT%T";
 
@@ -43,13 +49,21 @@ TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch)
 TimePoint TimePoint::FromSystemTime(const std::wstring& iso_8601_string) {
 	std::wistringstream in{iso_8601_string};
 	sys_seconds time_stamp;
-	in >> parse(iso_format, time_stamp);
+	in >> date::parse(iso_format, time_stamp);
 	return TimePoint(time_stamp);
 }
 
 std::wstring TimePoint::SystemTime() const {
+#ifdef LEGACY_CHRONO
 	const auto tp = floor<days>(time_stamp_);
+#else
+	const auto tp = floor<std::chrono::days>(time_stamp_);
+#endif
 	std::stringstream ss;
+#ifdef LEGACY_CHRONO
 	ss << tp << "T" << make_time(time_stamp_ - tp) << " UTC";
+#else
+	ss << tp << "T" << std::chrono::hh_mm_ss(time_stamp_ - tp) << " UTC";
+#endif
 	return StringUtilities::FromUtf8(ss.str().c_str());
 }
