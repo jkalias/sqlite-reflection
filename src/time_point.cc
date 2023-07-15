@@ -28,11 +28,18 @@
 #include <iomanip>
 
 using namespace sqlite_reflection;
+
 #if __cplusplus < 201907L
-#define LEGACY_CHRONO
+    #define LEGACY_CHRONO
+#else
+    #ifdef _WIN32
+        #define MODERN_WIN_CHRONO
+    #else
+        #define MODERN_UNIX_CHRONO
+    #endif
 #endif
 
-#ifdef LEGACY_CHRONO
+#if defined(LEGACY_CHRONO) || !defined(MODERN_WIN_CHRONO)
 using namespace date;
 #endif
 
@@ -60,7 +67,7 @@ std::wstring TimePoint::SystemTime() const {
 	const auto tp = floor<std::chrono::days>(time_stamp_);
 #endif
 	std::stringstream ss;
-#ifdef LEGACY_CHRONO
+#if defined(LEGACY_CHRONO) || !defined(MODERN_WIN_CHRONO)
 	ss << tp << "T" << make_time(time_stamp_ - tp) << " UTC";
 #else
 	ss << tp << "T" << std::chrono::hh_mm_ss(time_stamp_ - tp) << " UTC";
