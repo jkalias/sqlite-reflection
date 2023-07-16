@@ -66,25 +66,25 @@ void ControlRoundTrip(const int64_t& time_point, const wchar_t* sys_time) {
 }
 
 TEST_F(DateTimeTest, UnixEpoch) {
-	ControlRoundTrip(0, L"1970-01-01T00:00:00 UTC");
+	ControlRoundTrip(0, L"1970-01-01T00:00:00Z");
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1000) {
-    ControlRoundTrip(-32350628573LL, L"944-11-06T10:17:07 UTC");
+    ControlRoundTrip(-32350628573LL, L"944-11-06T10:17:07Z");
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1900) {
-	ControlRoundTrip(-2359097130LL, L"1895-03-30T15:14:30 UTC");
+	ControlRoundTrip(-2359097130LL, L"1895-03-30T15:14:30Z");
 }
 
 TEST_F(DateTimeTest, RoundtripBefore1970) {
-	ControlRoundTrip(-1508726294, L"1922-03-11T21:21:46 UTC");
+	ControlRoundTrip(-1508726294, L"1922-03-11T21:21:46Z");
 }
 
 TEST_F(DateTimeTest, RoundtripAfter2000) {
-	ControlRoundTrip(1688842924, L"2023-07-08T19:02:04 UTC");
+	ControlRoundTrip(1688842924, L"2023-07-08T19:02:04Z");
 }
 
 TEST_F(DateTimeTest, RoundtripAfter2038) {
-	ControlRoundTrip(2333089535, L"2043-12-07T08:25:35 UTC");
+	ControlRoundTrip(2333089535, L"2043-12-07T08:25:35Z");
 }

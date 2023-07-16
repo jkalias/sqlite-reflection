@@ -22,6 +22,8 @@
 
 #include "time_point.h"
 #include "internal/string_utilities.h"
+
+// This would not have been at all possible without this amazing library
 #include "internal/date.h"
 
 #include <sstream>
@@ -30,20 +32,20 @@
 using namespace sqlite_reflection;
 
 #if __cplusplus < 201907L
-    #define LEGACY_CHRONO
+#define LEGACY_CHRONO
 #else
-    #ifdef _WIN32
-        #define MODERN_WIN_CHRONO
-    #else
-        #define MODERN_UNIX_CHRONO
-    #endif
+#ifdef _WIN32
+#define MODERN_WIN_CHRONO
+#else
+#define MODERN_UNIX_CHRONO
+#endif
 #endif
 
 #if defined(LEGACY_CHRONO) || !defined(MODERN_WIN_CHRONO)
 using namespace date;
 #endif
 
-static std::wstring iso_format = L"%FT%T";
+static std::wstring iso_format = L"%FT%TZ";
 
 TimePoint::TimePoint() {}
 
@@ -68,9 +70,9 @@ std::wstring TimePoint::SystemTime() const {
 #endif
 	std::stringstream ss;
 #if defined(LEGACY_CHRONO) || !defined(MODERN_WIN_CHRONO)
-	ss << tp << "T" << make_time(time_stamp_ - tp) << " UTC";
+	ss << tp << "T" << make_time(time_stamp_ - tp) << "Z";
 #else
-	ss << tp << "T" << std::chrono::hh_mm_ss(time_stamp_ - tp) << " UTC";
+	ss << tp << "T" << std::chrono::hh_mm_ss(time_stamp_ - tp) << "Z";
 #endif
 	return StringUtilities::FromUtf8(ss.str().c_str());
 }

@@ -35,8 +35,6 @@
 #include <stddef.h>
 #endif
 
-// todo: saving/retrieving dates (get/set local/utc time functions)
-// todo: cpp+20 for date type
 // todo: template specialization for int64_t and wchar_t*
 
 // todo: bool member type

@@ -30,17 +30,33 @@
 typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> sys_seconds;
 
 namespace sqlite_reflection {
+/// A wrapper for expressing points in time based on system time.
+/// The epoch is by convention the Unix epoch of 1 January 1970 at midnight (1970-01-01T00:00:00Z)
+/// System time is a very good approximation of UTC time, the only difference being the management of leap seconds
+/// (system time ignores leap seconds)
+/// https://en.wikipedia.org/wiki/Coordinated_Universal_Time
 	class REFLECTION_EXPORT TimePoint
 	{
 	public:
+        /// Defaults to start of system time (Unix epoch)
 		TimePoint();
+        
+        // Creates a time representation based on the elapsed seconds from the Unix epoch.
+        // Negative valules represent time points before 1970-01-01T00:00:00Z,
+        // whereas positive values after 1970-01-01 00:00:00 UTC
 		explicit TimePoint(const int64_t& seconds_since_unix_epoch);
+        
+        // Creates a time representation based on the elapsed seconds from the Unix epoch.
+        // Negative valules represent time points before 1970-01-01T00:00:00Z,
+        // whereas positive values after 1970-01-01 00:00:00 UTC
 		explicit TimePoint(const sys_seconds& time_since_unix_epoch);
+        
+        /// Creates a time point instance from its equivalent ISO 8601 UTC format
 		static TimePoint FromSystemTime(const std::wstring& iso_8601_string);
-		//static TimePoint FromLocalTime(const std::wstring& timestamp);
-
+        
+        /// Returns a string representation of this  instance, expressed in ISO 8601 UTC format
+        /// https://en.wikipedia.org/wiki/ISO_8601
 		std::wstring SystemTime() const;
-		//std::wstring LocalTimestamp() const;
 
 	private:
         sys_seconds time_stamp_;
