@@ -35,11 +35,6 @@
 #include <stddef.h>
 #endif
 
-// todo: BETWEEN / IN / NOT IN predicate
-// todo: save with automatic id
-// todo: nullable types
-// todo: relations
-
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
 /// https://www.sqlite.org/datatype3.html
 enum class REFLECTION_EXPORT SqliteStorageClass
@@ -146,12 +141,10 @@ REFLECTION_EXPORT Reflection& GetRecordFromTypeId(const std::string& type_id);
 ///
 /// example:
 /// struct Person {
-///     double weight;        <---- corresponds to index 0
-///     std::wstring name;    <---- corresponds to index 1
+///     double            weight;         <---- corresponds to index 0
+///     std::wstring    name;    <---- corresponds to index 1
+///     int64_t         id;
 /// }
-///
-/// However, since all reflectable structs must be uniquely identified in SQLite,
-/// their first member is always int64_t id
 REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size_t i);
 
 #endif // REFLECTION_INTERNAL
@@ -170,7 +163,6 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
     struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
         // member declaration according to the order given in source code
 #define MEMBER_DECLARE(L, R)            L R;
-                                        MEMBER_DECLARE(int64_t, id)
 #define MEMBER_INT(R)				    MEMBER_DECLARE(int64_t, R)
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
@@ -185,6 +177,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef MEMBER_DATETIME
 #undef MEMBER_BOOL
 #undef FUNC
+                                        int64_t id;
 
         // custom function declaration
 #define MEMBER_INT(R)

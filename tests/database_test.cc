@@ -53,7 +53,7 @@ TEST_F(DatabaseTest, Initialization) {
 TEST_F(DatabaseTest, SingleInsertion) {
 	const auto& db = Database::Instance();
 
-	const Person p{1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+	const Person p{L"παναγιώτης", L"ανδριανόπουλος", 39, 1};
 	db.Save(p);
 
 	const auto all_persons = db.FetchAll<Person>();
@@ -65,13 +65,28 @@ TEST_F(DatabaseTest, SingleInsertion) {
 	EXPECT_EQ(p.id, all_persons[0].id);
 }
 
+TEST_F(DatabaseTest, SingleInsertionWithAutoIdIncrement) {
+    const auto& db = Database::Instance();
+
+    const Person p{L"παναγιώτης", L"ανδριανόπουλος", 39};
+    db.SaveAutoIncrement(p);
+
+    const auto all_persons = db.FetchAll<Person>();
+    EXPECT_EQ(1, all_persons.size());
+
+    EXPECT_EQ(p.first_name, all_persons[0].first_name);
+    EXPECT_EQ(p.last_name, all_persons[0].last_name);
+    EXPECT_EQ(p.age, all_persons[0].age);
+    EXPECT_EQ(1, all_persons[0].id);
+}
+
 TEST_F(DatabaseTest, MultipleInsertions) {
 	const auto& db = Database::Instance();
 
 	std::vector<Person> persons;
 
-	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28, false});
-	persons.push_back({5, L"peter", L"meier", 32, true});
+	persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28, false, 3});
+	persons.push_back({L"peter", L"meier", 32, true, 5});
 
 	db.Save(persons);
 
@@ -90,7 +105,7 @@ TEST_F(DatabaseTest, MultipleInsertions) {
 TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType) {
 	const auto& db = Database::Instance();
 
-	const Person p{1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+	const Person p{L"παναγιώτης", L"ανδριανόπουλος", 39, 1};
 	db.Save(p);
 
 	const auto all_pets = db.FetchAll<Pet>();
@@ -100,7 +115,7 @@ TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType) {
 TEST_F(DatabaseTest, SingleUpdate) {
 	const auto& db = Database::Instance();
 
-	Person p{1, L"παναγιώτης", L"ανδριανόπουλος", 39};
+	Person p{L"παναγιώτης", L"ανδριανόπουλος", 39, 1};
 	db.Save(p);
 
 	p.age = 23;
@@ -122,8 +137,8 @@ TEST_F(DatabaseTest, MultipleUpdates) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({3, L"john", L"doe", 28});
-	persons.push_back({5, L"mary", L"poppins", 20});
+    persons.push_back({L"john", L"doe", 28, false, 3});
+	persons.push_back({L"mary", L"poppins", 20, false, 5});
 
 	db.Save(persons);
 
@@ -148,9 +163,9 @@ TEST_F(DatabaseTest, DeleteWithRecord) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
-	persons.push_back({5, L"peter", L"meier", 32});
-	persons.push_back({13, L"mary", L"poppins", 20});
+	persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28, false, 3});
+	persons.push_back({L"peter", L"meier", 32, false, 5});
+	persons.push_back({L"mary", L"poppins", 20, false, 13});
 
 	db.Save(persons);
 
@@ -179,9 +194,9 @@ TEST_F(DatabaseTest, DeleteWithId) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
-	persons.push_back({5, L"peter", L"meier", 32});
-	persons.push_back({13, L"mary", L"poppins", 20});
+	persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28, false, 3});
+	persons.push_back({L"peter", L"meier", 32, false, 5});
+	persons.push_back({L"mary", L"poppins", 20, false, 13});
 
 	db.Save(persons);
 
@@ -210,9 +225,9 @@ TEST_F(DatabaseTest, DeleteWithPredicate) {
 
     std::vector<Person> persons;
 
-    persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28, true});
-    persons.push_back({5, L"peter", L"meier", 32, false});
-    persons.push_back({13, L"mary", L"poppins", 20, true});
+    persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28, true, 3});
+    persons.push_back({L"peter", L"meier", 32, false, 5});
+    persons.push_back({L"mary", L"poppins", 20, true, 13});
 
     db.Save(persons);
 
@@ -235,9 +250,9 @@ TEST_F(DatabaseTest, SingleFetch) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
-	persons.push_back({5, L"peter", L"meier", 32});
-	persons.push_back({13, L"mary", L"poppins", 20});
+	persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28, false, 3});
+	persons.push_back({L"peter", L"meier", 32, false, 5});
+	persons.push_back({L"mary", L"poppins", 20, false, 13});
 
 	db.Save(persons);
 
@@ -253,9 +268,9 @@ TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
-	persons.push_back({5, L"peter", L"meier", 32});
-	persons.push_back({13, L"mary", L"poppins", 20});
+	persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28, false, 3});
+	persons.push_back({L"peter", L"meier", 32, false, 5});
+	persons.push_back({L"mary", L"poppins", 20, false});
 
 	db.Save(persons);
 
@@ -267,13 +282,13 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateString) {
 
 	std::vector<Company> company;
 
-	company.push_back({1, L"Paul", 32, L"California", 20000.0});
-	company.push_back({2, L"Allen", 25, L"Texas", 15000.0});
-	company.push_back({3, L"Teddy", 23, L"Norway", 20000.0});
-	company.push_back({4, L"Mark", 25, L"Rich-Mond", 65000.0});
-	company.push_back({5, L"David", 27, L"Texas", 85000.0});
-	company.push_back({6, L"Kim", 22, L"South-Hall", 45000.0});
-	company.push_back({7, L"Janes", 24, L"Houston", 10000.0});
+	company.push_back({L"Paul", 32, L"California", 20000.0, 1});
+	company.push_back({L"Allen", 25, L"Texas", 15000.0, 2});
+	company.push_back({L"Teddy", 23, L"Norway", 20000.0, 3});
+	company.push_back({L"Mark", 25, L"Rich-Mond", 65000.0, 4});
+	company.push_back({L"David", 27, L"Texas", 85000.0, 5});
+	company.push_back({L"Kim", 22, L"South-Hall", 45000.0, 6});
+	company.push_back({L"Janes", 24, L"Houston", 10000.0, 7});
 
 	db.Save(company);
 
@@ -300,13 +315,13 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateDouble) {
 
 	std::vector<Company> company;
 
-	company.push_back({1, L"Paul", 32, L"California", 20000.0});
-	company.push_back({2, L"Allen", 25, L"Texas", 15000.0});
-	company.push_back({3, L"Teddy", 23, L"Norway", 20000.0});
-	company.push_back({4, L"Mark", 25, L"Rich-Mond", 65000.0});
-	company.push_back({5, L"David", 27, L"Texas", 85000.0});
-	company.push_back({6, L"Kim", 22, L"South-Hall", 45000.0});
-	company.push_back({7, L"Janes", 24, L"Houston", 10000.0});
+	company.push_back({L"Paul", 32, L"California", 20000.0, 1});
+	company.push_back({L"Allen", 25, L"Texas", 15000.0, 2});
+	company.push_back({L"Teddy", 23, L"Norway", 20000.0, 3});
+	company.push_back({L"Mark", 25, L"Rich-Mond", 65000.0, 4});
+	company.push_back({L"David", 27, L"Texas", 85000.0, 5});
+	company.push_back({L"Kim", 22, L"South-Hall", 45000.0, 6});
+	company.push_back({L"Janes", 24, L"Houston", 10000.0, 7});
 
 	db.Save(company);
 
@@ -345,13 +360,13 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateInt) {
 
 	std::vector<Company> company;
 
-	company.push_back({1, L"Paul", 32, L"California", 20000.0});
-	company.push_back({2, L"Allen", 25, L"Texas", 15000.0});
-	company.push_back({3, L"Teddy", 23, L"Norway", 20000.0});
-	company.push_back({4, L"Mark", 25, L"Rich-Mond", 65000.0});
-	company.push_back({5, L"David", 27, L"Texas", 85000.0});
-	company.push_back({6, L"Kim", 22, L"South-Hall", 45000.0});
-	company.push_back({7, L"Janes", 24, L"Houston", 10000.0});
+	company.push_back({L"Paul", 32, L"California", 20000.0, 1});
+	company.push_back({L"Allen", 25, L"Texas", 15000.0, 2});
+	company.push_back({L"Teddy", 23, L"Norway", 20000.0, 3});
+	company.push_back({L"Mark", 25, L"Rich-Mond", 65000.0, 4});
+	company.push_back({L"David", 27, L"Texas", 85000.0, 5});
+	company.push_back({L"Kim", 22, L"South-Hall", 45000.0, 6});
+	company.push_back({L"Janes", 24, L"Houston", 10000.0, 7});
 
 	db.Save(company);
 
@@ -372,11 +387,11 @@ TEST_F(DatabaseTest, FetchWithPredicateChaining) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({1, L"name1", L"surname1", 13});
-	persons.push_back({2, L"john", L"surname2", 25});
-	persons.push_back({3, L"john", L"surname3", 37});
-	persons.push_back({4, L"jame", L"surname4", 45});
-	persons.push_back({5, L"name5", L"surname5", 56});
+	persons.push_back({L"name1", L"surname1", 13, false, 1});
+	persons.push_back({L"john", L"surname2", 25, false, 2});
+	persons.push_back({L"john", L"surname3", 37, false, 3});
+	persons.push_back({L"jame", L"surname4", 45, false, 4});
+	persons.push_back({L"name5", L"surname5", 56, false, 5});
 
 	db.Save(persons);
 
@@ -403,8 +418,8 @@ TEST_F(DatabaseTest, ReadMaxId) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({52, L"john", L"appleseed", 28});
-	persons.push_back({156, L"mary", L"poppins", 20});
+	persons.push_back({L"john", L"appleseed", 28, false, 54});
+	persons.push_back({L"mary", L"poppins", 20, false, 156});
 
 	db.Save(persons);
 
@@ -420,8 +435,8 @@ TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
 
     std::vector<Person> persons;
 
-    persons.push_back({52, L"johnie", L"appleseed", 28});
-    persons.push_back({156, L"mary", L"poppins", 20});
+    persons.push_back({L"johnie", L"appleseed", 28, false, 52});
+    persons.push_back({L"mary", L"poppins", 20, false, 156});
 
     db.Save(persons);
     db.Sql("DELETE FROM Person WHERE length(first_name) <= 4");
