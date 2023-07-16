@@ -29,8 +29,16 @@ const std::string single_quote("'");
 const std::string space(" ");
 const std::string percent("%");
 
+QueryPredicateBase* QueryPredicate::Clone() const {
+	return new QueryPredicate(symbol_, member_name_, value_);
+}
+
 std::string EmptyPredicate::Evaluate() const {
 	return "";
+}
+
+QueryPredicateBase* EmptyPredicate::Clone() const {
+	return new EmptyPredicate();
 }
 
 AndPredicate QueryPredicateBase::And(const QueryPredicateBase& other) const {
@@ -89,7 +97,7 @@ std::string Like::Remove(const std::string& source, const std::string& substring
 }
 
 BinaryPredicate::BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol)
-	: left_(&left), right_(&right), symbol_(symbol) {}
+	: left_(left.Clone()), right_(right.Clone()), symbol_(symbol) {}
 
 std::string BinaryPredicate::Evaluate() const {
 	return "(" + left_->Evaluate() + space + symbol_ + space + right_->Evaluate() + ")";
@@ -98,5 +106,13 @@ std::string BinaryPredicate::Evaluate() const {
 AndPredicate::AndPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)
 	: BinaryPredicate(left, right, "AND") {}
 
+QueryPredicateBase* AndPredicate::Clone() const {
+	return new AndPredicate(*left_.get(), *right_.get());
+}
+
 OrPredicate::OrPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)
 	: BinaryPredicate(left, right, "OR") {}
+
+QueryPredicateBase* OrPredicate::Clone() const {
+	return new OrPredicate(*left_.get(), *right_.get());
+}
