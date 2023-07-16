@@ -36,9 +36,7 @@
 #endif
 
 // todo: BETWEEN / IN / NOT IN predicate
-// todo: raw sql queries
 // todo: save with automatic id
-
 // todo: nullable types
 // todo: relations
 

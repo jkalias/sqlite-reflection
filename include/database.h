@@ -169,6 +169,9 @@ namespace sqlite_reflection {
             const auto& record = GetRecord(type_id);
             Delete(record, predicate);
         }
+        
+        /// Executes a raw SQL query. A trailing semicolon is added if needed
+        void Sql(const std::string& raw_sql_query) const;
 
 	private:
 		explicit Database(const char* path);

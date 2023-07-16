@@ -127,6 +127,15 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 	return values;
 }
 
+SqlQuery::SqlQuery(sqlite3* db, const std::string& sql)
+: ExecutionQuery(db, Reflection()), sql_(sql) {}
+
+std::string SqlQuery::PrepareSql() const {
+    return sql_.length() > 0 && sql_[sql_.length() - 1] != ';'
+    ? sql_ + ";"
+    : sql_;
+}
+
 CreateTableQuery::CreateTableQuery(sqlite3* db, const Reflection& record)
 	: ExecutionQuery(db, record) { }
 

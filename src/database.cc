@@ -95,4 +95,9 @@ namespace sqlite_reflection {
 		DeleteQuery query(db_, record, predicate);
 		query.Execute();
 	}
+
+    void Database::Sql(const std::string& raw_sql_query) const {
+        SqlQuery sql(db_, raw_sql_query);
+        sql.Execute();
+    }
 }

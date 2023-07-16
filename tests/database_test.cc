@@ -414,3 +414,20 @@ TEST_F(DatabaseTest, ReadMaxId) {
 	const auto max_id_pet = db.GetMaxId<Pet>();
 	EXPECT_EQ(0, max_id_pet);
 }
+
+TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
+    const auto& db = Database::Instance();
+
+    std::vector<Person> persons;
+
+    persons.push_back({52, L"johnie", L"appleseed", 28});
+    persons.push_back({156, L"mary", L"poppins", 20});
+
+    db.Save(persons);
+    db.Sql("DELETE FROM Person WHERE length(first_name) <= 4");
+    
+    const auto fetched_persons = db.FetchAll<Person>();
+    EXPECT_EQ(1, fetched_persons.size());
+    EXPECT_EQ(52, fetched_persons[0].id);
+    EXPECT_EQ(L"johnie", fetched_persons[0].first_name);
+}

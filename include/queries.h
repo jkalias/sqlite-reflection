@@ -75,6 +75,18 @@ namespace sqlite_reflection {
 		std::vector<std::string> GetValues(void* p) const;
 	};
 
+    /// A query for which direct SQL prompts are used
+    class REFLECTION_EXPORT SqlQuery : public ExecutionQuery
+    {
+    public:
+        ~SqlQuery() override = default;
+        explicit SqlQuery(sqlite3* db, const std::string& sql);
+        
+    protected:
+        std::string PrepareSql() const override;
+        const std::string& sql_;
+    };
+
 	/// A query for creating a table for a given reflectable struct. When the database
 	/// is initialized, a table for every registered reflectable struct is created
 	/// This maps to CREATE TABLE IF NOT EXISTS  in SQL
