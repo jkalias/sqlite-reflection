@@ -29,7 +29,7 @@
 MEMBER_TEXT(first_name) \
 MEMBER_TEXT(last_name) \
 MEMBER_INT(age) \
-MEMBER_BOOL(isVaccinated) \
+MEMBER_BOOL(is_vaccinated) \
 FUNC(std::wstring GetFullName() const)
 #include "reflection.h"
 

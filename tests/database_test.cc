@@ -98,7 +98,7 @@ TEST_F(DatabaseTest, MultipleInsertions) {
 		EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
 		EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
 		EXPECT_EQ(persons[i].age, saved_persons[i].age);
-        EXPECT_EQ(persons[i].isVaccinated, saved_persons[i].isVaccinated);
+        EXPECT_EQ(persons[i].is_vaccinated, saved_persons[i].is_vaccinated);
 	}
 }
 
@@ -232,7 +232,7 @@ TEST_F(DatabaseTest, DeleteWithPredicate) {
     db.Save(persons);
 
     const auto age_match_predicate = SmallerThan(&Person::age, 30)
-        .And(Equal(&Person::isVaccinated, true));
+        .And(Equal(&Person::is_vaccinated, true));
 
     db.Delete<Person>(&age_match_predicate);
     const auto fetched_persons = db.FetchAll<Person>();
@@ -242,7 +242,7 @@ TEST_F(DatabaseTest, DeleteWithPredicate) {
     EXPECT_EQ(L"peter", fetched_persons[0].first_name);
     EXPECT_EQ(L"meier", fetched_persons[0].last_name);
     EXPECT_EQ(32, fetched_persons[0].age);
-    EXPECT_EQ(false, fetched_persons[0].isVaccinated);
+    EXPECT_EQ(false, fetched_persons[0].is_vaccinated);
 }
 
 TEST_F(DatabaseTest, SingleFetch) {
