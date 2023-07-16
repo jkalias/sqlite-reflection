@@ -1,6 +1,6 @@
 [![CMake Build Matrix](https://github.com/jkalias/sqlite-reflection/actions/workflows/cmake.yml/badge.svg)](https://github.com/jkalias/sqlite-reflection/actions/workflows/cmake.yml)
 [![GitHub license](https://img.shields.io/github/license/jkalias/functional_cpp)](https://github.com/jkalias/sqlite-reflection/blob/main/LICENSE)
-# C++ API for SQLite with compile time reflection
+# C++ for SQLite with compile time reflection
 
 ## Motivation
 A core feature of any application is persistence of user data, usually in a database. When there is no need for server storage, or even for fallback and/or backup reasons, SQLite offers a battle-tested and cross-platform solution for local database management.
