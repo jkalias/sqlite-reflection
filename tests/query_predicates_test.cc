@@ -29,13 +29,13 @@
 using namespace sqlite_reflection;
 
 TEST(QueryPredicatesTest, EqualityInt) {
-	const Equal condition(&Person::id, (int64_t)65);
+	const Equal condition(&Person::id, 65);
 	const auto evalution = condition.Evaluate();
 	EXPECT_EQ(0, strcmp(evalution.data(), "id = 65"));
 }
 
 TEST(QueryPredicatesTest, EqualityString) {
-	const Equal condition(&Person::first_name, std::wstring(L"john"));
+	const Equal condition(&Person::first_name, L"john");
 	const auto evalution = condition.Evaluate();
 	EXPECT_EQ(0, strcmp(evalution.data(), "first_name = 'john'"));
 }
@@ -47,13 +47,13 @@ TEST(QueryPredicatesTest, EqualityDouble) {
 }
 
 TEST(QueryPredicatesTest, InequalityInt) {
-	const Unequal condition(&Person::id, (int64_t)65);
+	const Unequal condition(&Person::id, 65);
 	const auto evalution = condition.Evaluate();
 	EXPECT_EQ(0, strcmp(evalution.data(), "id != 65"));
 }
 
 TEST(QueryPredicatesTest, InequalityString) {
-	const Unequal condition(&Person::first_name, std::wstring(L"john"));
+	const Unequal condition(&Person::first_name, L"john");
 	const auto evalution = condition.Evaluate();
 	EXPECT_EQ(0, strcmp(evalution.data(), "first_name != 'john'"));
 }
@@ -113,25 +113,25 @@ TEST(QueryPredicatesTest, SmallerThanOrEqualDouble) {
 }
 
 TEST(QueryPredicatesTest, And) {
-	const Unequal c1(&Person::id, (int64_t)65);
-	const Equal c2(&Person::first_name, std::wstring(L"john"));
+	const Unequal c1(&Person::id, 65);
+	const Equal c2(&Person::first_name, L"john");
 	const AndPredicate c3(c1, c2);
 	const auto evalution = c3.Evaluate();
 	EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 AND first_name = 'john')"));
 }
 
 TEST(QueryPredicatesTest, Or) {
-	const Unequal c1(&Person::id, (int64_t)65);
-	const Equal c2(&Person::first_name, std::wstring(L"john"));
+	const Unequal c1(&Person::id, 65);
+	const Equal c2(&Person::first_name, L"john");
 	const OrPredicate c3(c1, c2);
 	const auto evalution = c3.Evaluate();
 	EXPECT_EQ(0, strcmp(evalution.data(), "(id != 65 OR first_name = 'john')"));
 }
 
 TEST(QueryPredicatesTest, PredicateChaining) {
-	const auto predicate = Equal(&Person::id, (int64_t)65)
-	                       .Or(Equal(&Person::first_name, std::wstring(L"john")))
-	                       .And(Unequal(&Person::last_name, std::wstring(L"appleseed")));
+	const auto predicate = Equal(&Person::id, 65)
+	                       .Or(Equal(&Person::first_name, L"john"))
+	                       .And(Unequal(&Person::last_name, L"appleseed"));
 
 	const auto evaluation = predicate.Evaluate();
 

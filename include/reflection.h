@@ -35,8 +35,6 @@
 #include <stddef.h>
 #endif
 
-// todo: template specialization for int64_t and wchar_t*
-
 // todo: bool member type
 // todo: delete with custom predicate
 

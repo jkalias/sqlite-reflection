@@ -117,8 +117,16 @@ namespace sqlite_reflection {
 	{
 	public:
 		template <typename T, typename R>
-		Equal(R T::* fn, R value)
+		explicit Equal(R T::* fn, R value)
 			: QueryPredicate(fn, value, "=") {}
+        
+        template <typename T>
+        explicit Equal(int64_t T::* fn, int value)
+        : Equal(fn, (int64_t)value) {}
+        
+        template <typename T>
+        explicit Equal(std::wstring T::* fn, const wchar_t* value)
+        : Equal(fn, std::wstring(value)) {}
 	};
 
 	/// A wrapper for an inequality predicate, for which the value of the
@@ -127,8 +135,16 @@ namespace sqlite_reflection {
 	{
 	public:
 		template <typename T, typename R>
-		Unequal(R T::* fn, R value)
+		explicit Unequal(R T::* fn, R value)
 			: QueryPredicate(fn, value, "!=") {}
+        
+        template <typename T>
+        explicit Unequal(int64_t T::* fn, int value)
+        : Unequal(fn, (int64_t)value) {}
+        
+        template <typename T>
+        explicit Unequal(std::wstring T::* fn, const wchar_t* value)
+        : Unequal(fn, std::wstring(value)) {}
 	};
 
 	/// A wrapper for a similarity predicate, for which the value of the
@@ -137,10 +153,18 @@ namespace sqlite_reflection {
 	{
 	public:
 		template <typename T, typename R>
-		Like(R T::* fn, R value)
+		explicit Like(R T::* fn, R value)
 			: QueryPredicate(fn, value, "LIKE", [&](void* v, SqliteStorageClass storage_class){
 				return GetStringForValue(v, storage_class);
 			}) {}
+        
+        template <typename T>
+        explicit Like(int64_t T::* fn, int value)
+        : Like(fn, (int64_t)value) {}
+        
+        template <typename T>
+        explicit Like(std::wstring T::* fn, const wchar_t* value)
+        : Like(fn, std::wstring(value)) {}
 
 	protected:
 		std::string GetStringForValue(void* v, SqliteStorageClass storage_class) const override;
@@ -153,11 +177,15 @@ namespace sqlite_reflection {
 	{
 	public:
 		template <typename T>
-		GreaterThan(int64_t T::* fn, int64_t value)
+		explicit GreaterThan(int64_t T::* fn, int64_t value)
 			: QueryPredicate(fn, value, ">") {}
+        
+        template <typename T>
+        explicit GreaterThan(int64_t T::* fn, int value)
+            : QueryPredicate(fn, (int64_t)value, ">") {}
 
 		template <typename T>
-		GreaterThan(double T::* fn, double value)
+        explicit GreaterThan(double T::* fn, double value)
 			: QueryPredicate(fn, value, ">") {}
 	};
 
@@ -167,11 +195,15 @@ namespace sqlite_reflection {
 	{
 	public:
 		template <typename T>
-		GreaterThanOrEqual(int64_t T::* fn, int64_t value)
+        explicit GreaterThanOrEqual(int64_t T::* fn, int64_t value)
 			: QueryPredicate(fn, value, ">=") {}
+        
+        template <typename T>
+        explicit GreaterThanOrEqual(int64_t T::* fn, int value)
+            : QueryPredicate(fn, (int64_t)value, ">=") {}
 
 		template <typename T>
-		GreaterThanOrEqual(double T::* fn, double value)
+        explicit GreaterThanOrEqual(double T::* fn, double value)
 			: QueryPredicate(fn, value, ">=") {}
 	};
 
@@ -181,11 +213,15 @@ namespace sqlite_reflection {
 	{
 	public:
 		template <typename T>
-		SmallerThan(int64_t T::* fn, int64_t value)
+        explicit SmallerThan(int64_t T::* fn, int64_t value)
 			: QueryPredicate(fn, value, "<") {}
+        
+        template <typename T>
+        explicit SmallerThan(int64_t T::* fn, int value)
+            : QueryPredicate(fn, (int64_t)value, "<") {}
 
 		template <typename T>
-		SmallerThan(double T::* fn, double value)
+        explicit SmallerThan(double T::* fn, double value)
 			: QueryPredicate(fn, value, "<") {}
 	};
 
@@ -195,11 +231,15 @@ namespace sqlite_reflection {
 	{
 	public:
 		template <typename T>
-		SmallerThanOrEqual(int64_t T::* fn, int64_t value)
+        explicit SmallerThanOrEqual(int64_t T::* fn, int64_t value)
 			: QueryPredicate(fn, value, "<=") {}
+        
+        template <typename T>
+        explicit SmallerThanOrEqual(int64_t T::* fn, int value)
+            : QueryPredicate(fn, (int64_t)value, "<=") {}
 
 		template <typename T>
-		SmallerThanOrEqual(double T::* fn, double value)
+        explicit SmallerThanOrEqual(double T::* fn, double value)
 			: QueryPredicate(fn, value, "<=") {}
 	};
 

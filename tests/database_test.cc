@@ -251,7 +251,7 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateString) {
 
 	db.Save(company);
 
-	auto fetch_condition = Like(&Company::address, std::wstring(L"-"));
+	auto fetch_condition = Like(&Company::address, L"-");
 
 	auto fetched_persons = db.Fetch<Company>(&fetch_condition);
 	EXPECT_EQ(2, fetched_persons.size());
@@ -329,7 +329,7 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateInt) {
 
 	db.Save(company);
 
-	const auto fetch_condition = Like(&Company::age, (int64_t)7);
+	const auto fetch_condition = Like(&Company::age, 7);
 
 	const auto fetched_persons = db.Fetch<Company>(&fetch_condition);
 	EXPECT_EQ(1, fetched_persons.size());
@@ -356,7 +356,7 @@ TEST_F(DatabaseTest, FetchWithPredicateChaining) {
 
 	const auto fetch_condition = GreaterThanOrEqual(&Person::id, 2)
 	                             .And(SmallerThan(&Person::id, 5))
-	                             .And(Equal(&Person::first_name, std::wstring(L"john")));
+	                             .And(Equal(&Person::first_name, L"john"));
 
 	const auto fetched_persons = db.Fetch<Person>(&fetch_condition);
 	EXPECT_EQ(2, fetched_persons.size());
