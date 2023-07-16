@@ -2,7 +2,7 @@
 [![GitHub license](https://img.shields.io/github/license/jkalias/functional_cpp)](https://github.com/jkalias/sqlite-reflection/blob/main/LICENSE)
 # C++ API for SQLite with compile time reflection
 
-## Introduction
+## Motivation
 A core feature of any application is persistence of user data, usually in a database. When there is no need for server storage, or even for fallback and/or backup reasons, SQLite offers a battle-tested and cross-platform solution for local database management.
 
 However, SQLite is written in C, and even though it exposes a [C++ API](https://www.sqlite.org/cintro.html), this tends to be rather verbose and full of details. In addition, the domain expert/programmer should always do manual bookeeping and cleanup of the relevant SQLite objects, so that no memory leaks occur. Finally, all operations are eventually expressed through raw SQL queries, which at the end is rather tedious and repetitive work.
