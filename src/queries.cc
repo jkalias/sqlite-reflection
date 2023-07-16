@@ -89,6 +89,13 @@ std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
 				content = StringUtilities::FromInt(value);
 				break;
 			}
+                
+        case SqliteStorageClass::kBool:
+            {
+                const auto& value = (*(bool*)((void*)GetMemberAddress(p, record_, j)));
+                content = StringUtilities::FromInt(value ? 1 : 0);
+                break;
+            }
 
 		case SqliteStorageClass::kReal:
 			{
@@ -278,6 +285,13 @@ void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results,
 				v = StringUtilities::ToInt(content);
 				break;
 			}
+                
+        case SqliteStorageClass::kBool:
+            {
+                auto& v = (*(bool*)((void*)GetMemberAddress(p, record, j)));
+                v = StringUtilities::ToInt(content) == 1;
+                break;
+            }
 
 		case SqliteStorageClass::kReal:
 			{

@@ -35,7 +35,6 @@
 #include <stddef.h>
 #endif
 
-// todo: bool member type
 // todo: delete with custom predicate
 
 // todo: BETWEEN / IN / NOT IN predicate
@@ -52,7 +51,8 @@ enum class REFLECTION_EXPORT SqliteStorageClass
 	kInt,
 	kReal,
 	kText,
-	kDateTime
+	kDateTime,
+    kBool
 };
 
 /// A struct holding all information needed for introspection of user-defined structs
@@ -86,6 +86,7 @@ struct REFLECTION_EXPORT Reflection
 		static const char* ToSqliteColumnName(const SqliteStorageClass storage_class) {
 			switch (storage_class) {
 			case SqliteStorageClass::kInt:
+            case SqliteStorageClass::kBool:
 				return "INTEGER";
 			case SqliteStorageClass::kReal:
 				return "REAL";
@@ -178,6 +179,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
 #define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
 #define MEMBER_DATETIME(R)              MEMBER_DECLARE(sqlite_reflection::TimePoint, R)
+#define MEMBER_BOOL(R)                  MEMBER_DECLARE(bool, R)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_DECLARE
@@ -185,6 +187,7 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_DATETIME
+#undef MEMBER_BOOL
 #undef FUNC
 
         // custom function declaration
@@ -192,12 +195,14 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_REAL(R)
 #define MEMBER_TEXT(R)
 #define MEMBER_DATETIME(R)
+#define MEMBER_BOOL(R)
 #define FUNC(SIGNATURE)                 SIGNATURE;
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_DATETIME
+#undef MEMBER_BOOL
 #undef FUNC
     };
 
@@ -217,12 +222,14 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #define MEMBER_REAL(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kReal)
 #define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kText)
 #define MEMBER_DATETIME(R)                      DEFINE_MEMBER(R, SqliteStorageClass::kDateTime)
+#define MEMBER_BOOL(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kBool)
 #define FUNC(SIGNATURE)
             FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
 #undef MEMBER_TEXT
 #undef MEMBER_DATETIME
+#undef MEMBER_BOOL
 #undef FUNC
         }
         return name;

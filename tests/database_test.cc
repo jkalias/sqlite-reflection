@@ -70,8 +70,8 @@ TEST_F(DatabaseTest, MultipleInsertions) {
 
 	std::vector<Person> persons;
 
-	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28});
-	persons.push_back({5, L"peter", L"meier", 32});
+	persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28, false});
+	persons.push_back({5, L"peter", L"meier", 32, true});
 
 	db.Save(persons);
 
@@ -83,6 +83,7 @@ TEST_F(DatabaseTest, MultipleInsertions) {
 		EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
 		EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
 		EXPECT_EQ(persons[i].age, saved_persons[i].age);
+        EXPECT_EQ(persons[i].isVaccinated, saved_persons[i].isVaccinated);
 	}
 }
 
