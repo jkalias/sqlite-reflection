@@ -138,7 +138,7 @@ TEST_F(DatabaseTest, MultipleUpdates) {
 	std::vector<Person> persons;
 
     persons.push_back({L"john", L"doe", 28, false, 3});
-	persons.push_back({L"mary", L"poppins", 20, false, 5});
+	persons.push_back({L"mary", L"poppins", 29, false, 5});
 
 	db.Save(persons);
 
