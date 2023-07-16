@@ -1,6 +1,6 @@
 [![CMake Build Matrix](https://github.com/jkalias/sqlite-reflection/actions/workflows/cmake.yml/badge.svg)](https://github.com/jkalias/sqlite-reflection/actions/workflows/cmake.yml)
 [![GitHub license](https://img.shields.io/github/license/jkalias/functional_cpp)](https://github.com/jkalias/sqlite-reflection/blob/main/LICENSE)
-# SQLite C++ frontend with reflection
+# C++ API for SQLite with compile time reflection
 
 ## Introduction
 A core feature of any application is persistence of user data, usually in a database. When there is no need for server storage, or even for fallback and/or backup reasons, SQLite offers a battle-tested and cross-platform solution for local database management.
@@ -13,36 +13,11 @@ The primary goals of this library are
 * a native C++ API for object persistence, which feels "at home" for C++ programmers
 * safe code, checked at compile time, without the need to write raw SQL queries
 * automatic record registration for all types used in the program, without any additional setup
+* a safe and easy API for all CRUD (Create, Read, Update, Delete) operations
 
 ## Detailed design
-### Creating a database object
-All database interactions are funneled through the database object. Before the database is accessed, it needs to know what record types it will operate on (more on that later), so it needs to be initialized. If you pass an empty string, an in-memory database will be created (useful for unit-testing).
-```c++
-// initialization needs to happen at program startup
-#include "database.h"
-
-void MySetupCode() {
-  std::string path_where_database_should_be_saved;
-  ...
-  Database::Initialize(path_where_database_should_be_saved);
-  ...
-}
-```
-
-Even though it's not strictly necessary, you are encouraged to finalize the database at program shutdown
-```c++
-// good practice during program shutdown
-#include "database.h"
-
-void MyTearDownCode() {
-  ...
-  Database::Finalize();
-  ...
-}
-```
-
-### Defining the record types and their members
-In order to define a type for persistence, just define its name and its members. For example, the following snippet declares a struct called `Person` and another struct called `Pet`. This is using the technique of [X Macro](https://en.wikipedia.org/wiki/X_Macro), which will prove out to be indispensable for automation of database operations, and it's the main facilitator of reflection in this library.
+### Model domain record types and their members
+In order to define a domain object for persistence, just define its name and its members. For example, the following snippet declares a struct called `Person` and another struct called `Pet`, which will both be saved in the database. This is using the technique of [X Macro](https://en.wikipedia.org/wiki/X_Macro), which will prove out to be indispensable for automation of database operations, and it's the main facilitator of reflection in this library.
 ```c++
 // in Person.h
 #include <string>
@@ -89,15 +64,138 @@ MEMBER_REAL(weight)
 //}
 ```
 
-During the database initialization phase, all record types (here `Person` and `Pet`) will be register in the database and the corresponding tables will be created if needed. No need for manual registration, no runtime errors due to forgotten records, which did not get registered.
+During the database initialization phase, all record types (in the example `Person` and `Pet`) will be register in the database and the corresponding tables will be created if needed. No need for manual registration, no runtime errors due to forgotten records.
 
-The following member attributes are allowed:
+The following member attributes are allowed, based on the most commonly used SQLite column types:
 * int64_t -> `MEMBER_INT`
 * double -> `MEMBER_REAL`
-* std::wstring -> `MEMBER_TEXT`. Wide strings are used in order to allow unicode strings to be saved in the database
+* std::wstring -> `MEMBER_TEXT`. Wide strings are used in order to allow unicode text to be saved in the database.
 * int64_t -> `MEMBER_INT`
 * bool -> `MEMBER_BOOL`
+* timestamp -> `MEMBER_DATETIME` (read note below)
 * custom functions -> `FUNC`. The corresponding function must be provided by the programmer.
+
+Special note for timestamps. Very often one needs to save a datetime (date with time) in the database for a given record type. C++ has an excellent `std::chrono` library to deal with time and duration, however the most useful features are available only in C++20 (and not guaranteed for all compiler vendors at the time of writing...) In order to facilitate a cross-platform solution which works all the way down to C++11, all datetimes are stored in their UTC [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) representation, by leveraging the (awesome) [date](https://github.com/HowardHinnant/date) library of Howard Hinnant, one of the main actors behind `std::chrono`.
+
+### Creating a database object
+All database interactions are funneled through the database object. Before the database is accessed, it needs to know what record types it will operate on (as defined above), so it needs to be initialized. If you pass an empty string, an in-memory database will be created (useful for unit-testing).
+```c++
+// initialization needs to happen at program startup
+#include "database.h"
+
+void MySetupCode(const std::string& db_path) {
+  ...
+  Database::Initialize(db_path);
+  ...
+}
+```
+
+Even though it's not strictly necessary, you are encouraged to finalize the database at program shutdown
+```c++
+// good practice during program shutdown
+#include "database.h"
+
+void MyTearDownCode() {
+  ...
+  Database::Finalize();
+  ...
+}
+```
+### Persist records (Save)
+In order to save objects in the database, you first need to get a hold of the database object and then pass it the records for persistence. You don't _have_ to pass multiple records, you can only use one if you need to.
+```c++
+const auto& db = Database::Instance();
+std::vector<Person> persons;
+
+// id is here given - 5
+persons.push_back({L"peter", L"meier", 32, true, 5});
+... // add more records for persistence
+
+db.Save(persons);
+
+// if you don't want to manage the id yourself, just let the database manage it
+// leave the last argument empty (it's always the id)
+// persons.push_back({L"peter", L"meier", 32, true});
+
+// this will set the record id to the next available value
+// db.SaveAutoIncrement(persons);
+```
+### Retrieve records (Read)
+In order to fetch records of a given type from the database, you first need to get a hold of the database object and then call a variant of the `Fetch` operation. 
+```c++
+// assume that these persons have been previously saved in the database
+// {L"name1", L"surname1", 13, false, 1}
+// {L"john", L"surname2", 25, false, 2}
+// {L"john", L"surname3", 37, false, 3}
+// {L"jame", L"surname4", 45, false, 4}
+// {L"name5", L"surname5", 56, false, 5}
+
+const auto& db = Database::Instance();
+
+// retrieve all persons stored
+const auto all_persons = db.FetchAll<Person>();
+
+// retrieve a person from a given id
+const auto specific_person = db.Fetch<Person>(5);
+
+// create a custom predicate
+const auto fetch_condition = GreaterThanOrEqual(&Person::id, 2)
+                             .And(SmallerThan(&Person::id, 5))
+                             .And(Equal(&Person::first_name, L"john"));
+
+// retrieve persons with custom predicate
+// this will fetch only 
+// Person{L"john", L"surname2", 25, false, 2}
+// and
+// Person{L"john", L"surname3", 37, false, 3}
+const auto fetched_persons_with_predicate = db.Fetch<Person>(&fetch_condition);
+```
+
+### Update records
+Updating records couldn't be simpler: just manipulate the needed members of the given records, and ship them back to the database for update.
+```c++
+// assume that these persons have been previously saved in the database
+// {L"john", L"doe", 28, false, 3}
+// {L"mary", L"poppins", 29, false, 5}
+
+const auto& db = Database::Instance();
+
+// retrieve all records
+std::vector<Person> persons = db.FetchAll<Person>();
+
+// update the records as needed
+persons[0].last_name = L"rambo";
+persons[1].age = 20;
+
+// update the records in the database
+db.Update(persons);
+```
+
+### Delete records
+Deleting records can be done in three variants: with a given id, by passing the whole record, or by a custom predicate.
+```c++
+// assume that these persons have been previously saved in the database
+// {L"παναγιώτης", L"ανδριανόπουλος", 28, true, 3}
+// {L"peter", L"meier", 32, false, 5}
+// {L"mary", L"poppins", 20, true, 13}
+
+const auto& db = Database::Instance();
+
+const auto age_match_predicate = SmallerThan(&Person::age, 30)
+    .And(Equal(&Person::is_vaccinated, true));
+
+// this will leave only {L"peter", L"meier", 32, false, 5} in the database
+db.Delete<Person>(&age_match_predicate);
+
+// this would delete the 3rd record entry of the vector
+// std::vector<Person> persons = db.FetchAll<Person>();
+// db.Delete(persons[2]);
+
+// this would delete the record entry from its id
+// db.Delete<Person>(persons[1].id);
+// or
+// db.Delete<Person>(5);
+```
 
 ## Compilation (Cmake)
 ### Dependencies
