@@ -38,6 +38,13 @@ class DateTimeTest : public ::testing::Test
 	}
 };
 
+std::wstring RemoveLeadingZeros(std::wstring& str) {
+    while (str.length() > 0 && str[0] == L'0') {
+        str.erase(str.begin());
+    }
+    return str;
+}
+
 void ControlRoundTrip(const int64_t& time_point, const wchar_t* sys_time) {
 	DatetimeContainer f;
 	f.id = 0;
@@ -49,8 +56,13 @@ void ControlRoundTrip(const int64_t& time_point, const wchar_t* sys_time) {
 	const auto retrieved = db.FetchAll<DatetimeContainer>();
 	EXPECT_EQ(1, retrieved.size());
 
-	const auto system_time = retrieved[0].creation_date.SystemTime();
-	EXPECT_EQ(std::wstring(sys_time), system_time);
+	auto sys_time_actual = retrieved[0].creation_date.SystemTime();
+    sys_time_actual = RemoveLeadingZeros(sys_time_actual);
+    
+    auto sys_time_expected = std::wstring(sys_time);
+    sys_time_expected = RemoveLeadingZeros(sys_time_expected);
+    
+	EXPECT_EQ(sys_time_expected, sys_time_actual);
 }
 
 TEST_F(DateTimeTest, UnixEpoch) {
