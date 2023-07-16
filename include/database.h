@@ -147,7 +147,8 @@ namespace sqlite_reflection {
 		void Delete(const T& model) const {
 			const auto type_id = typeid(T).name();
 			const auto& record = GetRecord(type_id);
-			Delete(model.id, record);
+            const auto equal_id_predicate = Equal(&T::id, model.id);
+			Delete(record, &equal_id_predicate);
 		}
 
 		/// Deletes a given record from the database, which matches a given id.
@@ -156,8 +157,18 @@ namespace sqlite_reflection {
 		void Delete(int64_t id) const {
 			const auto type_id = typeid(T).name();
 			const auto& record = GetRecord(type_id);
-			Delete(id, record);
+            const auto equal_id_predicate = Equal(&T::id, id);
+			Delete(record, &equal_id_predicate);
 		}
+        
+        /// Deletes multiple records of a given type from the database, which match a given predicate.
+        /// This corresponds to an DELETE query in the SQL syntax, with an additional WHERE clause
+        template <typename T>
+        void Delete(const QueryPredicateBase* predicate) const {
+            const auto type_id = typeid(T).name();
+            const auto& record = GetRecord(type_id);
+            Delete(record, predicate);
+        }
 
 	private:
 		explicit Database(const char* path);
@@ -189,7 +200,7 @@ namespace sqlite_reflection {
 		void Update(void* p, const Reflection& record) const;
 
 		/// Deletes a single record from the database
-		void Delete(int64_t id, const Reflection& record) const;
+		void Delete(const Reflection& record, const QueryPredicateBase* predicate) const;
 
 		static Database* instance_;
 		sqlite3* db_;

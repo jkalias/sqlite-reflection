@@ -95,11 +95,11 @@ namespace sqlite_reflection {
 	{
 	public:
 		~DeleteQuery() override = default;
-		explicit DeleteQuery(sqlite3* db, const Reflection& record, int64_t id);
+		explicit DeleteQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate);
 
 	protected:
 		std::string PrepareSql() const override;
-		int64_t id_;
+        const QueryPredicateBase* predicate_;
 	};
 
 	/// A query to insert a given record to the database, by supplying a given type-erased struct instance

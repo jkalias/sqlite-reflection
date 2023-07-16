@@ -146,12 +146,12 @@ std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
 		       : name;
 }
 
-DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, int64_t id)
-	: ExecutionQuery(db, record), id_(id) {}
+DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate)
+	: ExecutionQuery(db, record), predicate_(predicate) {}
 
 std::string DeleteQuery::PrepareSql() const {
 	std::string sql("DELETE FROM ");
-	sql += record_.name + " WHERE id = " + StringUtilities::FromInt(id_) + ";";
+	sql += record_.name + " WHERE " + predicate_->Evaluate() + ";";
 	return sql;
 }
 

@@ -35,8 +35,6 @@
 #include <stddef.h>
 #endif
 
-// todo: delete with custom predicate
-
 // todo: BETWEEN / IN / NOT IN predicate
 // todo: raw sql queries
 // todo: save with automatic id

@@ -60,6 +60,11 @@ std::string QueryPredicate::GetStringForValue(void* v, SqliteStorageClass storag
 			auto value = *(int64_t*)(v);
 			return StringUtilities::FromInt(value);
 		}
+    case SqliteStorageClass::kBool:
+        {
+            auto value = *(bool*)(v);
+            return StringUtilities::FromInt(value ? 1 : 0);
+        }
 	case SqliteStorageClass::kReal:
 		{
 			auto value = *(double*)(v);

@@ -91,8 +91,8 @@ namespace sqlite_reflection {
 		query.Execute();
 	}
 
-	void Database::Delete(int64_t id, const Reflection& record) const {
-		DeleteQuery query(db_, record, id);
+	void Database::Delete(const Reflection& record, const QueryPredicateBase* predicate) const {
+		DeleteQuery query(db_, record, predicate);
 		query.Execute();
 	}
 }

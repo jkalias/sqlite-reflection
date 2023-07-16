@@ -205,6 +205,31 @@ TEST_F(DatabaseTest, DeleteWithId) {
 	EXPECT_EQ(20, saved_persons[i].age);
 }
 
+TEST_F(DatabaseTest, DeleteWithPredicate) {
+    const auto& db = Database::Instance();
+
+    std::vector<Person> persons;
+
+    persons.push_back({3, L"παναγιώτης", L"ανδριανόπουλος", 28, true});
+    persons.push_back({5, L"peter", L"meier", 32, false});
+    persons.push_back({13, L"mary", L"poppins", 20, true});
+
+    db.Save(persons);
+
+    const auto age_match_predicate = SmallerThan(&Person::age, 30)
+        .And(Equal(&Person::isVaccinated, true));
+
+    db.Delete<Person>(&age_match_predicate);
+    const auto fetched_persons = db.FetchAll<Person>();
+    EXPECT_EQ(1, fetched_persons.size());
+
+    EXPECT_EQ(5, fetched_persons[0].id);
+    EXPECT_EQ(L"peter", fetched_persons[0].first_name);
+    EXPECT_EQ(L"meier", fetched_persons[0].last_name);
+    EXPECT_EQ(32, fetched_persons[0].age);
+    EXPECT_EQ(false, fetched_persons[0].isVaccinated);
+}
+
 TEST_F(DatabaseTest, SingleFetch) {
 	const auto& db = Database::Instance();
 
