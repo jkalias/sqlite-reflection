@@ -9,11 +9,17 @@ However, SQLite is written in C, and even though it exposes a [C++ API](https://
 
 This library is inspired by the approach other languages and frameworks take against the problem of data persistence. Specifically, in C# the [Entity Framework](https://en.wikipedia.org/wiki/Entity_Framework) allows the programmer to focus on modelling the domain, while delegating the responsibility of database management, table allocation and naming, member type annotation and naming and so on, to EF. In Swift the feature of [keypaths](https://developer.apple.com/documentation/swift/keypath) allows the programmer to write safe code, which is checked at compile time. Its predecessor Objective-C has used keypaths extensively in the [Core Data](https://developer.apple.com/documentation/coredata) Framework, which is Apple's database management software stack, using primarily SQLite in the background.
 
+There are several C++ SQLite ORM libraries out there, however with the following limitations
+* fully detailed exposure of the underlying SQL syntax and database operations
+* API heavily relying on strings, so no compile-time safety can be guaranteed
+* inappropriate license model for closed-source or proprietary software
+
 The primary goals of this library are
-* a native C++ API for object persistence, which feels "at home" for C++ programmers
+* native C++ API for object persistence, which feels "at home" for C++ programmers
 * safe code, checked at compile time, without the need to write raw SQL queries
 * automatic record registration for all types used in the program, without any additional setup
-* a safe and easy API for all CRUD (Create, Read, Update, Delete) operations
+* safe and easy to use API for all CRUD (Create, Read, Update, Delete) operations
+* MIT license to use for any kind of software; open source or closed source/commercial.
 
 ## Detailed design
 ### Model domain record types and their members
@@ -195,6 +201,16 @@ db.Delete<Person>(&age_match_predicate);
 // db.Delete<Person>(persons[1].id);
 // or
 // db.Delete<Person>(5);
+```
+
+### Raw SQL queries
+If you want the full SQL syntax power at your fingertips, you could try the string-based raw SQL API
+```c++
+// assume some persons have been stored in the database
+const auto& db = Database::Instance();
+
+// execute a raw SQL query; this one will delete all persons whose name is shorter or equal than 4 characters long
+db.Sql("DELETE FROM Person WHERE length(first_name) <= 4");
 ```
 
 ## Compilation (Cmake)
