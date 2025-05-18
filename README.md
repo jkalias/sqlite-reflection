@@ -70,7 +70,7 @@ MEMBER_REAL(weight)
 //}
 ```
 
-During the database initialization phase, all record types (in the example `Person` and `Pet`) will be register in the database and the corresponding tables will be created if needed. No need for manual registration, no runtime errors due to forgotten records.
+During the database initialization phase, all record types (in the example `Person` and `Pet`) will be registered in the database and the corresponding tables will be created if needed. No need for manual registration, no runtime errors due to forgotten records.
 
 The following member attributes are allowed, based on the most commonly used SQLite column types:
 * int64_t -> `MEMBER_INT`
