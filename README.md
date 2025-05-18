@@ -76,7 +76,6 @@ The following member attributes are allowed, based on the most commonly used SQL
 * int64_t -> `MEMBER_INT`
 * double -> `MEMBER_REAL`
 * std::wstring -> `MEMBER_TEXT`. Wide strings are used in order to allow unicode text to be saved in the database.
-* int64_t -> `MEMBER_INT`
 * bool -> `MEMBER_BOOL`
 * timestamp -> `MEMBER_DATETIME` (read note below)
 * custom functions -> `FUNC`. The corresponding function must be provided by the programmer.
