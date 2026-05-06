@@ -63,16 +63,16 @@ TimePoint TimePoint::FromSystemTime(const std::wstring& iso_8601_string) {
 }
 
 std::wstring TimePoint::SystemTime() const {
-#ifdef LEGACY_CHRONO
-	const auto tp = floor<days>(time_stamp_);
-#else
-	const auto tp = floor<std::chrono::days>(time_stamp_);
-#endif
+	const auto tp = date::floor<date::days>(time_stamp_);
+	const auto ymd = date::year_month_day(tp);
+	const auto time = date::make_time(time_stamp_ - tp);
+
 	std::stringstream ss;
-#if defined(LEGACY_CHRONO) || !defined(MODERN_WIN_CHRONO)
-	ss << tp << "T" << make_time(time_stamp_ - tp) << "Z";
-#else
-	ss << tp << "T" << std::chrono::hh_mm_ss(time_stamp_ - tp) << "Z";
-#endif
+	ss << static_cast<int>(ymd.year()) << "-"
+	   << std::setfill('0') << std::setw(2) << static_cast<unsigned>(ymd.month()) << "-"
+	   << std::setfill('0') << std::setw(2) << static_cast<unsigned>(ymd.day()) << "T"
+	   << std::setfill('0') << std::setw(2) << time.hours().count() << ":"
+	   << std::setfill('0') << std::setw(2) << time.minutes().count() << ":"
+	   << std::setfill('0') << std::setw(2) << time.seconds().count() << "Z";
 	return StringUtilities::FromUtf8(ss.str().c_str());
 }
