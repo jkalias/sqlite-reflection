@@ -28,12 +28,45 @@
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
+#include <vector>
 
 #include "internal/sqlite3.h"
 #include "internal/string_utilities.h"
 #include "fetch_query_results.h"
 
 using namespace sqlite_reflection;
+
+std::string Placeholders(size_t count) {
+    std::vector<std::string> placeholders(count, "?");
+    return StringUtilities::Join(placeholders, ", ");
+}
+
+void BindValue(sqlite3_stmt* stmt, int index, const SqlValue& value) {
+    switch (value.storage_class) {
+    case SqliteStorageClass::kInt:
+        sqlite3_bind_int64(stmt, index, value.int_value);
+        break;
+
+    case SqliteStorageClass::kBool:
+        sqlite3_bind_int(stmt, index, value.bool_value ? 1 : 0);
+        break;
+
+    case SqliteStorageClass::kReal:
+        sqlite3_bind_double(stmt, index, value.real_value);
+        break;
+
+    case SqliteStorageClass::kText:
+    case SqliteStorageClass::kDateTime:
+        sqlite3_bind_text(stmt, index, value.text_value.data(), -1, SQLITE_TRANSIENT);
+        break;
+    }
+}
+
+void BindValues(sqlite3_stmt* stmt, const std::vector<SqlValue>& values) {
+    for (auto i = 0; i < values.size(); ++i) {
+        BindValue(stmt, static_cast<int>(i + 1), values[i]);
+    }
+}
 
 Query::Query(sqlite3* db, const Reflection& record)
 	: db_(db), record_(record) {}
@@ -61,67 +94,87 @@ ExecutionQuery::ExecutionQuery(sqlite3* db, const Reflection& record)
 
 void ExecutionQuery::Execute() const {
 	const auto sql = PrepareSql();
+	const auto bindings = Bindings();
 	if (sqlite3_exec(db_, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr)) {
 		throw std::domain_error("Fatal error in transaction start");
 	}
-	if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
-		sqlite3_exec(db_, "ROLLBACK;", nullptr, nullptr, nullptr);
-		throw std::domain_error((sql + ": Query could not be executed").data());
+
+	if (bindings.empty()) {
+		if (sqlite3_exec(db_, sql.data(), nullptr, nullptr, nullptr)) {
+			sqlite3_exec(db_, "ROLLBACK;", nullptr, nullptr, nullptr);
+			throw std::domain_error((sql + ": Query could not be executed").data());
+		}
+	} else {
+		sqlite3_stmt* stmt = nullptr;
+		if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt, nullptr)) {
+			sqlite3_exec(db_, "ROLLBACK;", nullptr, nullptr, nullptr);
+			throw std::domain_error((sql + ": Query could not be prepared").data());
+		}
+
+		BindValues(stmt, bindings);
+		if (sqlite3_step(stmt) != SQLITE_DONE) {
+			sqlite3_finalize(stmt);
+			sqlite3_exec(db_, "ROLLBACK;", nullptr, nullptr, nullptr);
+			throw std::domain_error((sql + ": Query could not be executed").data());
+		}
+		sqlite3_finalize(stmt);
 	}
+
 	if (sqlite3_exec(db_, "COMMIT;", nullptr, nullptr, nullptr)) {
 		throw std::domain_error("Fatal error in transaction commit");
 	}
 }
 
-std::vector<std::string> ExecutionQuery::GetValues(void* p) const {
+std::vector<SqlValue> ExecutionQuery::Bindings() const {
+	return {};
+}
+
+std::vector<SqlValue> ExecutionQuery::GetValues(void* p) const {
 	const auto& members = record_.member_metadata;
-	std::vector<std::string> values;
+	std::vector<SqlValue> values;
 
 	for (auto j = 0; j < members.size(); j++) {
-		const auto current_column = members[j].name;
 		const auto current_storage_class = members[j].storage_class;
-		std::string content;
+		SqlValue value;
+		value.storage_class = current_storage_class;
 
 		switch (current_storage_class) {
 		case SqliteStorageClass::kInt:
 			{
-				const auto& value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::FromInt(value);
+				value.int_value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
 				break;
 			}
                 
         case SqliteStorageClass::kBool:
             {
-                const auto& value = (*(bool*)((void*)GetMemberAddress(p, record_, j)));
-                content = StringUtilities::FromInt(value ? 1 : 0);
+                value.bool_value = (*(bool*)((void*)GetMemberAddress(p, record_, j)));
                 break;
             }
 
 		case SqliteStorageClass::kReal:
 			{
-				const auto& value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::FromDouble(value);
+				value.real_value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
 				break;
 			}
 
 		case SqliteStorageClass::kText:
 			{
-				auto& value = (*(std::wstring*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::ToUtf8(value);
+				auto& text = (*(std::wstring*)((void*)GetMemberAddress(p, record_, j)));
+				value.text_value = StringUtilities::ToUtf8(text);
 				break;
 			}
 
 		case SqliteStorageClass::kDateTime:
 			{
-				auto& value = (*(TimePoint*)((void*)GetMemberAddress(p, record_, j)));
-				content = StringUtilities::ToUtf8(value.SystemTime());
+				auto& time_point = (*(TimePoint*)((void*)GetMemberAddress(p, record_, j)));
+				value.text_value = StringUtilities::ToUtf8(time_point.SystemTime());
 				break;
 			}
 
 		default:
 			break;
 		}
-		values.emplace_back("'" + content + "'");
+		values.emplace_back(value);
 	}
 
 	return values;
@@ -164,19 +217,22 @@ std::string DeleteQuery::PrepareSql() const {
 	return sql;
 }
 
+std::vector<SqlValue> DeleteQuery::Bindings() const {
+	return predicate_->Bindings();
+}
+
 InsertQuery::InsertQuery(sqlite3* db, const Reflection& record, void* p)
 	: ExecutionQuery(db, record), p_(p) {}
 
 std::string InsertQuery::PrepareSql() const {
 	std::string sql("INSERT INTO ");
 	sql += record_.name + " (" + JoinedRecordColumnNames() + ") VALUES (";
-	sql += JoinedValues() + ");";
+	sql += Placeholders(record_.member_metadata.size()) + ");";
 	return sql;
 }
 
-std::string InsertQuery::JoinedValues() const {
-	const auto values = GetValues(p_);
-	return StringUtilities::Join(values, ", ");
+std::vector<SqlValue> InsertQuery::Bindings() const {
+	return GetValues(p_);
 }
 
 UpdateQuery::UpdateQuery(sqlite3* db, const Reflection& record, void* p)
@@ -187,23 +243,32 @@ std::string UpdateQuery::PrepareSql() const {
 	sql += record_.name + " SET ";
 
 	auto columns = GetRecordColumnNames();
-	const auto values = GetValues(p_);
 
 	std::vector<std::string> columns_with_values;
-	columns_with_values.reserve(values.size());
+	columns_with_values.reserve(columns.size() - 1);
 	std::transform(columns.begin() + 1,
 	               columns.end(),
-	               values.begin() + 1,
 	               std::back_inserter(columns_with_values),
-	               [](const std::string& column, const std::string& value){
-		               return column + "=" + value;
+	               [](const std::string& column){
+		               return column + "=?";
 	               });
 
 	sql += StringUtilities::Join(columns_with_values, ", ");
-	sql += " WHERE " + columns[0] + "=" + values[0];
+	sql += " WHERE " + columns[0] + "=?";
 	sql += ";";
 
 	return sql;
+}
+
+std::vector<SqlValue> UpdateQuery::Bindings() const {
+	const auto values = GetValues(p_);
+	std::vector<SqlValue> bindings;
+	bindings.reserve(values.size());
+	for (auto i = 1; i < values.size(); ++i) {
+		bindings.emplace_back(values[i]);
+	}
+	bindings.emplace_back(values[0]);
+	return bindings;
 }
 
 FetchMaxIdQuery::FetchMaxIdQuery(sqlite3* db, const Reflection& record)
@@ -256,6 +321,7 @@ FetchQueryResults FetchRecordsQuery::GetResults() {
 		sqlite3_close(db_);
 		throw std::runtime_error((sql + ": could not get results").data());
 	}
+	BindValues(stmt_, predicate_->Bindings());
 
 	const auto column_count = sqlite3_column_count(stmt_);
 

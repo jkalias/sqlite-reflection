@@ -7,7 +7,7 @@
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following predicates:
+// furnished to do so, subject to the following conditions:
 //
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
@@ -22,14 +22,27 @@
 
 #pragma once
 
-#include "reflection.h"
-
+#include <functional>
 #include <string>
 #include <memory>
+#include <vector>
+
+#include "reflection.h"
 
 namespace sqlite_reflection {
 	class AndPredicate;
 	class OrPredicate;
+
+	struct REFLECTION_EXPORT SqlValue
+	{
+		SqlValue();
+
+		SqliteStorageClass storage_class;
+		int64_t int_value;
+		bool bool_value;
+		double real_value;
+		std::string text_value;
+	};
 
 	/// The base class of all WHERE predicates used in SQLite queries
 	class REFLECTION_EXPORT QueryPredicateBase
@@ -37,8 +50,11 @@ namespace sqlite_reflection {
 	public:
 		virtual ~QueryPredicateBase() = default;
 
-		/// Returns a textual representation of the predicate, ready to be consumed by the SELECT query
+		/// Returns a textual representation of the predicate with placeholders for bound values
 		virtual std::string Evaluate() const = 0;
+
+		/// Returns values that need to be bound to the predicate placeholders
+		virtual std::vector<SqlValue> Bindings() const = 0;
 
 		/// Creates a clone for compounding predicates
 		virtual QueryPredicateBase* Clone() const = 0;
@@ -59,11 +75,12 @@ namespace sqlite_reflection {
 	{
 	public:
 		std::string Evaluate() const override;
+		std::vector<SqlValue> Bindings() const override;
 		QueryPredicateBase* Clone() const override;
 
 	protected:
 		template <typename T, typename R>
-		QueryPredicate(R T::* fn, R value, const std::string& symbol, std::function<std::string(void*, SqliteStorageClass)> value_retrieval)
+		QueryPredicate(R T::* fn, R value, const std::string& symbol, std::function<SqlValue(void*, SqliteStorageClass)> value_retrieval)
 		: symbol_(symbol)
 		{
 			auto record = GetRecordFromTypeId(typeid(T).name());
@@ -80,16 +97,16 @@ namespace sqlite_reflection {
 		template <typename T, typename R>
 		QueryPredicate(R T::* fn, R value, const std::string& symbol)
 			: QueryPredicate(fn, value, symbol, [&](void* v, SqliteStorageClass storage_class){
-				return GetStringForValue(v, storage_class);
+				return GetSqlValue(v, storage_class);
 			}) {}
 
-		QueryPredicate(const std::string& symbol, const std::string& member_name, const std::string& value)
+		QueryPredicate(const std::string& symbol, const std::string& member_name, const SqlValue& value)
 			: symbol_(symbol), member_name_(member_name), value_(value) {}
 
-		/// Returns a textual representation of the value used for the current query, against which the
-		/// struct member (defined from the pointer-to-member function) will be compared. The value needs
+		/// Returns the value used for the current query, against which the struct member
+		/// (defined from the pointer-to-member function) will be compared. The value needs
 		/// to be type-erased, so that the header file is not bloated with unnecessary implementation details
-		virtual std::string GetStringForValue(void* v, SqliteStorageClass storage_class) const;
+		virtual SqlValue GetSqlValue(void* v, SqliteStorageClass storage_class) const;
 
 		/// The symbol used for the comparison, for example "=" for equality
 		std::string symbol_;
@@ -98,9 +115,8 @@ namespace sqlite_reflection {
 		/// textual representation of the evaluation string
 		std::string member_name_;
 
-		/// The textual representation of the comparison value, used to construct the
-		/// textual representation of the evaluation string
-		std::string value_;
+		/// The comparison value that will be bound to the generated SQL placeholder
+		SqlValue value_;
 	};
 
 	/// A wrapper for an empty predicate, used to fetch all elements of an SQLite table
@@ -108,6 +124,7 @@ namespace sqlite_reflection {
 	{
 	public:
 		std::string Evaluate() const override;
+		std::vector<SqlValue> Bindings() const override;
 		QueryPredicateBase* Clone() const override;
 	};
 
@@ -155,7 +172,7 @@ namespace sqlite_reflection {
 		template <typename T, typename R>
 		explicit Like(R T::* fn, R value)
 			: QueryPredicate(fn, value, "LIKE", [&](void* v, SqliteStorageClass storage_class){
-				return GetStringForValue(v, storage_class);
+				return GetSqlValue(v, storage_class);
 			}) {}
         
         template <typename T>
@@ -167,8 +184,7 @@ namespace sqlite_reflection {
         : Like(fn, std::wstring(value)) {}
 
 	protected:
-		std::string GetStringForValue(void* v, SqliteStorageClass storage_class) const override;
-		static std::string Remove(const std::string& source, const std::string& substring);
+		SqlValue GetSqlValue(void* v, SqliteStorageClass storage_class) const override;
 	};
 
 	/// A wrapper for a comparison predicate, for which the value of the
@@ -249,6 +265,7 @@ namespace sqlite_reflection {
 	{
 	public:
 		std::string Evaluate() const override;
+		std::vector<SqlValue> Bindings() const override;
 
 	protected:
 		BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol);

@@ -158,6 +158,37 @@ TEST_F(DatabaseTest, MultipleUpdates) {
 	}
 }
 
+TEST_F(DatabaseTest, InsertedTextSqlPayloadIsPersistedLiterally) {
+	const auto& db = Database::Instance();
+
+	const Person p{L"john'); DROP TABLE Person; --", L"payload", 39, false, 1};
+	db.Save(p);
+
+	const auto all_persons = db.FetchAll<Person>();
+	EXPECT_EQ(1, all_persons.size());
+	EXPECT_EQ(p.first_name, all_persons[0].first_name);
+	EXPECT_EQ(p.last_name, all_persons[0].last_name);
+	EXPECT_EQ(p.age, all_persons[0].age);
+	EXPECT_EQ(p.id, all_persons[0].id);
+}
+
+TEST_F(DatabaseTest, UpdatedTextSqlPayloadIsPersistedLiterally) {
+	const auto& db = Database::Instance();
+
+	Person p{L"john", L"payload", 39, false, 1};
+	db.Save(p);
+
+	p.first_name = L"updated'); DELETE FROM Person; --";
+	db.Update(p);
+
+	const auto all_persons = db.FetchAll<Person>();
+	EXPECT_EQ(1, all_persons.size());
+	EXPECT_EQ(p.first_name, all_persons[0].first_name);
+	EXPECT_EQ(p.last_name, all_persons[0].last_name);
+	EXPECT_EQ(p.age, all_persons[0].age);
+	EXPECT_EQ(p.id, all_persons[0].id);
+}
+
 TEST_F(DatabaseTest, DeleteWithRecord) {
 	const auto& db = Database::Instance();
 
@@ -245,6 +276,23 @@ TEST_F(DatabaseTest, DeleteWithPredicate) {
     EXPECT_EQ(false, fetched_persons[0].is_vaccinated);
 }
 
+TEST_F(DatabaseTest, DeleteWithInjectedPredicateDoesNotDeleteRows) {
+	const auto& db = Database::Instance();
+
+	std::vector<Person> persons;
+
+	persons.push_back({L"john", L"doe", 28, false, 3});
+	persons.push_back({L"mary", L"poppins", 20, false, 5});
+
+	db.Save(persons);
+
+	const auto injected_predicate = Equal(&Person::first_name, L"nobody' OR 1=1 --");
+	db.Delete<Person>(&injected_predicate);
+
+	const auto fetched_persons = db.FetchAll<Person>();
+	EXPECT_EQ(2, fetched_persons.size());
+}
+
 TEST_F(DatabaseTest, SingleFetch) {
 	const auto& db = Database::Instance();
 
@@ -275,6 +323,21 @@ TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException) {
 	db.Save(persons);
 
 	EXPECT_ANY_THROW(db.Fetch<Person>(15));
+}
+
+TEST_F(DatabaseTest, FetchWithInjectedPredicateDoesNotMatchAllRows) {
+	const auto& db = Database::Instance();
+
+	std::vector<Person> persons;
+
+	persons.push_back({L"john", L"doe", 28, false, 3});
+	persons.push_back({L"mary", L"poppins", 20, false, 5});
+
+	db.Save(persons);
+
+	const auto injected_predicate = Equal(&Person::first_name, L"john' OR 1=1 --");
+	const auto fetched_persons = db.Fetch<Person>(&injected_predicate);
+	EXPECT_EQ(0, fetched_persons.size());
 }
 
 TEST_F(DatabaseTest, FetchWithSimilarPredicateString) {
@@ -439,7 +502,7 @@ TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
     persons.push_back({L"mary", L"poppins", 20, false, 156});
 
     db.Save(persons);
-    db.Sql("DELETE FROM Person WHERE length(first_name) <= 4");
+    db.UnsafeSql("DELETE FROM Person WHERE length(first_name) <= 4");
     
     const auto fetched_persons = db.FetchAll<Person>();
     EXPECT_EQ(1, fetched_persons.size());

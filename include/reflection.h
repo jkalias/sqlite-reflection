@@ -23,17 +23,16 @@
 #ifndef REFLECTION_INTERNAL
 #define REFLECTION_INTERNAL
 
-#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <map>
-#include <string>
-#include <functional>
 #include <stdexcept>
+#include <string>
+#include <typeinfo>
+#include <vector>
 
 #include "reflection_export.h"
-
-#ifndef _WIN32
-#include <stddef.h>
-#endif
 
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
 /// https://www.sqlite.org/datatype3.html
@@ -105,10 +104,10 @@ template <typename T, typename R>
 size_t OffsetFromStart(R T::* fn) {
 	const auto sf = sizeof(fn);
 	char bytes_f[sf];
-	memcpy(bytes_f, (const char*)&fn, sf);
-	auto len = strlen(bytes_f);
+	std::memcpy(bytes_f, reinterpret_cast<const char*>(&fn), sf);
 	size_t offset = 0;
-	memcpy(&offset, bytes_f, len);
+	const auto bytes_to_copy = sf < sizeof(offset) ? sf : sizeof(offset);
+	std::memcpy(&offset, bytes_f, bytes_to_copy);
 	return offset;
 }
 

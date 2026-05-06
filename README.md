@@ -203,13 +203,13 @@ db.Delete<Person>(&age_match_predicate);
 ```
 
 ### Raw SQL queries
-If you want the full SQL syntax power at your fingertips, you could try the string-based raw SQL API
+If you want the full SQL syntax power at your fingertips, you could try the string-based raw SQL API. This API executes SQL text directly and is unsafe for untrusted input; prefer the typed APIs when values come from users or other external sources.
 ```c++
 // assume some persons have been stored in the database
 const auto& db = Database::Instance();
 
 // execute a raw SQL query; this one will delete all persons whose name is shorter or equal than 4 characters long
-db.Sql("DELETE FROM Person WHERE length(first_name) <= 4");
+db.UnsafeSql("DELETE FROM Person WHERE length(first_name) <= 4");
 ```
 
 ## Compilation (Cmake)

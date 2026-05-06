@@ -25,9 +25,15 @@
 
 using namespace sqlite_reflection;
 
-const std::string single_quote("'");
 const std::string space(" ");
 const std::string percent("%");
+
+SqlValue::SqlValue()
+	: storage_class(SqliteStorageClass::kText),
+	  int_value(0),
+	  bool_value(false),
+	  real_value(0.0),
+	  text_value() {}
 
 QueryPredicateBase* QueryPredicate::Clone() const {
 	return new QueryPredicate(symbol_, member_name_, value_);
@@ -35,6 +41,10 @@ QueryPredicateBase* QueryPredicate::Clone() const {
 
 std::string EmptyPredicate::Evaluate() const {
 	return "";
+}
+
+std::vector<SqlValue> EmptyPredicate::Bindings() const {
+	return {};
 }
 
 QueryPredicateBase* EmptyPredicate::Clone() const {
@@ -50,55 +60,71 @@ OrPredicate QueryPredicateBase::Or(const QueryPredicateBase& other) const {
 }
 
 std::string QueryPredicate::Evaluate() const {
-	return member_name_ + space + symbol_ + space + value_;
+	return member_name_ + space + symbol_ + space + "?";
 }
 
-std::string QueryPredicate::GetStringForValue(void* v, SqliteStorageClass storage_class) const {
+std::vector<SqlValue> QueryPredicate::Bindings() const {
+	return { value_ };
+}
+
+SqlValue QueryPredicate::GetSqlValue(void* v, SqliteStorageClass storage_class) const {
+	SqlValue result;
+	result.storage_class = storage_class;
 	switch (storage_class) {
 	case SqliteStorageClass::kInt:
 		{
-			auto value = *(int64_t*)(v);
-			return StringUtilities::FromInt(value);
+			result.int_value = *(int64_t*)(v);
+			return result;
 		}
     case SqliteStorageClass::kBool:
         {
-            auto value = *(bool*)(v);
-            return StringUtilities::FromInt(value ? 1 : 0);
+            result.bool_value = *(bool*)(v);
+            return result;
         }
 	case SqliteStorageClass::kReal:
 		{
-			auto value = *(double*)(v);
-			return StringUtilities::FromDouble(value);
+			result.real_value = *(double*)(v);
+			return result;
 		}
 	case SqliteStorageClass::kText:
 		{
 			auto value = *(std::wstring*)(v);
-			return single_quote + StringUtilities::ToUtf8(value) + single_quote;
+			result.text_value = StringUtilities::ToUtf8(value);
+			return result;
 		}
 	case SqliteStorageClass::kDateTime:
 		{
 			auto value = *(TimePoint*)(v);
-			return single_quote + StringUtilities::ToUtf8(value.SystemTime()) + single_quote;
+			result.text_value = StringUtilities::ToUtf8(value.SystemTime());
+			return result;
 		}
 	default:
 		throw std::domain_error("Blob cannot be compared against equality");
 	}
 }
 
-std::string Like::GetStringForValue(void* v, SqliteStorageClass storage_class) const {
-	auto value = QueryPredicate::GetStringForValue(v, storage_class);
-	value = Remove(value, single_quote);
-	return single_quote + percent + value + percent + single_quote;
-}
-
-std::string Like::Remove(const std::string& source, const std::string& substring) {
-	auto copy = source;
-	auto it = copy.find(substring);
-	while (it != std::string::npos) {
-		copy.erase(it, substring.length());
-		it = copy.find(substring);
+SqlValue Like::GetSqlValue(void* v, SqliteStorageClass storage_class) const {
+	auto value = QueryPredicate::GetSqlValue(v, storage_class);
+	switch (storage_class) {
+	case SqliteStorageClass::kInt:
+		value.storage_class = SqliteStorageClass::kText;
+		value.text_value = percent + StringUtilities::FromInt(value.int_value) + percent;
+		return value;
+	case SqliteStorageClass::kBool:
+		value.storage_class = SqliteStorageClass::kText;
+		value.text_value = percent + StringUtilities::FromInt(value.bool_value ? 1 : 0) + percent;
+		return value;
+	case SqliteStorageClass::kReal:
+		value.storage_class = SqliteStorageClass::kText;
+		value.text_value = percent + StringUtilities::FromDouble(value.real_value) + percent;
+		return value;
+	case SqliteStorageClass::kText:
+	case SqliteStorageClass::kDateTime:
+		value.text_value = percent + value.text_value + percent;
+		return value;
+	default:
+		throw std::domain_error("Blob cannot be compared against similarity");
 	}
-	return copy;
 }
 
 BinaryPredicate::BinaryPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right, const std::string& symbol)
@@ -106,6 +132,13 @@ BinaryPredicate::BinaryPredicate(const QueryPredicateBase& left, const QueryPred
 
 std::string BinaryPredicate::Evaluate() const {
 	return "(" + left_->Evaluate() + space + symbol_ + space + right_->Evaluate() + ")";
+}
+
+std::vector<SqlValue> BinaryPredicate::Bindings() const {
+	auto bindings = left_->Bindings();
+	const auto right_bindings = right_->Bindings();
+	bindings.insert(bindings.end(), right_bindings.begin(), right_bindings.end());
+	return bindings;
 }
 
 AndPredicate::AndPredicate(const QueryPredicateBase& left, const QueryPredicateBase& right)
