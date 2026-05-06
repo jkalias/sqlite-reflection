@@ -23,12 +23,9 @@
 #include "database.h"
 
 #include <stdexcept>
-#include <memory>
-#include <iterator>
 
-#include "internal/string_utilities.h"
-#include "queries.h"
 #include "internal/sqlite3.h"
+#include "queries.h"
 
 namespace sqlite_reflection {
 	Database* Database::instance_ = nullptr;
@@ -96,7 +93,7 @@ namespace sqlite_reflection {
 		query.Execute();
 	}
 
-    void Database::Sql(const std::string& raw_sql_query) const {
+    void Database::UnsafeSql(const std::string& raw_sql_query) const {
         SqlQuery sql(db_, raw_sql_query);
         sql.Execute();
     }

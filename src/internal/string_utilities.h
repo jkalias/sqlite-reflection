@@ -39,7 +39,7 @@ namespace sqlite_reflection {
 		static std::string FromDouble(double value);
 
 		static std::string ToUtf8(const std::wstring& wide_string);
-		static std::wstring FromUtf8(const char* utf8_string);
+		static std::wstring FromUtf8(const char* utf8_string, size_t byte_count);
 
 		static std::string Join(const std::vector<std::string>& list, const std::string& separator);
 		static std::string Join(const std::vector<std::string>& list, char c);

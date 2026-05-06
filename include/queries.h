@@ -23,7 +23,7 @@
 #pragma once
 
 #include <string>
-#include <functional>
+#include <vector>
 
 #include "reflection.h"
 #include "query_predicates.h"
@@ -72,7 +72,8 @@ namespace sqlite_reflection {
 		void Execute() const;
 
 	protected:
-		std::vector<std::string> GetValues(void* p) const;
+		virtual std::vector<SqlValue> Bindings() const;
+		std::vector<SqlValue> GetValues(void* p) const;
 	};
 
     /// A query for which direct SQL prompts are used
@@ -84,7 +85,7 @@ namespace sqlite_reflection {
         
     protected:
         std::string PrepareSql() const override;
-        const std::string& sql_;
+        std::string sql_;
     };
 
 	/// A query for creating a table for a given reflectable struct. When the database
@@ -111,6 +112,7 @@ namespace sqlite_reflection {
 
 	protected:
 		std::string PrepareSql() const override;
+		std::vector<SqlValue> Bindings() const override;
         const QueryPredicateBase* predicate_;
 	};
 
@@ -124,7 +126,7 @@ namespace sqlite_reflection {
 
 	protected:
 		std::string PrepareSql() const override;
-		std::string JoinedValues() const;
+		std::vector<SqlValue> Bindings() const override;
 		void* p_;
 	};
 
@@ -138,6 +140,7 @@ namespace sqlite_reflection {
 
 	protected:
 		std::string PrepareSql() const override;
+		std::vector<SqlValue> Bindings() const override;
 		void* p_;
 	};
 

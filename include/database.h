@@ -22,7 +22,9 @@
 
 #pragma once
 
+#include <stdexcept>
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 #include "reflection.h"
@@ -31,7 +33,6 @@
 #include "queries.h"
 
 struct sqlite3;
-struct sqlite3_stmt;
 
 namespace sqlite_reflection {
 	/// A wrapper of an SQLite database, enabling type-safe and compile-time CRUD operations,
@@ -53,7 +54,9 @@ namespace sqlite_reflection {
 		static const Database& Instance();
 
 		Database(Database const&) = delete;
-		void operator=(Database const&) = delete;
+		Database(Database&&) = delete;
+		Database& operator=(const Database&) = delete;
+		Database& operator=(Database&&) = delete;
 
 		/// Retrieves all entries of a given record from the database.
 		/// This corresponds to a SELECT query in the SQL syntax
@@ -178,8 +181,9 @@ namespace sqlite_reflection {
             Delete(record, predicate);
         }
         
-        /// Executes a raw SQL query. A trailing semicolon is added if needed
-        void Sql(const std::string& raw_sql_query) const;
+        /// Executes a raw SQL query. A trailing semicolon is added if needed.
+        /// Prefer the type-safe CRUD APIs for user-provided values.
+        void UnsafeSql(const std::string& raw_sql_query) const;
 
 	private:
 		explicit Database(const char* path);

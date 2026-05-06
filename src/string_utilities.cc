@@ -65,13 +65,13 @@ std::string StringUtilities::FromDouble(double value) {
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-	auto utf8_string = converter.to_bytes(wide_string.data());
+	auto utf8_string = converter.to_bytes(wide_string.data(), wide_string.data() + wide_string.size());
 	return utf8_string;
 }
 
-std::wstring StringUtilities::FromUtf8(const char* utf8_string) {
+std::wstring StringUtilities::FromUtf8(const char* utf8_string, size_t byte_count) {
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-	auto wide_string = converter.from_bytes(utf8_string);
+	auto wide_string = converter.from_bytes(utf8_string, utf8_string + byte_count);
 	return wide_string;
 }
 

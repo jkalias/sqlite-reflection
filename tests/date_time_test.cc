@@ -69,6 +69,16 @@ TEST_F(DateTimeTest, UnixEpoch) {
 	ControlRoundTrip(0, L"1970-01-01T00:00:00Z");
 }
 
+TEST_F(DateTimeTest, UnixEpochSystemTimeIsFormattedExactly) {
+	const TimePoint time_point(0);
+	EXPECT_EQ(L"1970-01-01T00:00:00Z", time_point.SystemTime());
+}
+
+TEST_F(DateTimeTest, SystemTimePadsMonthDayHourMinuteAndSecond) {
+	const auto time_point = TimePoint::FromSystemTime(L"2023-07-08T09:02:04Z");
+	EXPECT_EQ(L"2023-07-08T09:02:04Z", time_point.SystemTime());
+}
+
 TEST_F(DateTimeTest, RoundtripBefore1000) {
     ControlRoundTrip(-32350628573LL, L"944-11-06T10:17:07Z");
 }
