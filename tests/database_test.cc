@@ -172,6 +172,23 @@ TEST_F(DatabaseTest, InsertedTextSqlPayloadIsPersistedLiterally) {
 	EXPECT_EQ(p.id, all_persons[0].id);
 }
 
+TEST_F(DatabaseTest, InsertedTextWithEmbeddedNulIsPersistedLiterally) {
+	const auto& db = Database::Instance();
+
+	const Person p{std::wstring(L"a\0b", 3), L"payload", 39, false, 1};
+	db.Save(p);
+
+	const auto all_persons = db.FetchAll<Person>();
+	ASSERT_EQ(1, all_persons.size());
+	EXPECT_EQ(p.first_name, all_persons[0].first_name);
+	EXPECT_EQ(3, all_persons[0].first_name.size());
+
+	const auto predicate = Equal(&Person::first_name, std::wstring(L"a\0b", 3));
+	const auto matching_persons = db.Fetch<Person>(&predicate);
+	ASSERT_EQ(1, matching_persons.size());
+	EXPECT_EQ(p.first_name, matching_persons[0].first_name);
+}
+
 TEST_F(DatabaseTest, UpdatedTextSqlPayloadIsPersistedLiterally) {
 	const auto& db = Database::Instance();
 

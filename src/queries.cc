@@ -55,10 +55,10 @@ void BindValue(sqlite3_stmt* stmt, int index, const SqlValue& value) {
         sqlite3_bind_double(stmt, index, value.real_value);
         break;
 
-    case SqliteStorageClass::kText:
-    case SqliteStorageClass::kDateTime:
-        sqlite3_bind_text(stmt, index, value.text_value.data(), -1, SQLITE_TRANSIENT);
-        break;
+	case SqliteStorageClass::kText:
+	case SqliteStorageClass::kDateTime:
+		sqlite3_bind_text(stmt, index, value.text_value.data(), static_cast<int>(value.text_value.size()), SQLITE_TRANSIENT);
+		break;
     }
 }
 
@@ -417,7 +417,8 @@ std::wstring FetchRecordsQuery::GetColumnValue(const int col) const {
 	case SQLITE_TEXT:
 		{
 			const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
-			return StringUtilities::FromUtf8(content);
+			const auto byte_count = sqlite3_column_bytes(stmt_, col);
+			return StringUtilities::FromUtf8(content, byte_count);
 		}
 
 	default:

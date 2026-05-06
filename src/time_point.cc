@@ -74,5 +74,6 @@ std::wstring TimePoint::SystemTime() const {
 	   << std::setfill('0') << std::setw(2) << time.hours().count() << ":"
 	   << std::setfill('0') << std::setw(2) << time.minutes().count() << ":"
 	   << std::setfill('0') << std::setw(2) << time.seconds().count() << "Z";
-	return StringUtilities::FromUtf8(ss.str().c_str());
+	const auto utf8_string = ss.str();
+	return StringUtilities::FromUtf8(utf8_string.data(), utf8_string.size());
 }
