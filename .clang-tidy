@@ -16,7 +16,7 @@ Checks: >
   readability-simplify-boolean-expr,
   readability-static-accessed-through-instance
 WarningsAsErrors: ''
-HeaderFilterRegex: '^(include|src|tests)/.*'
+HeaderFilterRegex: '(^|.*/)(include|src|tests)/.*'
 FormatStyle: file
 CheckOptions:
   - key: readability-braces-around-statements.ShortStatementLines
