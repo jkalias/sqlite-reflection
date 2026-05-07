@@ -25,163 +25,154 @@
 #include <string>
 #include <vector>
 
-#include "reflection.h"
 #include "query_predicates.h"
+#include "reflection.h"
 
 struct sqlite3;
 struct sqlite3_stmt;
 
 namespace sqlite_reflection {
-	/// A wrapper of all SQLite queries, encapsulating the preparation and
-	/// execution of queries against the SQLite database
-	class REFLECTION_EXPORT Query
-	{
-	public:
-		virtual ~Query() = default;
+/// A wrapper of all SQLite queries, encapsulating the preparation and
+/// execution of queries against the SQLite database
+class REFLECTION_EXPORT Query {
+public:
+    virtual ~Query() = default;
 
-	protected:
-		Query(sqlite3* db, const Reflection& record);
+protected:
+    Query(sqlite3* db, const Reflection& record);
 
-		/// A textual representation of the given query, in SQL language
-		virtual std::string PrepareSql() const = 0;
+    /// A textual representation of the given query, in SQL language
+    virtual std::string PrepareSql() const = 0;
 
-		/// Returns a comma-separated string of all struct member names
-		std::string JoinedRecordColumnNames() const;
+    /// Returns a comma-separated string of all struct member names
+    std::string JoinedRecordColumnNames() const;
 
-		/// Returns all struct member names in textual format
-		std::vector<std::string> GetRecordColumnNames() const;
+    /// Returns all struct member names in textual format
+    std::vector<std::string> GetRecordColumnNames() const;
 
-		/// Hook for customization of a given table column name, used primarily
-		/// for marking the column corresponding to id as PRIMARY KEY
-		virtual std::string CustomizedColumnName(size_t index) const;
+    /// Hook for customization of a given table column name, used primarily
+    /// for marking the column corresponding to id as PRIMARY KEY
+    virtual std::string CustomizedColumnName(size_t index) const;
 
-		sqlite3* db_;
-		const Reflection& record_;
-	};
+    sqlite3* db_;
+    const Reflection& record_;
+};
 
-	/// A query for which no results are expected, such as
-	/// CREATE TABLE
-	/// UPDATE
-	/// INSERT
-	/// DELETE
-	class REFLECTION_EXPORT ExecutionQuery : public Query
-	{
-	public:
-		~ExecutionQuery() override = default;
-		explicit ExecutionQuery(sqlite3* db, const Reflection& record);
-		void Execute() const;
+/// A query for which no results are expected, such as
+/// CREATE TABLE
+/// UPDATE
+/// INSERT
+/// DELETE
+class REFLECTION_EXPORT ExecutionQuery : public Query {
+public:
+    ~ExecutionQuery() override = default;
+    explicit ExecutionQuery(sqlite3* db, const Reflection& record);
+    void Execute() const;
 
-	protected:
-		virtual std::vector<SqlValue> Bindings() const;
-		std::vector<SqlValue> GetValues(void* p) const;
-	};
+protected:
+    virtual std::vector<SqlValue> Bindings() const;
+    std::vector<SqlValue> GetValues(void* p) const;
+};
 
-    /// A query for which direct SQL prompts are used
-    class REFLECTION_EXPORT SqlQuery : public ExecutionQuery
-    {
-    public:
-        ~SqlQuery() override = default;
-        explicit SqlQuery(sqlite3* db, const std::string& sql);
-        
-    protected:
-        std::string PrepareSql() const override;
-        std::string sql_;
-    };
+/// A query for which direct SQL prompts are used
+class REFLECTION_EXPORT SqlQuery : public ExecutionQuery {
+public:
+    ~SqlQuery() override = default;
+    explicit SqlQuery(sqlite3* db, const std::string& sql);
 
-	/// A query for creating a table for a given reflectable struct. When the database
-	/// is initialized, a table for every registered reflectable struct is created
-	/// This maps to CREATE TABLE IF NOT EXISTS  in SQL
-	class REFLECTION_EXPORT CreateTableQuery final : public ExecutionQuery
-	{
-	public:
-		~CreateTableQuery() override = default;
-		explicit CreateTableQuery(sqlite3* db, const Reflection& record);
+protected:
+    std::string PrepareSql() const override;
+    std::string sql_;
+};
 
-	protected:
-		std::string PrepareSql() const override;
-		std::string CustomizedColumnName(size_t index) const override;
-	};
+/// A query for creating a table for a given reflectable struct. When the database
+/// is initialized, a table for every registered reflectable struct is created
+/// This maps to CREATE TABLE IF NOT EXISTS  in SQL
+class REFLECTION_EXPORT CreateTableQuery final : public ExecutionQuery {
+public:
+    ~CreateTableQuery() override = default;
+    explicit CreateTableQuery(sqlite3* db, const Reflection& record);
 
-	/// A query to delete a given record from the database, by means of its id
-	/// This maps to DELETE in SQL
-	class REFLECTION_EXPORT DeleteQuery final : public ExecutionQuery
-	{
-	public:
-		~DeleteQuery() override = default;
-		explicit DeleteQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate);
+protected:
+    std::string PrepareSql() const override;
+    std::string CustomizedColumnName(size_t index) const override;
+};
 
-	protected:
-		std::string PrepareSql() const override;
-		std::vector<SqlValue> Bindings() const override;
-        const QueryPredicateBase* predicate_;
-	};
+/// A query to delete a given record from the database, by means of its id
+/// This maps to DELETE in SQL
+class REFLECTION_EXPORT DeleteQuery final : public ExecutionQuery {
+public:
+    ~DeleteQuery() override = default;
+    explicit DeleteQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate);
 
-	/// A query to insert a given record to the database, by supplying a given type-erased struct instance
-	/// This maps to INSERT INTO in SQL
-	class REFLECTION_EXPORT InsertQuery final : public ExecutionQuery
-	{
-	public:
-		~InsertQuery() override = default;
-		explicit InsertQuery(sqlite3* db, const Reflection& record, void* p);
+protected:
+    std::string PrepareSql() const override;
+    std::vector<SqlValue> Bindings() const override;
+    const QueryPredicateBase* predicate_;
+};
 
-	protected:
-		std::string PrepareSql() const override;
-		std::vector<SqlValue> Bindings() const override;
-		void* p_;
-	};
+/// A query to insert a given record to the database, by supplying a given type-erased struct instance
+/// This maps to INSERT INTO in SQL
+class REFLECTION_EXPORT InsertQuery final : public ExecutionQuery {
+public:
+    ~InsertQuery() override = default;
+    explicit InsertQuery(sqlite3* db, const Reflection& record, void* p);
 
-	/// A query to update a given record to the database, by supplying a given type-erased struct instance
-	/// This maps to UPDATE in SQL
-	class REFLECTION_EXPORT UpdateQuery final : public ExecutionQuery
-	{
-	public:
-		~UpdateQuery() override = default;
-		explicit UpdateQuery(sqlite3* db, const Reflection& record, void* p);
+protected:
+    std::string PrepareSql() const override;
+    std::vector<SqlValue> Bindings() const override;
+    void* p_;
+};
 
-	protected:
-		std::string PrepareSql() const override;
-		std::vector<SqlValue> Bindings() const override;
-		void* p_;
-	};
+/// A query to update a given record to the database, by supplying a given type-erased struct instance
+/// This maps to UPDATE in SQL
+class REFLECTION_EXPORT UpdateQuery final : public ExecutionQuery {
+public:
+    ~UpdateQuery() override = default;
+    explicit UpdateQuery(sqlite3* db, const Reflection& record, void* p);
 
-	/// A query for retrieving the max id of a given record from the database
-	class REFLECTION_EXPORT FetchMaxIdQuery final : public Query
-	{
-	public:
-		explicit FetchMaxIdQuery(sqlite3* db, const Reflection& record);
-		~FetchMaxIdQuery() override;
+protected:
+    std::string PrepareSql() const override;
+    std::vector<SqlValue> Bindings() const override;
+    void* p_;
+};
 
-		/// Retrieve the max id currently used for the given record type
-		int64_t GetMaxId();
+/// A query for retrieving the max id of a given record from the database
+class REFLECTION_EXPORT FetchMaxIdQuery final : public Query {
+public:
+    explicit FetchMaxIdQuery(sqlite3* db, const Reflection& record);
+    ~FetchMaxIdQuery() override;
 
-	protected:
-		std::string PrepareSql() const override;
-		sqlite3_stmt* stmt_;
-	};
+    /// Retrieve the max id currently used for the given record type
+    int64_t GetMaxId();
 
-	struct FetchQueryResults;
+protected:
+    std::string PrepareSql() const override;
+    sqlite3_stmt* stmt_;
+};
 
-	/// A query for retrieving all records from the database, which match a given predicate condition
-	/// This maps to SELECT * in SQL
-	class REFLECTION_EXPORT FetchRecordsQuery final : public Query
-	{
-	public:
-		explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate);
-		~FetchRecordsQuery() override;
+struct FetchQueryResults;
 
-		/// Returns a textual representation of the results of the query
-		FetchQueryResults GetResults();
+/// A query for retrieving all records from the database, which match a given predicate condition
+/// This maps to SELECT * in SQL
+class REFLECTION_EXPORT FetchRecordsQuery final : public Query {
+public:
+    explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate);
+    ~FetchRecordsQuery() override;
 
-		/// Reconstructs all record member values based on their concrete type,
-		/// based on the textual representation of the corresponding row result
-		/// of the fetch query
-		static void Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i);
+    /// Returns a textual representation of the results of the query
+    FetchQueryResults GetResults();
 
-	protected:
-		std::string PrepareSql() const override;
-		std::wstring GetColumnValue(int col) const;
+    /// Reconstructs all record member values based on their concrete type,
+    /// based on the textual representation of the corresponding row result
+    /// of the fetch query
+    static void Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i);
 
-		sqlite3_stmt* stmt_;
-		const QueryPredicateBase* predicate_;
-	};
-}
+protected:
+    std::string PrepareSql() const override;
+    std::wstring GetColumnValue(int col) const;
+
+    sqlite3_stmt* stmt_;
+    const QueryPredicateBase* predicate_;
+};
+}  // namespace sqlite_reflection

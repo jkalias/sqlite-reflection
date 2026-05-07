@@ -23,11 +23,11 @@
 #include "time_point.h"
 #include "internal/string_utilities.h"
 
+#include <iomanip>
+#include <sstream>
+
 // This would not have been at all possible without this amazing library
 #include "internal/date.h"
-
-#include <sstream>
-#include <iomanip>
 
 using namespace sqlite_reflection;
 
@@ -50,30 +50,27 @@ static std::wstring iso_format = L"%FT%TZ";
 TimePoint::TimePoint() {}
 
 TimePoint::TimePoint(const int64_t& seconds_since_unix_epoch)
-	: time_stamp_(std::chrono::seconds(seconds_since_unix_epoch)) {}
+    : time_stamp_(std::chrono::seconds(seconds_since_unix_epoch)) {}
 
-TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch)
-	: time_stamp_(time_since_unix_epoch) {}
+TimePoint::TimePoint(const sys_seconds& time_since_unix_epoch) : time_stamp_(time_since_unix_epoch) {}
 
 TimePoint TimePoint::FromSystemTime(const std::wstring& iso_8601_string) {
-	std::wistringstream in{iso_8601_string};
-	sys_seconds time_stamp;
-	in >> date::parse(iso_format, time_stamp);
-	return TimePoint(time_stamp);
+    std::wistringstream in{iso_8601_string};
+    sys_seconds time_stamp;
+    in >> date::parse(iso_format, time_stamp);
+    return TimePoint(time_stamp);
 }
 
 std::wstring TimePoint::SystemTime() const {
-	const auto tp = date::floor<date::days>(time_stamp_);
-	const auto ymd = date::year_month_day(tp);
-	const auto time = date::make_time(time_stamp_ - tp);
+    const auto tp = date::floor<date::days>(time_stamp_);
+    const auto ymd = date::year_month_day(tp);
+    const auto time = date::make_time(time_stamp_ - tp);
 
-	std::stringstream ss;
-	ss << static_cast<int>(ymd.year()) << "-"
-	   << std::setfill('0') << std::setw(2) << static_cast<unsigned>(ymd.month()) << "-"
-	   << std::setfill('0') << std::setw(2) << static_cast<unsigned>(ymd.day()) << "T"
-	   << std::setfill('0') << std::setw(2) << time.hours().count() << ":"
-	   << std::setfill('0') << std::setw(2) << time.minutes().count() << ":"
-	   << std::setfill('0') << std::setw(2) << time.seconds().count() << "Z";
-	const auto utf8_string = ss.str();
-	return StringUtilities::FromUtf8(utf8_string.data(), utf8_string.size());
+    std::stringstream ss;
+    ss << static_cast<int>(ymd.year()) << "-" << std::setfill('0') << std::setw(2) << static_cast<unsigned>(ymd.month())
+       << "-" << std::setfill('0') << std::setw(2) << static_cast<unsigned>(ymd.day()) << "T" << std::setfill('0')
+       << std::setw(2) << time.hours().count() << ":" << std::setfill('0') << std::setw(2) << time.minutes().count()
+       << ":" << std::setfill('0') << std::setw(2) << time.seconds().count() << "Z";
+    const auto utf8_string = ss.str();
+    return StringUtilities::FromUtf8(utf8_string.data(), utf8_string.size());
 }

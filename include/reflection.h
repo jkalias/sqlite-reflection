@@ -36,65 +36,59 @@
 
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
 /// https://www.sqlite.org/datatype3.html
-enum class REFLECTION_EXPORT SqliteStorageClass
-{
-	kInt,
-	kReal,
-	kText,
-	kDateTime,
-    kBool
-};
+enum class REFLECTION_EXPORT SqliteStorageClass { kInt, kReal, kText, kDateTime, kBool };
 
 /// A struct holding all information needed for introspection of user-defined structs
 /// which are meant to be saved to and retrieved from an SQLite database, using
 /// the technique of X macro (https://en.wikipedia.org/wiki/X_Macro)
 /// A reflectable struct meant to be saved in SQLite is also called in this project a "record"
-struct REFLECTION_EXPORT Reflection
-{
-	/// This holds the metadata of a given struct member
-	class MemberMetadata
-	{
-	public:
-		MemberMetadata(const std::string& _name, SqliteStorageClass _storage_class, size_t _offset)
-			: name(_name), storage_class(_storage_class), sqlite_column_name(ToSqliteColumnName(_storage_class)), offset(_offset) { }
+struct REFLECTION_EXPORT Reflection {
+    /// This holds the metadata of a given struct member
+    class MemberMetadata {
+    public:
+        MemberMetadata(const std::string& _name, SqliteStorageClass _storage_class, size_t _offset)
+            : name(_name),
+              storage_class(_storage_class),
+              sqlite_column_name(ToSqliteColumnName(_storage_class)),
+              offset(_offset) {}
 
-		/// The struct variable member name, as defined in the source code
-		std::string name;
+        /// The struct variable member name, as defined in the source code
+        std::string name;
 
-		/// The storage class of this struct member, as defined by its type in the source code
-		/// https://www.tutorialspoint.com/sqlite/sqlite_data_types.htm
-		SqliteStorageClass storage_class;
+        /// The storage class of this struct member, as defined by its type in the source code
+        /// https://www.tutorialspoint.com/sqlite/sqlite_data_types.htm
+        SqliteStorageClass storage_class;
 
-		/// The name of the column for this member in the corresponding SQLite table of its containing struct
-		std::string sqlite_column_name;
+        /// The name of the column for this member in the corresponding SQLite table of its containing struct
+        std::string sqlite_column_name;
 
-		/// The memory offset in bytes of this member from the struct's start, including any padding bits
-		size_t offset;
+        /// The memory offset in bytes of this member from the struct's start, including any padding bits
+        size_t offset;
 
-	private:
-		/// Helper for conversion between member storage class and SQLite column name
-		static const char* ToSqliteColumnName(const SqliteStorageClass storage_class) {
-			switch (storage_class) {
-			case SqliteStorageClass::kInt:
-            case SqliteStorageClass::kBool:
-				return "INTEGER";
-			case SqliteStorageClass::kReal:
-				return "REAL";
-			case SqliteStorageClass::kText:
-				return "TEXT";
-			case SqliteStorageClass::kDateTime:
-				return "DATETIME";
-			default:
-				throw std::domain_error("Implementation error: storage class is not supported");
-			}
-		}
-	};
+    private:
+        /// Helper for conversion between member storage class and SQLite column name
+        static const char* ToSqliteColumnName(const SqliteStorageClass storage_class) {
+            switch (storage_class) {
+                case SqliteStorageClass::kInt:
+                case SqliteStorageClass::kBool:
+                    return "INTEGER";
+                case SqliteStorageClass::kReal:
+                    return "REAL";
+                case SqliteStorageClass::kText:
+                    return "TEXT";
+                case SqliteStorageClass::kDateTime:
+                    return "DATETIME";
+                default:
+                    throw std::domain_error("Implementation error: storage class is not supported");
+            }
+        }
+    };
 
-	/// The name of the corresponding struct, for which reflection is enabled, as defined in the source code
-	std::string name;
+    /// The name of the corresponding struct, for which reflection is enabled, as defined in the source code
+    std::string name;
 
-	/// All member metadata
-	std::vector<MemberMetadata> member_metadata;
+    /// All member metadata
+    std::vector<MemberMetadata> member_metadata;
 };
 
 /// Returns the offset in bytes of a reflectable struct member from the struct's start,
@@ -102,13 +96,13 @@ struct REFLECTION_EXPORT Reflection
 /// https://isocpp.org/wiki/faq/pointers-to-members
 template <typename T, typename R>
 size_t OffsetFromStart(R T::* fn) {
-	const auto sf = sizeof(fn);
-	char bytes_f[sf];
-	std::memcpy(bytes_f, reinterpret_cast<const char*>(&fn), sf);
-	size_t offset = 0;
-	const auto bytes_to_copy = sf < sizeof(offset) ? sf : sizeof(offset);
-	std::memcpy(&offset, bytes_f, bytes_to_copy);
-	return offset;
+    const auto sf = sizeof(fn);
+    char bytes_f[sf];
+    std::memcpy(bytes_f, reinterpret_cast<const char*>(&fn), sf);
+    size_t offset = 0;
+    const auto bytes_to_copy = sf < sizeof(offset) ? sf : sizeof(offset);
+    std::memcpy(&offset, bytes_f, bytes_to_copy);
+    return offset;
 }
 
 #define STR_NOEXPAND(A) #A
@@ -117,16 +111,16 @@ size_t OffsetFromStart(R T::* fn) {
 #define CAT_NOEXPAND(A, B) A##B
 #define CAT(A, B) CAT_NOEXPAND(A, B)
 
-#define DEFINE_MEMBER(R, T)	reflectable.member_metadata.push_back(Reflection::MemberMetadata(STR(R), T, offsetof(struct REFLECTABLE, R)));
+#define DEFINE_MEMBER(R, T) \
+    reflectable.member_metadata.push_back(Reflection::MemberMetadata(STR(R), T, offsetof(struct REFLECTABLE, R)));
 
 /// A singleton object which holds all reflectable structs, and is guaranteed to be
 /// instantiated before main.cpp starts
-struct REFLECTION_EXPORT ReflectionRegister
-{
-	/// The keys are NOT the names of each struct as defined in source code,
-	/// but the identifiers returned from typeid(...).name(), which are typically
-	/// mangled in C++ and are compiler-specific
-	std::map<std::string, Reflection> records;
+struct REFLECTION_EXPORT ReflectionRegister {
+    /// The keys are NOT the names of each struct as defined in source code,
+    /// but the identifiers returned from typeid(...).name(), which are typically
+    /// mangled in C++ and are compiler-specific
+    std::map<std::string, Reflection> records;
 };
 
 /// Retrieves the singleton in a safe manner, creating it if needed
@@ -146,29 +140,29 @@ REFLECTION_EXPORT Reflection& GetRecordFromTypeId(const std::string& type_id);
 /// }
 REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size_t i);
 
-#endif // REFLECTION_INTERNAL
+#endif  // REFLECTION_INTERNAL
 
 #include "time_point.h"
 
-#if defined (REFLECTABLE) && defined (FIELDS)
+#if defined(REFLECTABLE) && defined(FIELDS)
 
 #ifndef REFLECTABLE_DLL_EXPORT
 #define REFLECTABLE_DLL_EXPORT
 #endif
 
-#pragma warning (push)
-#pragma warning( disable:4002) // "too many actual parameters for macro 'MEMBER'"
+#pragma warning(push)
+#pragma warning(disable : 4002)  // "too many actual parameters for macro 'MEMBER'"
 
-    struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
-        // member declaration according to the order given in source code
-#define MEMBER_DECLARE(L, R)            L R;
-#define MEMBER_INT(R)				    MEMBER_DECLARE(int64_t, R)
-#define MEMBER_REAL(R)			        MEMBER_DECLARE(double, R)
-#define MEMBER_TEXT(R)	                MEMBER_DECLARE(std::wstring, R)
-#define MEMBER_DATETIME(R)              MEMBER_DECLARE(sqlite_reflection::TimePoint, R)
-#define MEMBER_BOOL(R)                  MEMBER_DECLARE(bool, R)
+struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
+    // member declaration according to the order given in source code
+#define MEMBER_DECLARE(L, R) L R;
+#define MEMBER_INT(R) MEMBER_DECLARE(int64_t, R)
+#define MEMBER_REAL(R) MEMBER_DECLARE(double, R)
+#define MEMBER_TEXT(R) MEMBER_DECLARE(std::wstring, R)
+#define MEMBER_DATETIME(R) MEMBER_DECLARE(sqlite_reflection::TimePoint, R)
+#define MEMBER_BOOL(R) MEMBER_DECLARE(bool, R)
 #define FUNC(SIGNATURE)
-        FIELDS
+    FIELDS
 #undef MEMBER_DECLARE
 #undef MEMBER_INT
 #undef MEMBER_REAL
@@ -176,15 +170,42 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef MEMBER_DATETIME
 #undef MEMBER_BOOL
 #undef FUNC
-                                        int64_t id;
+    int64_t id;
 
-        // custom function declaration
+    // custom function declaration
 #define MEMBER_INT(R)
 #define MEMBER_REAL(R)
 #define MEMBER_TEXT(R)
 #define MEMBER_DATETIME(R)
 #define MEMBER_BOOL(R)
-#define FUNC(SIGNATURE)                 SIGNATURE;
+#define FUNC(SIGNATURE) SIGNATURE;
+    FIELDS
+#undef MEMBER_INT
+#undef MEMBER_REAL
+#undef MEMBER_TEXT
+#undef MEMBER_DATETIME
+#undef MEMBER_BOOL
+#undef FUNC
+};
+
+/// Provide a static registration function for each reflectable struct
+static std::string CAT(Register, REFLECTABLE)() {
+    std::string type_id = typeid(REFLECTABLE).name();
+    std::string name = STR(REFLECTABLE);
+    ReflectionRegister& instance = *GetReflectionRegisterInstance();
+    auto isRecordRegisterd = instance.records.find(type_id) != instance.records.end();
+    if (!isRecordRegisterd) {
+        auto& reflectable = GetRecordFromTypeId(type_id);
+        reflectable.name = name;
+
+        // store member metadata
+        DEFINE_MEMBER(id, SqliteStorageClass::kInt)
+#define MEMBER_INT(R) DEFINE_MEMBER(R, SqliteStorageClass::kInt)
+#define MEMBER_REAL(R) DEFINE_MEMBER(R, SqliteStorageClass::kReal)
+#define MEMBER_TEXT(R) DEFINE_MEMBER(R, SqliteStorageClass::kText)
+#define MEMBER_DATETIME(R) DEFINE_MEMBER(R, SqliteStorageClass::kDateTime)
+#define MEMBER_BOOL(R) DEFINE_MEMBER(R, SqliteStorageClass::kBool)
+#define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_INT
 #undef MEMBER_REAL
@@ -192,42 +213,16 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #undef MEMBER_DATETIME
 #undef MEMBER_BOOL
 #undef FUNC
-    };
+    }
+    return name;
+};
 
-    /// Provide a static registration function for each reflectable struct
-    static std::string CAT(Register, REFLECTABLE)() {
-        std::string type_id = typeid(REFLECTABLE).name();
-        std::string name = STR(REFLECTABLE);
-        ReflectionRegister& instance = *GetReflectionRegisterInstance();
-        auto isRecordRegisterd = instance.records.find(type_id) != instance.records.end();
-        if (!isRecordRegisterd) {
-			auto& reflectable = GetRecordFromTypeId(type_id);
-            reflectable.name = name;
+/// In order to guarantee that all reflectable structs are registered before main starts, we use the C++ feature, that
+/// static variables are initialized before the program starts. In order to trigger the registration function, we store
+/// its result to a global string
+static std::string CAT(meta_registered_, REFLECTABLE) = CAT(Register, REFLECTABLE)();
 
-            // store member metadata
-            DEFINE_MEMBER(id, SqliteStorageClass::kInt)
-#define MEMBER_INT(R)                           DEFINE_MEMBER(R, SqliteStorageClass::kInt)
-#define MEMBER_REAL(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kReal)
-#define MEMBER_TEXT(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kText)
-#define MEMBER_DATETIME(R)                      DEFINE_MEMBER(R, SqliteStorageClass::kDateTime)
-#define MEMBER_BOOL(R)                          DEFINE_MEMBER(R, SqliteStorageClass::kBool)
-#define FUNC(SIGNATURE)
-            FIELDS
-#undef MEMBER_INT
-#undef MEMBER_REAL
-#undef MEMBER_TEXT
-#undef MEMBER_DATETIME
-#undef MEMBER_BOOL
-#undef FUNC
-        }
-        return name;
-    };
-
-    /// In order to guarantee that all reflectable structs are registered before main starts, we use the C++ feature, that static variables
-    /// are initialized before the program starts. In order to trigger the registration function, we store its result to a global string
-    static std::string CAT(meta_registered_, REFLECTABLE) = CAT(Register, REFLECTABLE)();
-
-#pragma warning (pop)
+#pragma warning(pop)
 
 #undef FIELDS
 #undef REFLECTABLE

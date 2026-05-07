@@ -19,6 +19,7 @@ A C++ wrapper for SQLite that provides compile-time checked CRUD operations for 
 - [Raw SQL](#raw-sql)
 - [Build instructions](#build-instructions)
 - [Dependencies](#dependencies)
+- [Contributing](#contributing)
 
 ## Motivation
 
@@ -391,3 +392,8 @@ You can also open the generated `build/sqlite-cpp-reflection.sln` in Visual Stud
 - A C++11-compatible compiler
 - GoogleTest for tests, fetched by CMake
 - SQLite, vendored in `src/sqlite3.c` and `src/internal/sqlite3.h`
+
+## Contributing
+
+Formatting and linting rules are documented in [CONTRIBUTING.md](CONTRIBUTING.md). The repository includes
+`.clang-format` and `.clang-tidy` so contributors can format and lint changed C++ files consistently.
