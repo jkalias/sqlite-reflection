@@ -26,11 +26,10 @@
 
 using namespace sqlite_reflection;
 
-const std::string space(" ");
-const std::string percent("%");
+constexpr char space[] = " ";
+constexpr char percent[] = "%";
 
-SqlValue::SqlValue()
-    : storage_class(SqliteStorageClass::kText), int_value(0), bool_value(false), real_value(0.0), text_value() {}
+SqlValue::SqlValue() : storage_class(SqliteStorageClass::kText), int_value(0), bool_value(false), real_value(0.0) {}
 
 QueryPredicateBase* QueryPredicate::Clone() const {
     return new QueryPredicate(symbol_, member_name_, value_);

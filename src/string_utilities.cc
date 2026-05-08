@@ -32,12 +32,11 @@
 using namespace sqlite_reflection;
 
 int64_t StringUtilities::ToInt(const std::wstring& s) {
-    int result = 0;
     try {
-        result = std::stoi(s);
+        return std::stoll(s);
     } catch (...) {
+        return 0;
     }
-    return result;
 }
 
 std::string StringUtilities::FromInt(int64_t value) {
@@ -45,19 +44,17 @@ std::string StringUtilities::FromInt(int64_t value) {
 }
 
 double StringUtilities::ToDouble(const std::wstring& s) {
-    double result = 0.0;
     try {
-        result = std::stod(s);
+        return std::stod(s);
     } catch (...) {
+        return 0.0;
     }
-    return result;
 }
 
 std::string StringUtilities::FromDouble(double value) {
     auto textual_representation = std::to_string(value);
-    if (textual_representation.find(".") != std::string::npos) {
-        while (textual_representation.length() > 0 &&
-               textual_representation[textual_representation.length() - 1] == '0') {
+    if (textual_representation.find('.') != std::string::npos) {
+        while (!textual_representation.empty() && textual_representation[textual_representation.length() - 1] == '0') {
             textual_representation.erase(textual_representation.end() - 1);
         }
     }

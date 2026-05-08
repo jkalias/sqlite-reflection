@@ -25,14 +25,14 @@
 #include <string>
 
 #define REFLECTABLE Person
-#define FIELDS \
-MEMBER_TEXT(first_name) \
-MEMBER_TEXT(last_name) \
-MEMBER_INT(age) \
-MEMBER_BOOL(is_vaccinated) \
-FUNC(std::wstring GetFullName() const)
+#define FIELDS                 \
+    MEMBER_TEXT(first_name)    \
+    MEMBER_TEXT(last_name)     \
+    MEMBER_INT(age)            \
+    MEMBER_BOOL(is_vaccinated) \
+    FUNC(std::wstring GetFullName() const)
 #include "reflection.h"
 
 inline std::wstring Person::GetFullName() const {
-	return first_name + L" " + last_name;
+    return first_name + L" " + last_name;
 }

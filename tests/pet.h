@@ -25,7 +25,7 @@
 #include <string>
 
 #define REFLECTABLE Pet
-#define FIELDS \
-MEMBER_TEXT(name) \
-MEMBER_REAL(weight)
+#define FIELDS        \
+    MEMBER_TEXT(name) \
+    MEMBER_REAL(weight)
 #include "reflection.h"

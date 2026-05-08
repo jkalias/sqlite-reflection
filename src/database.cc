@@ -39,7 +39,7 @@ void Database::Initialize(const std::string& path) {
         throw std::invalid_argument("Database has already been initialized");
     }
 
-    const auto effective_path = path != "" ? path : ":memory:";
+    const auto effective_path = !path.empty() ? path : ":memory:";
     instance_ = new Database(effective_path.data());
 }
 

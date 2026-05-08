@@ -140,28 +140,28 @@ std::vector<SqlValue> ExecutionQuery::GetValues(void* p) const {
 
         switch (current_storage_class) {
             case SqliteStorageClass::kInt: {
-                value.int_value = (*(int64_t*)((void*)GetMemberAddress(p, record_, j)));
+                value.int_value = *reinterpret_cast<int64_t*>(GetMemberAddress(p, record_, j));
                 break;
             }
 
             case SqliteStorageClass::kBool: {
-                value.bool_value = (*(bool*)((void*)GetMemberAddress(p, record_, j)));
+                value.bool_value = *reinterpret_cast<bool*>(GetMemberAddress(p, record_, j));
                 break;
             }
 
             case SqliteStorageClass::kReal: {
-                value.real_value = (*(double*)((void*)GetMemberAddress(p, record_, j)));
+                value.real_value = *reinterpret_cast<double*>(GetMemberAddress(p, record_, j));
                 break;
             }
 
             case SqliteStorageClass::kText: {
-                auto& text = (*(std::wstring*)((void*)GetMemberAddress(p, record_, j)));
+                auto& text = *reinterpret_cast<std::wstring*>(GetMemberAddress(p, record_, j));
                 value.text_value = StringUtilities::ToUtf8(text);
                 break;
             }
 
             case SqliteStorageClass::kDateTime: {
-                auto& time_point = (*(TimePoint*)((void*)GetMemberAddress(p, record_, j)));
+                auto& time_point = *reinterpret_cast<TimePoint*>(GetMemberAddress(p, record_, j));
                 value.text_value = StringUtilities::ToUtf8(time_point.SystemTime());
                 break;
             }
@@ -178,7 +178,7 @@ std::vector<SqlValue> ExecutionQuery::GetValues(void* p) const {
 SqlQuery::SqlQuery(sqlite3* db, const std::string& sql) : ExecutionQuery(db, Reflection()), sql_(sql) {}
 
 std::string SqlQuery::PrepareSql() const {
-    return sql_.length() > 0 && sql_[sql_.length() - 1] != ';' ? sql_ + ";" : sql_;
+    return !sql_.empty() && sql_[sql_.length() - 1] != ';' ? sql_ + ";" : sql_;
 }
 
 CreateTableQuery::CreateTableQuery(sqlite3* db, const Reflection& record) : ExecutionQuery(db, record) {}
@@ -328,40 +328,39 @@ FetchQueryResults FetchRecordsQuery::GetResults() {
 
 void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i) {
     for (auto j = 0; j < query_results.column_names.size(); j++) {
-        const auto current_column = query_results.column_names[j];
         const auto current_storage_class = record.member_metadata[j].storage_class;
         const auto& content = query_results.row_values[i][j];
-        if (content == L"") {
+        if (content.empty()) {
             continue;
         }
 
         switch (current_storage_class) {
             case SqliteStorageClass::kInt: {
-                auto& v = (*(int64_t*)((void*)GetMemberAddress(p, record, j)));
+                auto& v = *reinterpret_cast<int64_t*>(GetMemberAddress(p, record, j));
                 v = StringUtilities::ToInt(content);
                 break;
             }
 
             case SqliteStorageClass::kBool: {
-                auto& v = (*(bool*)((void*)GetMemberAddress(p, record, j)));
+                auto& v = *reinterpret_cast<bool*>(GetMemberAddress(p, record, j));
                 v = StringUtilities::ToInt(content) == 1;
                 break;
             }
 
             case SqliteStorageClass::kReal: {
-                auto& v = (*(double*)((void*)GetMemberAddress(p, record, j)));
+                auto& v = *reinterpret_cast<double*>(GetMemberAddress(p, record, j));
                 v = StringUtilities::ToDouble(content);
                 break;
             }
 
             case SqliteStorageClass::kText: {
-                auto& v = (*(std::wstring*)((void*)GetMemberAddress(p, record, j)));
+                auto& v = *reinterpret_cast<std::wstring*>(GetMemberAddress(p, record, j));
                 v = content;
                 break;
             }
 
             case SqliteStorageClass::kDateTime: {
-                auto& v = (*(TimePoint*)((void*)GetMemberAddress(p, record, j)));
+                auto& v = *reinterpret_cast<TimePoint*>(GetMemberAddress(p, record, j));
                 v = TimePoint::FromSystemTime(content);
                 break;
             }

@@ -46,7 +46,7 @@ using namespace sqlite_reflection;
 using namespace date;
 #endif
 
-static std::wstring iso_format = L"%FT%TZ";
+constexpr wchar_t iso_format[] = L"%FT%TZ";
 
 TimePoint::TimePoint() {}
 

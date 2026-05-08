@@ -2,9 +2,15 @@
 Checks: >
   -*,
   bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-throwing-static-initialization,
   clang-analyzer-*,
   performance-*,
+  -performance-enum-size,
+  -performance-no-int-to-ptr,
+  -performance-unnecessary-value-param,
   portability-*,
+  -portability-avoid-pragma-once,
   readability-braces-around-statements,
   readability-const-return-type,
   readability-container-size-empty,
@@ -15,8 +21,9 @@ Checks: >
   readability-redundant-string-init,
   readability-simplify-boolean-expr,
   readability-static-accessed-through-instance
-WarningsAsErrors: ''
+WarningsAsErrors: '*'
 HeaderFilterRegex: '(^|.*/)(include|src|tests)/.*'
+ExcludeHeaderFilterRegex: '(^|.*/)(src/internal/(date|sqlite3)\.h)'
 FormatStyle: file
 CheckOptions:
   - key: readability-braces-around-statements.ShortStatementLines

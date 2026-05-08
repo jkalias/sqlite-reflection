@@ -25,9 +25,9 @@
 #include <string>
 
 #define REFLECTABLE Company
-#define FIELDS \
-MEMBER_TEXT(name) \
-MEMBER_INT(age) \
-MEMBER_TEXT(address) \
-MEMBER_REAL(salary)
+#define FIELDS           \
+    MEMBER_TEXT(name)    \
+    MEMBER_INT(age)      \
+    MEMBER_TEXT(address) \
+    MEMBER_REAL(salary)
 #include "reflection.h"
