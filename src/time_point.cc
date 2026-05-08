@@ -21,10 +21,11 @@
 // SOFTWARE.
 
 #include "time_point.h"
-#include "internal/string_utilities.h"
 
 #include <iomanip>
 #include <sstream>
+
+#include "internal/string_utilities.h"
 
 // This would not have been at all possible without this amazing library
 #include "internal/date.h"
