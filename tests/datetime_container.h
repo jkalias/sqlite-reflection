@@ -23,6 +23,5 @@
 #pragma once
 
 #define REFLECTABLE DatetimeContainer
-#define FIELDS \
-MEMBER_DATETIME(creation_date)
+#define FIELDS MEMBER_DATETIME(creation_date)
 #include "reflection.h"

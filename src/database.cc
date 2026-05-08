@@ -28,73 +28,72 @@
 #include "queries.h"
 
 namespace sqlite_reflection {
-	Database* Database::instance_ = nullptr;
+Database* Database::instance_ = nullptr;
 
-	const ReflectionRegister& GetReflectionRegister() {
-		return *GetReflectionRegisterInstance();
-	}
+const ReflectionRegister& GetReflectionRegister() {
+    return *GetReflectionRegisterInstance();
+}
 
-	void Database::Initialize(const std::string& path) {
-		if (instance_ != nullptr) {
-			throw std::invalid_argument("Database has already been initialized");
-		}
+void Database::Initialize(const std::string& path) {
+    if (instance_ != nullptr) {
+        throw std::invalid_argument("Database has already been initialized");
+    }
 
-		const auto effective_path = path != "" ? path : ":memory:";
-		instance_ = new Database(effective_path.data());
-	}
+    const auto effective_path = !path.empty() ? path : ":memory:";
+    instance_ = new Database(effective_path.data());
+}
 
-	void Database::Finalize() {
-		if (instance_ != nullptr) {
-			sqlite3_close(instance_->db_);
-			delete instance_;
-			instance_ = nullptr;
-		}
-	}
-
-	Database::Database(const char* path)
-		: db_(nullptr) {
-		if (sqlite3_open(path, &db_)) {
-			throw std::invalid_argument("Database could not be initialized");
-		}
-
-		auto& reg = GetReflectionRegister();
-		for (const auto& contents : reg.records) {
-			const auto& record = contents.second;
-			CreateTableQuery query(db_, record);
-			query.Execute();
-		}
-	}
-
-	const Database& Database::Instance() {
-		return *instance_;
-	}
-
-	FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase* predicate) const {
-		FetchRecordsQuery query(db_, record, predicate);
-		return query.GetResults();
-	}
-
-	const Reflection& Database::GetRecord(const std::string& type_id) {
-		return GetReflectionRegister().records.at(type_id);
-	}
-
-	void Database::Save(void* p, const Reflection& record) const {
-		InsertQuery query(db_, record, p);
-		query.Execute();
-	}
-
-	void Database::Update(void* p, const Reflection& record) const {
-		UpdateQuery query(db_, record, p);
-		query.Execute();
-	}
-
-	void Database::Delete(const Reflection& record, const QueryPredicateBase* predicate) const {
-		DeleteQuery query(db_, record, predicate);
-		query.Execute();
-	}
-
-    void Database::UnsafeSql(const std::string& raw_sql_query) const {
-        SqlQuery sql(db_, raw_sql_query);
-        sql.Execute();
+void Database::Finalize() {
+    if (instance_ != nullptr) {
+        sqlite3_close(instance_->db_);
+        delete instance_;
+        instance_ = nullptr;
     }
 }
+
+Database::Database(const char* path) : db_(nullptr) {
+    if (sqlite3_open(path, &db_)) {
+        throw std::invalid_argument("Database could not be initialized");
+    }
+
+    auto& reg = GetReflectionRegister();
+    for (const auto& contents : reg.records) {
+        const auto& record = contents.second;
+        CreateTableQuery query(db_, record);
+        query.Execute();
+    }
+}
+
+const Database& Database::Instance() {
+    return *instance_;
+}
+
+FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase* predicate) const {
+    FetchRecordsQuery query(db_, record, predicate);
+    return query.GetResults();
+}
+
+const Reflection& Database::GetRecord(const std::string& type_id) {
+    return GetReflectionRegister().records.at(type_id);
+}
+
+void Database::Save(void* p, const Reflection& record) const {
+    InsertQuery query(db_, record, p);
+    query.Execute();
+}
+
+void Database::Update(void* p, const Reflection& record) const {
+    UpdateQuery query(db_, record, p);
+    query.Execute();
+}
+
+void Database::Delete(const Reflection& record, const QueryPredicateBase* predicate) const {
+    DeleteQuery query(db_, record, predicate);
+    query.Execute();
+}
+
+void Database::UnsafeSql(const std::string& raw_sql_query) const {
+    SqlQuery sql(db_, raw_sql_query);
+    sql.Execute();
+}
+}  // namespace sqlite_reflection
