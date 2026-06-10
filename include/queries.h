@@ -71,7 +71,7 @@ public:
 
 protected:
     virtual std::vector<SqlValue> Bindings() const;
-    std::vector<SqlValue> GetValues(void* p) const;
+    std::vector<SqlValue> GetValues(void* p, size_t start_member_index = 0) const;
 };
 
 /// A query for which direct SQL prompts are used
