@@ -129,11 +129,12 @@ std::vector<SqlValue> ExecutionQuery::Bindings() const {
     return {};
 }
 
-std::vector<SqlValue> ExecutionQuery::GetValues(void* p, size_t start_member_index) const {
+std::vector<SqlValue> ExecutionQuery::GetValues(void* p, bool skip_id) const {
     const auto& members = record_.member_metadata;
     std::vector<SqlValue> values;
 
-    for (auto j = start_member_index; j < members.size(); j++) {
+    // The id is always the first member (index 0); skip it when the caller asks
+    for (size_t j = skip_id ? 1 : 0; j < members.size(); j++) {
         const auto current_storage_class = members[j].storage_class;
         SqlValue value;
         value.storage_class = current_storage_class;
@@ -241,8 +242,8 @@ std::string InsertQuery::PrepareSql() const {
 
 std::vector<SqlValue> InsertQuery::Bindings() const {
     // For auto-increment inserts the id column is omitted from the statement, so skip the
-    // id member (index 0) entirely rather than reading its possibly-uninitialized value
-    return auto_increment_id_ ? GetValues(p_, 1) : GetValues(p_);
+    // id member entirely rather than reading its possibly-uninitialized value
+    return GetValues(p_, auto_increment_id_);
 }
 
 UpdateQuery::UpdateQuery(sqlite3* db, const Reflection& record, void* p) : ExecutionQuery(db, record), p_(p) {}
