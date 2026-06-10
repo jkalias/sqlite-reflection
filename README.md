@@ -184,6 +184,8 @@ db.Save(people);
 
 Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The database generates the `id` (via an `AUTOINCREMENT` column, so values are never reused even after rows are deleted) and it is written back into the passed-in object, which must therefore be a mutable (non-`const`) lvalue.
 
+> **Note:** the never-reused guarantee relies on the `id` column being declared `AUTOINCREMENT`, which is applied when a table is created. Because tables are created with `CREATE TABLE IF NOT EXISTS`, the guarantee only holds for tables created by this version onwards. A database file created by an earlier release keeps its original `id INTEGER PRIMARY KEY` schema (where a deleted highest id can be reused) until the table is recreated or migrated.
+
 ```c++
 // Omit the id and let sqlite-reflection assign the next available value.
 Person new_person{L"John", L"Doe", 28, false};
