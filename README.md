@@ -182,18 +182,22 @@ people.push_back({L"Jane", L"Doe", 41, true, 7});
 db.Save(people);
 ```
 
-Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The input object is copied; its `id` member is not modified.
+Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The database generates the `id` (via an `AUTOINCREMENT` column, so values are never reused even after rows are deleted) and it is written back into the passed-in object, which must therefore be a mutable (non-`const`) lvalue.
+
+> **Note:** the never-reused guarantee relies on the `id` column being declared `AUTOINCREMENT`, which is applied when a table is created. Because tables are created with `CREATE TABLE IF NOT EXISTS`, the guarantee only holds for tables created by this version onwards. A database file created by an earlier release keeps its original `id INTEGER PRIMARY KEY` schema (where a deleted highest id can be reused) until the table is recreated or migrated.
 
 ```c++
 // Omit the id and let sqlite-reflection assign the next available value.
 Person new_person{L"John", L"Doe", 28, false};
 db.SaveAutoIncrement(new_person);
+// new_person.id now holds the value assigned by the database.
 
 // The same auto-increment behavior is available for batches.
 std::vector<Person> more_people;
 more_people.push_back({L"Ada", L"Lovelace", 36, true});
 more_people.push_back({L"Grace", L"Hopper", 85, true});
 db.SaveAutoIncrement(more_people);
+// Each element's id is now populated.
 ```
 
 ## Fetching records

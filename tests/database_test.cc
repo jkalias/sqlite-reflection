@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "company.h"
+#include "id_only_record.h"
 #include "person.h"
 #include "pet.h"
 
@@ -68,8 +69,11 @@ TEST_F(DatabaseTest, SingleInsertion) {
 TEST_F(DatabaseTest, SingleInsertionWithAutoIdIncrement) {
     const auto& db = Database::Instance();
 
-    const Person p{L"παναγιώτης", L"ανδριανόπουλος", 39};
+    Person p{L"παναγιώτης", L"ανδριανόπουλος", 39};
     db.SaveAutoIncrement(p);
+
+    // The generated id is written back into the passed-in record
+    EXPECT_EQ(1, p.id);
 
     const auto all_persons = db.FetchAll<Person>();
     EXPECT_EQ(1, all_persons.size());
@@ -78,6 +82,82 @@ TEST_F(DatabaseTest, SingleInsertionWithAutoIdIncrement) {
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
     EXPECT_EQ(p.age, all_persons[0].age);
     EXPECT_EQ(1, all_persons[0].id);
+}
+
+TEST_F(DatabaseTest, MultipleInsertionsWithAutoIdIncrement) {
+    const auto& db = Database::Instance();
+
+    std::vector<Person> persons;
+    persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28});
+    persons.push_back({L"peter", L"meier", 32});
+
+    db.SaveAutoIncrement(persons);
+
+    // The generated ids are written back into the passed-in records
+    EXPECT_EQ(1, persons[0].id);
+    EXPECT_EQ(2, persons[1].id);
+
+    const auto saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(2, saved_persons.size());
+
+    for (auto i = 0; i < saved_persons.size(); ++i) {
+        EXPECT_EQ(persons[i].id, saved_persons[i].id);
+        EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
+        EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
+        EXPECT_EQ(persons[i].age, saved_persons[i].age);
+    }
+}
+
+TEST_F(DatabaseTest, AutoIdIncrementContinuesFromExistingMaxId) {
+    const auto& db = Database::Instance();
+
+    const Person existing{L"ada", L"lovelace", 36, true, 10};
+    db.Save(existing);
+
+    Person p{L"grace", L"hopper", 85};
+    db.SaveAutoIncrement(p);
+
+    // The new id continues from the current maximum id in the table
+    EXPECT_EQ(11, p.id);
+}
+
+TEST_F(DatabaseTest, AutoIdIsNotReusedAfterDeletingHighestRow) {
+    const auto& db = Database::Instance();
+
+    Person first{L"ada", L"lovelace", 36};
+    db.SaveAutoIncrement(first);
+    EXPECT_EQ(1, first.id);
+
+    Person second{L"grace", L"hopper", 85};
+    db.SaveAutoIncrement(second);
+    EXPECT_EQ(2, second.id);
+
+    // Remove the row with the highest id
+    db.Delete(second);
+
+    // A subsequent auto-increment save must not reuse the freed id
+    Person third{L"john", L"doe", 28};
+    db.SaveAutoIncrement(third);
+    EXPECT_EQ(3, third.id);
+}
+
+TEST_F(DatabaseTest, AutoIncrementInsertForIdOnlyRecord) {
+    const auto& db = Database::Instance();
+
+    // A record whose only column is the implicit id must still insert via the
+    // auto-increment path (INSERT INTO ... DEFAULT VALUES) and get an assigned id
+    IdOnlyRecord first;
+    db.SaveAutoIncrement(first);
+    EXPECT_EQ(1, first.id);
+
+    IdOnlyRecord second;
+    db.SaveAutoIncrement(second);
+    EXPECT_EQ(2, second.id);
+
+    const auto all = db.FetchAll<IdOnlyRecord>();
+    EXPECT_EQ(2, all.size());
+    EXPECT_EQ(1, all[0].id);
+    EXPECT_EQ(2, all[1].id);
 }
 
 TEST_F(DatabaseTest, MultipleInsertions) {

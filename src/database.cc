@@ -82,6 +82,12 @@ void Database::Save(void* p, const Reflection& record) const {
     query.Execute();
 }
 
+int64_t Database::SaveAutoIncrement(void* p, const Reflection& record) const {
+    InsertQuery query(db_, record, p, true);
+    query.Execute();
+    return sqlite3_last_insert_rowid(db_);
+}
+
 void Database::Update(void* p, const Reflection& record) const {
     UpdateQuery query(db_, record, p);
     query.Execute();
