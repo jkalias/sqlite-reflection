@@ -107,28 +107,42 @@ public:
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
     void Save(const T& model) const {
-        Save(model, false);
+        const auto type_id = typeid(T).name();
+        const auto& record = GetRecord(type_id);
+        Save((void*)&model, record);
     }
 
-    /// Saves a given record in the database and auto-increments its id.
+    /// Saves a given record in the database, letting the database assign its id.
+    /// The newly generated id is written back into the passed-in model.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void SaveAutoIncrement(const T& model) const {
-        Save(model, true);
+    void SaveAutoIncrement(T& model) const {
+        const auto type_id = typeid(T).name();
+        const auto& record = GetRecord(type_id);
+        model.id = SaveAutoIncrement((void*)&model, record);
     }
 
     /// Saves multiple records iteratively in the database.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
     void Save(const std::vector<T>& models) const {
-        Save(models, false);
+        const auto type_id = typeid(T).name();
+        const auto& record = GetRecord(type_id);
+        for (const auto& model : models) {
+            Save((void*)&model, record);
+        }
     }
 
-    /// Saves multiple records iteratively in the database and auto-increments their ids.
+    /// Saves multiple records iteratively in the database, letting the database assign their ids.
+    /// The newly generated ids are written back into the passed-in models.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void SaveAutoIncrement(const std::vector<T>& models) const {
-        Save(models, true);
+    void SaveAutoIncrement(std::vector<T>& models) const {
+        const auto type_id = typeid(T).name();
+        const auto& record = GetRecord(type_id);
+        for (auto& model : models) {
+            model.id = SaveAutoIncrement((void*)&model, record);
+        }
     }
 
     /// Updates a given record in the database.
@@ -207,41 +221,12 @@ private:
         return models;
     }
 
-    /// Saves a given record in the database.
-    /// This corresponds to an INSERT query in the SQL syntax
-    template <typename T>
-    void Save(const T& model, bool auto_increment_id) const {
-        const auto type_id = typeid(T).name();
-        const auto& record = GetRecord(type_id);
-        T saved_model(model);
-        if (auto_increment_id) {
-            const auto current_max_id = GetMaxId<T>();
-            saved_model.id = current_max_id + 1;
-        }
-        Save((void*)&saved_model, record);
-    }
-
-    /// Saves multiple records iteratively in the database.
-    /// This corresponds to an INSERT query in the SQL syntax
-    template <typename T>
-    void Save(const std::vector<T>& models, bool auto_increment_id) const {
-        const auto type_id = typeid(T).name();
-        const auto& record = GetRecord(type_id);
-        const auto current_max_id = auto_increment_id ? GetMaxId<T>() : 0;
-        for (auto i = 0; i < models.size(); ++i) {
-            const auto& model = models[i];
-            if (auto_increment_id) {
-                T saved_model(model);
-                saved_model.id = current_max_id + i + 1;
-                Save((void*)&saved_model, record);
-            } else {
-                Save((void*)&model, record);
-            }
-        }
-    }
-
     /// Saves a single record in the database
     void Save(void* p, const Reflection& record) const;
+
+    /// Saves a single record in the database, letting SQLite assign its id,
+    /// and returns the id that was generated for the inserted row
+    int64_t SaveAutoIncrement(void* p, const Reflection& record) const;
 
     /// Updates a single record in the database
     void Update(void* p, const Reflection& record) const;

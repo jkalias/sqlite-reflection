@@ -112,16 +112,18 @@ protected:
 };
 
 /// A query to insert a given record to the database, by supplying a given type-erased struct instance
-/// This maps to INSERT INTO in SQL
+/// This maps to INSERT INTO in SQL. When auto_increment_id is set, the id column is omitted from the
+/// statement so that SQLite assigns the next rowid value itself.
 class REFLECTION_EXPORT InsertQuery final : public ExecutionQuery {
 public:
     ~InsertQuery() override = default;
-    explicit InsertQuery(sqlite3* db, const Reflection& record, void* p);
+    explicit InsertQuery(sqlite3* db, const Reflection& record, void* p, bool auto_increment_id = false);
 
 protected:
     std::string PrepareSql() const override;
     std::vector<SqlValue> Bindings() const override;
     void* p_;
+    bool auto_increment_id_;
 };
 
 /// A query to update a given record to the database, by supplying a given type-erased struct instance

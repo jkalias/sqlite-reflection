@@ -68,8 +68,11 @@ TEST_F(DatabaseTest, SingleInsertion) {
 TEST_F(DatabaseTest, SingleInsertionWithAutoIdIncrement) {
     const auto& db = Database::Instance();
 
-    const Person p{L"παναγιώτης", L"ανδριανόπουλος", 39};
+    Person p{L"παναγιώτης", L"ανδριανόπουλος", 39};
     db.SaveAutoIncrement(p);
+
+    // The generated id is written back into the passed-in record
+    EXPECT_EQ(1, p.id);
 
     const auto all_persons = db.FetchAll<Person>();
     EXPECT_EQ(1, all_persons.size());
@@ -78,6 +81,43 @@ TEST_F(DatabaseTest, SingleInsertionWithAutoIdIncrement) {
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
     EXPECT_EQ(p.age, all_persons[0].age);
     EXPECT_EQ(1, all_persons[0].id);
+}
+
+TEST_F(DatabaseTest, MultipleInsertionsWithAutoIdIncrement) {
+    const auto& db = Database::Instance();
+
+    std::vector<Person> persons;
+    persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28});
+    persons.push_back({L"peter", L"meier", 32});
+
+    db.SaveAutoIncrement(persons);
+
+    // The generated ids are written back into the passed-in records
+    EXPECT_EQ(1, persons[0].id);
+    EXPECT_EQ(2, persons[1].id);
+
+    const auto saved_persons = db.FetchAll<Person>();
+    EXPECT_EQ(2, saved_persons.size());
+
+    for (auto i = 0; i < saved_persons.size(); ++i) {
+        EXPECT_EQ(persons[i].id, saved_persons[i].id);
+        EXPECT_EQ(persons[i].first_name, saved_persons[i].first_name);
+        EXPECT_EQ(persons[i].last_name, saved_persons[i].last_name);
+        EXPECT_EQ(persons[i].age, saved_persons[i].age);
+    }
+}
+
+TEST_F(DatabaseTest, AutoIdIncrementContinuesFromExistingMaxId) {
+    const auto& db = Database::Instance();
+
+    const Person existing{L"ada", L"lovelace", 36, true, 10};
+    db.Save(existing);
+
+    Person p{L"grace", L"hopper", 85};
+    db.SaveAutoIncrement(p);
+
+    // The new id continues from the current maximum id in the table
+    EXPECT_EQ(11, p.id);
 }
 
 TEST_F(DatabaseTest, MultipleInsertions) {

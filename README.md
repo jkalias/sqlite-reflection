@@ -182,18 +182,20 @@ people.push_back({L"Jane", L"Doe", 41, true, 7});
 db.Save(people);
 ```
 
-Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The input object is copied; its `id` member is not modified.
+Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The generated `id` is written back into the passed-in object, so it must be a mutable (non-`const`) lvalue.
 
 ```c++
 // Omit the id and let sqlite-reflection assign the next available value.
 Person new_person{L"John", L"Doe", 28, false};
 db.SaveAutoIncrement(new_person);
+// new_person.id now holds the value assigned by the database.
 
 // The same auto-increment behavior is available for batches.
 std::vector<Person> more_people;
 more_people.push_back({L"Ada", L"Lovelace", 36, true});
 more_people.push_back({L"Grace", L"Hopper", 85, true});
 db.SaveAutoIncrement(more_people);
+// Each element's id is now populated.
 ```
 
 ## Fetching records

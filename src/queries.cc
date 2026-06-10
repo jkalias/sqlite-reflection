@@ -210,17 +210,34 @@ std::vector<SqlValue> DeleteQuery::Bindings() const {
     return predicate_->Bindings();
 }
 
-InsertQuery::InsertQuery(sqlite3* db, const Reflection& record, void* p) : ExecutionQuery(db, record), p_(p) {}
+InsertQuery::InsertQuery(sqlite3* db, const Reflection& record, void* p, bool auto_increment_id)
+    : ExecutionQuery(db, record), p_(p), auto_increment_id_(auto_increment_id) {}
 
 std::string InsertQuery::PrepareSql() const {
     std::string sql("INSERT INTO ");
-    sql += record_.name + " (" + JoinedRecordColumnNames() + ") VALUES (";
-    sql += Placeholders(record_.member_metadata.size()) + ");";
+    sql += record_.name + " (";
+
+    if (auto_increment_id_) {
+        // Omit the id column (index 0) so SQLite assigns the next rowid itself
+        auto columns = GetRecordColumnNames();
+        const std::vector<std::string> columns_without_id(columns.begin() + 1, columns.end());
+        sql += StringUtilities::Join(columns_without_id, ", ") + ") VALUES (";
+        sql += Placeholders(columns_without_id.size()) + ");";
+    } else {
+        sql += JoinedRecordColumnNames() + ") VALUES (";
+        sql += Placeholders(record_.member_metadata.size()) + ");";
+    }
+
     return sql;
 }
 
 std::vector<SqlValue> InsertQuery::Bindings() const {
-    return GetValues(p_);
+    auto values = GetValues(p_);
+    if (auto_increment_id_) {
+        // The id column is omitted from the statement, so drop its binding too
+        values.erase(values.begin());
+    }
+    return values;
 }
 
 UpdateQuery::UpdateQuery(sqlite3* db, const Reflection& record, void* p) : ExecutionQuery(db, record), p_(p) {}
