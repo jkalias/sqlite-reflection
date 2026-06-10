@@ -217,16 +217,22 @@ InsertQuery::InsertQuery(sqlite3* db, const Reflection& record, void* p, bool au
 
 std::string InsertQuery::PrepareSql() const {
     std::string sql("INSERT INTO ");
-    sql += record_.name + " (";
+    sql += record_.name;
 
     if (auto_increment_id_) {
         // Omit the id column (index 0) so SQLite assigns the next rowid itself
         auto columns = GetRecordColumnNames();
         const std::vector<std::string> columns_without_id(columns.begin() + 1, columns.end());
-        sql += StringUtilities::Join(columns_without_id, ", ") + ") VALUES (";
-        sql += Placeholders(columns_without_id.size()) + ");";
+        if (columns_without_id.empty()) {
+            // The record has no columns besides id, so there is nothing to list;
+            // let SQLite assign the rowid and use defaults for every column
+            sql += " DEFAULT VALUES;";
+        } else {
+            sql += " (" + StringUtilities::Join(columns_without_id, ", ") + ") VALUES (";
+            sql += Placeholders(columns_without_id.size()) + ");";
+        }
     } else {
-        sql += JoinedRecordColumnNames() + ") VALUES (";
+        sql += " (" + JoinedRecordColumnNames() + ") VALUES (";
         sql += Placeholders(record_.member_metadata.size()) + ");";
     }
 

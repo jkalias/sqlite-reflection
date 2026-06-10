@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "company.h"
+#include "id_only_record.h"
 #include "person.h"
 #include "pet.h"
 
@@ -138,6 +139,25 @@ TEST_F(DatabaseTest, AutoIdIsNotReusedAfterDeletingHighestRow) {
     Person third{L"john", L"doe", 28};
     db.SaveAutoIncrement(third);
     EXPECT_EQ(3, third.id);
+}
+
+TEST_F(DatabaseTest, AutoIncrementInsertForIdOnlyRecord) {
+    const auto& db = Database::Instance();
+
+    // A record whose only column is the implicit id must still insert via the
+    // auto-increment path (INSERT INTO ... DEFAULT VALUES) and get an assigned id
+    IdOnlyRecord first;
+    db.SaveAutoIncrement(first);
+    EXPECT_EQ(1, first.id);
+
+    IdOnlyRecord second;
+    db.SaveAutoIncrement(second);
+    EXPECT_EQ(2, second.id);
+
+    const auto all = db.FetchAll<IdOnlyRecord>();
+    EXPECT_EQ(2, all.size());
+    EXPECT_EQ(1, all[0].id);
+    EXPECT_EQ(2, all[1].id);
 }
 
 TEST_F(DatabaseTest, MultipleInsertions) {
