@@ -194,7 +194,9 @@ std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
     const auto is_id = name.compare(std::string("id")) == 0;
     name += " " + record_.member_metadata[index].sqlite_column_name;
 
-    return is_id ? name + " PRIMARY KEY" : name;
+    // AUTOINCREMENT guarantees that ids are never reused, even after the row with the
+    // highest id is deleted
+    return is_id ? name + " PRIMARY KEY AUTOINCREMENT" : name;
 }
 
 DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate)

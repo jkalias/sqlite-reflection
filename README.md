@@ -182,7 +182,7 @@ people.push_back({L"Jane", L"Doe", 41, true, 7});
 db.Save(people);
 ```
 
-Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The generated `id` is written back into the passed-in object, so it must be a mutable (non-`const`) lvalue.
+Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The database generates the `id` (via an `AUTOINCREMENT` column, so values are never reused even after rows are deleted) and it is written back into the passed-in object, which must therefore be a mutable (non-`const`) lvalue.
 
 ```c++
 // Omit the id and let sqlite-reflection assign the next available value.

@@ -120,6 +120,26 @@ TEST_F(DatabaseTest, AutoIdIncrementContinuesFromExistingMaxId) {
     EXPECT_EQ(11, p.id);
 }
 
+TEST_F(DatabaseTest, AutoIdIsNotReusedAfterDeletingHighestRow) {
+    const auto& db = Database::Instance();
+
+    Person first{L"ada", L"lovelace", 36};
+    db.SaveAutoIncrement(first);
+    EXPECT_EQ(1, first.id);
+
+    Person second{L"grace", L"hopper", 85};
+    db.SaveAutoIncrement(second);
+    EXPECT_EQ(2, second.id);
+
+    // Remove the row with the highest id
+    db.Delete(second);
+
+    // A subsequent auto-increment save must not reuse the freed id
+    Person third{L"john", L"doe", 28};
+    db.SaveAutoIncrement(third);
+    EXPECT_EQ(3, third.id);
+}
+
 TEST_F(DatabaseTest, MultipleInsertions) {
     const auto& db = Database::Instance();
 
