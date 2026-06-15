@@ -50,7 +50,7 @@ class ConcurrencyTest : public ::testing::Test {
 };
 
 TEST_F(ConcurrencyTest, ConcurrentAutoIncrementInsertsAllSucceedWithUniqueIds) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     constexpr int kThreads = 8;
     constexpr int kInsertsPerThread = 100;
@@ -64,7 +64,7 @@ TEST_F(ConcurrencyTest, ConcurrentAutoIncrementInsertsAllSucceedWithUniqueIds) {
             for (int i = 0; i < kInsertsPerThread; ++i) {
                 try {
                     Person p{L"john", L"doe", 30};
-                    db.SaveAutoIncrement(p);
+                    db->SaveAutoIncrement(p);
                 } catch (...) {
                     failures.fetch_add(1, std::memory_order_relaxed);
                 }
@@ -79,7 +79,7 @@ TEST_F(ConcurrencyTest, ConcurrentAutoIncrementInsertsAllSucceedWithUniqueIds) {
     EXPECT_EQ(0, failures.load());
 
     // Every insert must be persisted exactly once.
-    const auto all = db.FetchAll<Person>();
+    const auto all = db->FetchAll<Person>();
     EXPECT_EQ(kExpected, static_cast<int>(all.size()));
 
     // Every row must have received a distinct, database-assigned id.
@@ -91,7 +91,7 @@ TEST_F(ConcurrencyTest, ConcurrentAutoIncrementInsertsAllSucceedWithUniqueIds) {
 }
 
 TEST_F(ConcurrencyTest, ConcurrentReadsAndWritesDoNotThrow) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     constexpr int kWriters = 4;
     constexpr int kReaders = 4;
@@ -108,7 +108,7 @@ TEST_F(ConcurrencyTest, ConcurrentReadsAndWritesDoNotThrow) {
             for (int i = 0; i < kInsertsPerWriter; ++i) {
                 try {
                     Person p{L"jane", L"roe", 41};
-                    db.SaveAutoIncrement(p);
+                    db->SaveAutoIncrement(p);
                 } catch (...) {
                     failures.fetch_add(1, std::memory_order_relaxed);
                 }
@@ -121,7 +121,7 @@ TEST_F(ConcurrencyTest, ConcurrentReadsAndWritesDoNotThrow) {
             for (int i = 0; i < kReadsPerReader; ++i) {
                 try {
                     // Reading concurrently with writers must not crash or throw.
-                    volatile auto count = db.FetchAll<Person>().size();
+                    volatile auto count = db->FetchAll<Person>().size();
                     (void)count;
                 } catch (...) {
                     failures.fetch_add(1, std::memory_order_relaxed);
@@ -136,6 +136,28 @@ TEST_F(ConcurrencyTest, ConcurrentReadsAndWritesDoNotThrow) {
 
     EXPECT_EQ(0, failures.load());
 
-    const auto all = db.FetchAll<Person>();
+    const auto all = db->FetchAll<Person>();
     EXPECT_EQ(kExpected, static_cast<int>(all.size()));
+}
+
+TEST_F(ConcurrencyTest, ConnectionOutlivesFinalizeWhileAHandleIsHeld) {
+    // A caller holding an Instance() handle must be able to keep using the database even if
+    // another thread calls Finalize() in the meantime: the connection is reference-counted
+    // and only closed once the last handle is released. With the previous raw-pointer
+    // lifecycle, Finalize() deleted the object and closed the connection immediately, so the
+    // operations below would have been a use-after-free.
+    auto db = Database::Instance();
+
+    Person first{L"ada", L"lovelace", 36};
+    db->SaveAutoIncrement(first);
+
+    // Drop the singleton's own reference while we still hold one.
+    Database::Finalize();
+
+    // The held handle must still be valid: the connection is alive and usable. If Finalize()
+    // had closed/freed it, these calls would crash or throw.
+    Person second{L"grace", L"hopper", 85};
+    db->SaveAutoIncrement(second);
+    const auto all = db->FetchAll<Person>();
+    EXPECT_EQ(2, static_cast<int>(all.size()));
 }

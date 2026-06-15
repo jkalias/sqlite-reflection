@@ -42,22 +42,22 @@ class DatabaseTest : public ::testing::Test {
 };
 
 TEST_F(DatabaseTest, Initialization) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
-    const auto all_persons = db.FetchAll<Person>();
+    const auto all_persons = db->FetchAll<Person>();
     EXPECT_EQ(0, all_persons.size());
 
-    const auto all_pets = db.FetchAll<Pet>();
+    const auto all_pets = db->FetchAll<Pet>();
     EXPECT_EQ(0, all_pets.size());
 }
 
 TEST_F(DatabaseTest, SingleInsertion) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     const Person p{L"παναγιώτης", L"ανδριανόπουλος", 39, 1};
-    db.Save(p);
+    db->Save(p);
 
-    const auto all_persons = db.FetchAll<Person>();
+    const auto all_persons = db->FetchAll<Person>();
     EXPECT_EQ(1, all_persons.size());
 
     EXPECT_EQ(p.first_name, all_persons[0].first_name);
@@ -67,15 +67,15 @@ TEST_F(DatabaseTest, SingleInsertion) {
 }
 
 TEST_F(DatabaseTest, SingleInsertionWithAutoIdIncrement) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     Person p{L"παναγιώτης", L"ανδριανόπουλος", 39};
-    db.SaveAutoIncrement(p);
+    db->SaveAutoIncrement(p);
 
     // The generated id is written back into the passed-in record
     EXPECT_EQ(1, p.id);
 
-    const auto all_persons = db.FetchAll<Person>();
+    const auto all_persons = db->FetchAll<Person>();
     EXPECT_EQ(1, all_persons.size());
 
     EXPECT_EQ(p.first_name, all_persons[0].first_name);
@@ -85,19 +85,19 @@ TEST_F(DatabaseTest, SingleInsertionWithAutoIdIncrement) {
 }
 
 TEST_F(DatabaseTest, MultipleInsertionsWithAutoIdIncrement) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
     persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28});
     persons.push_back({L"peter", L"meier", 32});
 
-    db.SaveAutoIncrement(persons);
+    db->SaveAutoIncrement(persons);
 
     // The generated ids are written back into the passed-in records
     EXPECT_EQ(1, persons[0].id);
     EXPECT_EQ(2, persons[1].id);
 
-    const auto saved_persons = db.FetchAll<Person>();
+    const auto saved_persons = db->FetchAll<Person>();
     EXPECT_EQ(2, saved_persons.size());
 
     for (auto i = 0; i < saved_persons.size(); ++i) {
@@ -109,68 +109,68 @@ TEST_F(DatabaseTest, MultipleInsertionsWithAutoIdIncrement) {
 }
 
 TEST_F(DatabaseTest, AutoIdIncrementContinuesFromExistingMaxId) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     const Person existing{L"ada", L"lovelace", 36, true, 10};
-    db.Save(existing);
+    db->Save(existing);
 
     Person p{L"grace", L"hopper", 85};
-    db.SaveAutoIncrement(p);
+    db->SaveAutoIncrement(p);
 
     // The new id continues from the current maximum id in the table
     EXPECT_EQ(11, p.id);
 }
 
 TEST_F(DatabaseTest, AutoIdIsNotReusedAfterDeletingHighestRow) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     Person first{L"ada", L"lovelace", 36};
-    db.SaveAutoIncrement(first);
+    db->SaveAutoIncrement(first);
     EXPECT_EQ(1, first.id);
 
     Person second{L"grace", L"hopper", 85};
-    db.SaveAutoIncrement(second);
+    db->SaveAutoIncrement(second);
     EXPECT_EQ(2, second.id);
 
     // Remove the row with the highest id
-    db.Delete(second);
+    db->Delete(second);
 
     // A subsequent auto-increment save must not reuse the freed id
     Person third{L"john", L"doe", 28};
-    db.SaveAutoIncrement(third);
+    db->SaveAutoIncrement(third);
     EXPECT_EQ(3, third.id);
 }
 
 TEST_F(DatabaseTest, AutoIncrementInsertForIdOnlyRecord) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     // A record whose only column is the implicit id must still insert via the
     // auto-increment path (INSERT INTO ... DEFAULT VALUES) and get an assigned id
     IdOnlyRecord first;
-    db.SaveAutoIncrement(first);
+    db->SaveAutoIncrement(first);
     EXPECT_EQ(1, first.id);
 
     IdOnlyRecord second;
-    db.SaveAutoIncrement(second);
+    db->SaveAutoIncrement(second);
     EXPECT_EQ(2, second.id);
 
-    const auto all = db.FetchAll<IdOnlyRecord>();
+    const auto all = db->FetchAll<IdOnlyRecord>();
     EXPECT_EQ(2, all.size());
     EXPECT_EQ(1, all[0].id);
     EXPECT_EQ(2, all[1].id);
 }
 
 TEST_F(DatabaseTest, MultipleInsertions) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
     persons.push_back({L"παναγιώτης", L"ανδριανόπουλος", 28, false, 3});
     persons.push_back({L"peter", L"meier", 32, true, 5});
 
-    db.Save(persons);
+    db->Save(persons);
 
-    const auto saved_persons = db.FetchAll<Person>();
+    const auto saved_persons = db->FetchAll<Person>();
     EXPECT_EQ(2, saved_persons.size());
 
     for (auto i = 0; i < saved_persons.size(); ++i) {
@@ -183,27 +183,27 @@ TEST_F(DatabaseTest, MultipleInsertions) {
 }
 
 TEST_F(DatabaseTest, InsertionOnOneTypeDoesNotAffectOtherType) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     const Person p{L"παναγιώτης", L"ανδριανόπουλος", 39, 1};
-    db.Save(p);
+    db->Save(p);
 
-    const auto all_pets = db.FetchAll<Pet>();
+    const auto all_pets = db->FetchAll<Pet>();
     EXPECT_EQ(0, all_pets.size());
 }
 
 TEST_F(DatabaseTest, SingleUpdate) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     Person p{L"παναγιώτης", L"ανδριανόπουλος", 39, 1};
-    db.Save(p);
+    db->Save(p);
 
     p.age = 23;
     p.first_name = L"max";
 
-    db.Update(p);
+    db->Update(p);
 
-    const auto all_persons = db.FetchAll<Person>();
+    const auto all_persons = db->FetchAll<Person>();
     EXPECT_EQ(1, all_persons.size());
 
     EXPECT_EQ(p.first_name, all_persons[0].first_name);
@@ -213,21 +213,21 @@ TEST_F(DatabaseTest, SingleUpdate) {
 }
 
 TEST_F(DatabaseTest, MultipleUpdates) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
     persons.push_back({L"john", L"doe", 28, false, 3});
     persons.push_back({L"mary", L"poppins", 29, false, 5});
 
-    db.Save(persons);
+    db->Save(persons);
 
     persons[0].last_name = L"rambo";
     persons[1].age = 20;
 
-    db.Update(persons);
+    db->Update(persons);
 
-    const auto saved_persons = db.FetchAll<Person>();
+    const auto saved_persons = db->FetchAll<Person>();
     EXPECT_EQ(2, saved_persons.size());
 
     for (auto i = 0; i < saved_persons.size(); ++i) {
@@ -239,12 +239,12 @@ TEST_F(DatabaseTest, MultipleUpdates) {
 }
 
 TEST_F(DatabaseTest, InsertedTextSqlPayloadIsPersistedLiterally) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     const Person p{L"john'); DROP TABLE Person; --", L"payload", 39, false, 1};
-    db.Save(p);
+    db->Save(p);
 
-    const auto all_persons = db.FetchAll<Person>();
+    const auto all_persons = db->FetchAll<Person>();
     EXPECT_EQ(1, all_persons.size());
     EXPECT_EQ(p.first_name, all_persons[0].first_name);
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
@@ -253,32 +253,32 @@ TEST_F(DatabaseTest, InsertedTextSqlPayloadIsPersistedLiterally) {
 }
 
 TEST_F(DatabaseTest, InsertedTextWithEmbeddedNulIsPersistedLiterally) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     const Person p{std::wstring(L"a\0b", 3), L"payload", 39, false, 1};
-    db.Save(p);
+    db->Save(p);
 
-    const auto all_persons = db.FetchAll<Person>();
+    const auto all_persons = db->FetchAll<Person>();
     ASSERT_EQ(1, all_persons.size());
     EXPECT_EQ(p.first_name, all_persons[0].first_name);
     EXPECT_EQ(3, all_persons[0].first_name.size());
 
     const auto predicate = Equal(&Person::first_name, std::wstring(L"a\0b", 3));
-    const auto matching_persons = db.Fetch<Person>(&predicate);
+    const auto matching_persons = db->Fetch<Person>(&predicate);
     ASSERT_EQ(1, matching_persons.size());
     EXPECT_EQ(p.first_name, matching_persons[0].first_name);
 }
 
 TEST_F(DatabaseTest, UpdatedTextSqlPayloadIsPersistedLiterally) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     Person p{L"john", L"payload", 39, false, 1};
-    db.Save(p);
+    db->Save(p);
 
     p.first_name = L"updated'); DELETE FROM Person; --";
-    db.Update(p);
+    db->Update(p);
 
-    const auto all_persons = db.FetchAll<Person>();
+    const auto all_persons = db->FetchAll<Person>();
     EXPECT_EQ(1, all_persons.size());
     EXPECT_EQ(p.first_name, all_persons[0].first_name);
     EXPECT_EQ(p.last_name, all_persons[0].last_name);
@@ -287,7 +287,7 @@ TEST_F(DatabaseTest, UpdatedTextSqlPayloadIsPersistedLiterally) {
 }
 
 TEST_F(DatabaseTest, DeleteWithRecord) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
@@ -295,13 +295,13 @@ TEST_F(DatabaseTest, DeleteWithRecord) {
     persons.push_back({L"peter", L"meier", 32, false, 5});
     persons.push_back({L"mary", L"poppins", 20, false, 13});
 
-    db.Save(persons);
+    db->Save(persons);
 
-    auto saved_persons = db.FetchAll<Person>();
+    auto saved_persons = db->FetchAll<Person>();
     EXPECT_EQ(3, saved_persons.size());
 
-    db.Delete(persons[1]);
-    saved_persons = db.FetchAll<Person>();
+    db->Delete(persons[1]);
+    saved_persons = db->FetchAll<Person>();
     EXPECT_EQ(2, saved_persons.size());
 
     auto i = 0;
@@ -318,7 +318,7 @@ TEST_F(DatabaseTest, DeleteWithRecord) {
 }
 
 TEST_F(DatabaseTest, DeleteWithId) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
@@ -326,13 +326,13 @@ TEST_F(DatabaseTest, DeleteWithId) {
     persons.push_back({L"peter", L"meier", 32, false, 5});
     persons.push_back({L"mary", L"poppins", 20, false, 13});
 
-    db.Save(persons);
+    db->Save(persons);
 
-    auto saved_persons = db.FetchAll<Person>();
+    auto saved_persons = db->FetchAll<Person>();
     EXPECT_EQ(3, saved_persons.size());
 
-    db.Delete<Person>(persons[1].id);
-    saved_persons = db.FetchAll<Person>();
+    db->Delete<Person>(persons[1].id);
+    saved_persons = db->FetchAll<Person>();
     EXPECT_EQ(2, saved_persons.size());
 
     auto i = 0;
@@ -349,7 +349,7 @@ TEST_F(DatabaseTest, DeleteWithId) {
 }
 
 TEST_F(DatabaseTest, DeleteWithPredicate) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
@@ -357,12 +357,12 @@ TEST_F(DatabaseTest, DeleteWithPredicate) {
     persons.push_back({L"peter", L"meier", 32, false, 5});
     persons.push_back({L"mary", L"poppins", 20, true, 13});
 
-    db.Save(persons);
+    db->Save(persons);
 
     const auto age_match_predicate = SmallerThan(&Person::age, 30).And(Equal(&Person::is_vaccinated, true));
 
-    db.Delete<Person>(&age_match_predicate);
-    const auto fetched_persons = db.FetchAll<Person>();
+    db->Delete<Person>(&age_match_predicate);
+    const auto fetched_persons = db->FetchAll<Person>();
     EXPECT_EQ(1, fetched_persons.size());
 
     EXPECT_EQ(5, fetched_persons[0].id);
@@ -373,24 +373,24 @@ TEST_F(DatabaseTest, DeleteWithPredicate) {
 }
 
 TEST_F(DatabaseTest, DeleteWithInjectedPredicateDoesNotDeleteRows) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
     persons.push_back({L"john", L"doe", 28, false, 3});
     persons.push_back({L"mary", L"poppins", 20, false, 5});
 
-    db.Save(persons);
+    db->Save(persons);
 
     const auto injected_predicate = Equal(&Person::first_name, L"nobody' OR 1=1 --");
-    db.Delete<Person>(&injected_predicate);
+    db->Delete<Person>(&injected_predicate);
 
-    const auto fetched_persons = db.FetchAll<Person>();
+    const auto fetched_persons = db->FetchAll<Person>();
     EXPECT_EQ(2, fetched_persons.size());
 }
 
 TEST_F(DatabaseTest, SingleFetch) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
@@ -398,9 +398,9 @@ TEST_F(DatabaseTest, SingleFetch) {
     persons.push_back({L"peter", L"meier", 32, false, 5});
     persons.push_back({L"mary", L"poppins", 20, false, 13});
 
-    db.Save(persons);
+    db->Save(persons);
 
-    const auto fetched_person = db.Fetch<Person>(5);
+    const auto fetched_person = db->Fetch<Person>(5);
     EXPECT_EQ(5, fetched_person.id);
     EXPECT_EQ(L"peter", fetched_person.first_name);
     EXPECT_EQ(L"meier", fetched_person.last_name);
@@ -408,7 +408,7 @@ TEST_F(DatabaseTest, SingleFetch) {
 }
 
 TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
@@ -416,28 +416,28 @@ TEST_F(DatabaseTest, SingleFetchWithoutExistingRecordExpectingException) {
     persons.push_back({L"peter", L"meier", 32, false, 5});
     persons.push_back({L"mary", L"poppins", 20, false});
 
-    db.Save(persons);
+    db->Save(persons);
 
-    EXPECT_ANY_THROW(db.Fetch<Person>(15));
+    EXPECT_ANY_THROW(db->Fetch<Person>(15));
 }
 
 TEST_F(DatabaseTest, FetchWithInjectedPredicateDoesNotMatchAllRows) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
     persons.push_back({L"john", L"doe", 28, false, 3});
     persons.push_back({L"mary", L"poppins", 20, false, 5});
 
-    db.Save(persons);
+    db->Save(persons);
 
     const auto injected_predicate = Equal(&Person::first_name, L"john' OR 1=1 --");
-    const auto fetched_persons = db.Fetch<Person>(&injected_predicate);
+    const auto fetched_persons = db->Fetch<Person>(&injected_predicate);
     EXPECT_EQ(0, fetched_persons.size());
 }
 
 TEST_F(DatabaseTest, FetchWithSimilarPredicateString) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Company> company;
 
@@ -449,11 +449,11 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateString) {
     company.push_back({L"Kim", 22, L"South-Hall", 45000.0, 6});
     company.push_back({L"Janes", 24, L"Houston", 10000.0, 7});
 
-    db.Save(company);
+    db->Save(company);
 
     auto fetch_condition = Like(&Company::address, L"-");
 
-    auto fetched_persons = db.Fetch<Company>(&fetch_condition);
+    auto fetched_persons = db->Fetch<Company>(&fetch_condition);
     EXPECT_EQ(2, fetched_persons.size());
 
     EXPECT_EQ(4, fetched_persons[0].id);
@@ -470,7 +470,7 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateString) {
 }
 
 TEST_F(DatabaseTest, FetchWithSimilarPredicateDouble) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Company> company;
 
@@ -482,11 +482,11 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateDouble) {
     company.push_back({L"Kim", 22, L"South-Hall", 45000.0, 6});
     company.push_back({L"Janes", 24, L"Houston", 10000.0, 7});
 
-    db.Save(company);
+    db->Save(company);
 
     auto fetch_condition = Like(&Company::salary, 5000.0);
 
-    auto fetched_persons = db.Fetch<Company>(&fetch_condition);
+    auto fetched_persons = db->Fetch<Company>(&fetch_condition);
     EXPECT_EQ(4, fetched_persons.size());
 
     EXPECT_EQ(2, fetched_persons[0].id);
@@ -515,7 +515,7 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateDouble) {
 }
 
 TEST_F(DatabaseTest, FetchWithSimilarPredicateInt) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Company> company;
 
@@ -527,11 +527,11 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateInt) {
     company.push_back({L"Kim", 22, L"South-Hall", 45000.0, 6});
     company.push_back({L"Janes", 24, L"Houston", 10000.0, 7});
 
-    db.Save(company);
+    db->Save(company);
 
     const auto fetch_condition = Like(&Company::age, 7);
 
-    const auto fetched_persons = db.Fetch<Company>(&fetch_condition);
+    const auto fetched_persons = db->Fetch<Company>(&fetch_condition);
     EXPECT_EQ(1, fetched_persons.size());
 
     EXPECT_EQ(5, fetched_persons[0].id);
@@ -542,7 +542,7 @@ TEST_F(DatabaseTest, FetchWithSimilarPredicateInt) {
 }
 
 TEST_F(DatabaseTest, FetchWithPredicateChaining) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
@@ -552,12 +552,12 @@ TEST_F(DatabaseTest, FetchWithPredicateChaining) {
     persons.push_back({L"jame", L"surname4", 45, false, 4});
     persons.push_back({L"name5", L"surname5", 56, false, 5});
 
-    db.Save(persons);
+    db->Save(persons);
 
     const auto fetch_condition =
         GreaterThanOrEqual(&Person::id, 2).And(SmallerThan(&Person::id, 5)).And(Equal(&Person::first_name, L"john"));
 
-    const auto fetched_persons = db.Fetch<Person>(&fetch_condition);
+    const auto fetched_persons = db->Fetch<Person>(&fetch_condition);
     EXPECT_EQ(2, fetched_persons.size());
 
     EXPECT_EQ(2, fetched_persons[0].id);
@@ -572,34 +572,34 @@ TEST_F(DatabaseTest, FetchWithPredicateChaining) {
 }
 
 TEST_F(DatabaseTest, ReadMaxId) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
     persons.push_back({L"john", L"appleseed", 28, false, 54});
     persons.push_back({L"mary", L"poppins", 20, false, 156});
 
-    db.Save(persons);
+    db->Save(persons);
 
-    const auto max_id_person = db.GetMaxId<Person>();
+    const auto max_id_person = db->GetMaxId<Person>();
     EXPECT_EQ(156, max_id_person);
 
-    const auto max_id_pet = db.GetMaxId<Pet>();
+    const auto max_id_pet = db->GetMaxId<Pet>();
     EXPECT_EQ(0, max_id_pet);
 }
 
 TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
-    const auto& db = Database::Instance();
+    const auto db = Database::Instance();
 
     std::vector<Person> persons;
 
     persons.push_back({L"johnie", L"appleseed", 28, false, 52});
     persons.push_back({L"mary", L"poppins", 20, false, 156});
 
-    db.Save(persons);
-    db.UnsafeSql("DELETE FROM Person WHERE length(first_name) <= 4");
+    db->Save(persons);
+    db->UnsafeSql("DELETE FROM Person WHERE length(first_name) <= 4");
 
-    const auto fetched_persons = db.FetchAll<Person>();
+    const auto fetched_persons = db->FetchAll<Person>();
     EXPECT_EQ(1, fetched_persons.size());
     EXPECT_EQ(52, fetched_persons[0].id);
     EXPECT_EQ(L"johnie", fetched_persons[0].first_name);

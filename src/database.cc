@@ -22,6 +22,7 @@
 
 #include "database.h"
 
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 
@@ -29,7 +30,7 @@
 #include "queries.h"
 
 namespace sqlite_reflection {
-Database* Database::instance_ = nullptr;
+std::shared_ptr<Database> Database::instance_ = nullptr;
 std::mutex Database::instance_mutex_;
 
 const ReflectionRegister& GetReflectionRegister() {
@@ -43,15 +44,20 @@ void Database::Initialize(const std::string& path) {
     }
 
     const auto effective_path = !path.empty() ? path : ":memory:";
-    instance_ = new Database(effective_path.data());
+    instance_ = std::shared_ptr<Database>(new Database(effective_path.data()));
 }
 
 void Database::Finalize() {
     std::lock_guard<std::mutex> lock(instance_mutex_);
-    if (instance_ != nullptr) {
-        sqlite3_close(instance_->db_);
-        delete instance_;
-        instance_ = nullptr;
+    // Drop the singleton's own reference. The connection is closed by ~Database once the
+    // last outstanding Instance() handle is released, so an in-flight operation on another
+    // thread keeps the database alive until it finishes.
+    instance_.reset();
+}
+
+Database::~Database() {
+    if (db_ != nullptr) {
+        sqlite3_close(db_);
     }
 }
 
@@ -71,12 +77,12 @@ Database::Database(const char* path) : db_(nullptr) {
     }
 }
 
-const Database& Database::Instance() {
+std::shared_ptr<const Database> Database::Instance() {
     std::lock_guard<std::mutex> lock(instance_mutex_);
     if (instance_ == nullptr) {
         throw std::runtime_error("Database has not been initialized; call Database::Initialize() first");
     }
-    return *instance_;
+    return instance_;
 }
 
 FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase* predicate) const {

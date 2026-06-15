@@ -49,10 +49,10 @@ void ControlRoundTrip(const int64_t& time_point, const wchar_t* sys_time) {
     f.id = 0;
     f.creation_date = TimePoint(time_point);
 
-    const auto& db = Database::Instance();
-    db.Save(f);
+    const auto db = Database::Instance();
+    db->Save(f);
 
-    const auto retrieved = db.FetchAll<DatetimeContainer>();
+    const auto retrieved = db->FetchAll<DatetimeContainer>();
     EXPECT_EQ(1, retrieved.size());
 
     auto sys_time_actual = retrieved[0].creation_date.SystemTime();

@@ -23,6 +23,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <typeinfo>
@@ -46,12 +47,17 @@ public:
     /// in the database. If the path is empty, an in-memory database is created.
     static void Initialize(const std::string& path = "");
 
-    /// This should, ideally,  be called before the program finishes execution, so that
-    /// the database connection is closed.
+    /// Releases the database singleton. The underlying connection is closed once the last
+    /// holder of an Instance() handle has released it, so a concurrent in-flight operation
+    /// keeps the connection alive until it completes.
     static void Finalize();
 
-    /// Retrieves the database singleton wrapper for further operations
-    static const Database& Instance();
+    /// Retrieves the database singleton wrapper for further operations. The returned shared
+    /// handle keeps the database alive for as long as the caller holds it, so an operation in
+    /// progress is never torn down by a concurrent Finalize().
+    static std::shared_ptr<const Database> Instance();
+
+    ~Database();
 
     Database(Database const&) = delete;
     Database(Database&&) = delete;
@@ -236,7 +242,7 @@ private:
     /// Deletes a single record from the database
     void Delete(const Reflection& record, const QueryPredicateBase* predicate) const;
 
-    static Database* instance_;
+    static std::shared_ptr<Database> instance_;
 
     /// Guards the singleton lifecycle (Initialize / Finalize / Instance)
     static std::mutex instance_mutex_;
