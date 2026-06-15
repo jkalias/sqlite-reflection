@@ -60,7 +60,7 @@ TEST_F(ConcurrencyTest, ConcurrentAutoIncrementInsertsAllSucceedWithUniqueIds) {
     std::vector<std::thread> workers;
     workers.reserve(kThreads);
     for (int t = 0; t < kThreads; ++t) {
-        workers.emplace_back([&db, &failures] {
+        workers.emplace_back([&] {
             for (int i = 0; i < kInsertsPerThread; ++i) {
                 try {
                     Person p{L"john", L"doe", 30};
@@ -104,7 +104,7 @@ TEST_F(ConcurrencyTest, ConcurrentReadsAndWritesDoNotThrow) {
     workers.reserve(kWriters + kReaders);
 
     for (int t = 0; t < kWriters; ++t) {
-        workers.emplace_back([&db, &failures] {
+        workers.emplace_back([&] {
             for (int i = 0; i < kInsertsPerWriter; ++i) {
                 try {
                     Person p{L"jane", L"roe", 41};
@@ -117,7 +117,7 @@ TEST_F(ConcurrencyTest, ConcurrentReadsAndWritesDoNotThrow) {
     }
 
     for (int t = 0; t < kReaders; ++t) {
-        workers.emplace_back([&db, &failures] {
+        workers.emplace_back([&] {
             for (int i = 0; i < kReadsPerReader; ++i) {
                 try {
                     // Reading concurrently with writers must not crash or throw.
