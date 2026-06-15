@@ -23,6 +23,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <mutex>
 #include <string>
 #include <typeinfo>
 #include <vector>
@@ -98,9 +99,7 @@ public:
     int64_t GetMaxId() const {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
-        FetchMaxIdQuery query(db_, record);
-        const auto max_id = query.GetMaxId();
-        return max_id;
+        return GetMaxId(record);
     }
 
     /// Saves a given record in the database.
@@ -208,6 +207,9 @@ private:
     /// Returns a record type from its type information, retrieved from typeid(...).name()
     static const Reflection& GetRecord(const std::string& type_id);
 
+    /// Returns the max id currently stored for a given record (SELECT MAX(id) FROM table)
+    int64_t GetMaxId(const Reflection& record) const;
+
     /// Creates concrete record types with initialized members,
     /// based on the textual representation of results from a fetch query
     template <typename T>
@@ -235,6 +237,14 @@ private:
     void Delete(const Reflection& record, const QueryPredicateBase* predicate) const;
 
     static Database* instance_;
+
+    /// Guards the singleton lifecycle (Initialize / Finalize / Instance)
+    static std::mutex instance_mutex_;
+
     sqlite3* db_;
+
+    /// Serializes all access to the shared connection db_, so that the per-operation
+    /// BEGIN/COMMIT transaction is never interleaved across threads
+    mutable std::mutex db_mutex_;
 };
 }  // namespace sqlite_reflection
