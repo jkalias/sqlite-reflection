@@ -244,6 +244,12 @@ private:
 
     static std::shared_ptr<Database> instance_;
 
+    /// Observes the most recently retired instance. After Finalize() drops the singleton's
+    /// own reference, this stays non-expired for as long as any outstanding Instance() handle
+    /// keeps the previous database alive, which blocks reinitialization until those handles
+    /// are released (so two live databases/connections can never coexist).
+    static std::weak_ptr<Database> retired_;
+
     /// Guards the singleton lifecycle (Initialize / Finalize / Instance)
     static std::mutex instance_mutex_;
 

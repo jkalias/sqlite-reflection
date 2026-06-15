@@ -31,6 +31,7 @@
 
 namespace sqlite_reflection {
 std::shared_ptr<Database> Database::instance_ = nullptr;
+std::weak_ptr<Database> Database::retired_;
 std::mutex Database::instance_mutex_;
 
 const ReflectionRegister& GetReflectionRegister() {
@@ -42,6 +43,13 @@ void Database::Initialize(const std::string& path) {
     if (instance_ != nullptr) {
         throw std::invalid_argument("Database has already been initialized");
     }
+    if (!retired_.expired()) {
+        // A previous database is still kept alive by outstanding Instance() handles.
+        // Creating a new one now would leave two live databases/connections that do not
+        // share the same db_mutex_; refuse until those handles are released.
+        throw std::runtime_error(
+            "Database cannot be reinitialized while handles to the previous database are still in use");
+    }
 
     const auto effective_path = !path.empty() ? path : ":memory:";
     instance_ = std::shared_ptr<Database>(new Database(effective_path.data()));
@@ -51,7 +59,9 @@ void Database::Finalize() {
     std::lock_guard<std::mutex> lock(instance_mutex_);
     // Drop the singleton's own reference. The connection is closed by ~Database once the
     // last outstanding Instance() handle is released, so an in-flight operation on another
-    // thread keeps the database alive until it finishes.
+    // thread keeps the database alive until it finishes. Track the retiring instance so a
+    // subsequent Initialize() is rejected until those handles are gone.
+    retired_ = instance_;
     instance_.reset();
 }
 

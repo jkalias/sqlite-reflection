@@ -161,3 +161,20 @@ TEST_F(ConcurrencyTest, ConnectionOutlivesFinalizeWhileAHandleIsHeld) {
     const auto all = db->FetchAll<Person>();
     EXPECT_EQ(2, static_cast<int>(all.size()));
 }
+
+TEST_F(ConcurrencyTest, ReinitializeWhileAHandleIsHeldIsRejected) {
+    // Hold a handle to the current database, then finalize. The database stays alive through
+    // the handle, so re-initializing now would create a second live database/connection that
+    // does not share the first's lock. That must be rejected until the handle is released.
+    auto db = Database::Instance();
+    Database::Finalize();
+
+    EXPECT_THROW(Database::Initialize(""), std::runtime_error);
+
+    // Once the last handle is gone, the previous database is destroyed and re-initialization
+    // is allowed again.
+    db.reset();
+    Database::Initialize("");
+    const auto fresh = Database::Instance();
+    EXPECT_EQ(0, static_cast<int>(fresh->FetchAll<Person>().size()));
+}
