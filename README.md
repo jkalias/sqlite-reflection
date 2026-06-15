@@ -152,7 +152,8 @@ void StartApplication(const std::string& db_path) {
 }
 
 void StopApplication() {
-  // Finalize releases the singleton database connection.
+  // Finalize releases the singleton's own handle. The underlying connection is closed once
+  // the last outstanding Instance() handle is released (see "Thread safety" below).
   Database::Finalize();
 }
 ```
@@ -171,10 +172,25 @@ SQLite's serialized mode and all operations are serialized internally, so concur
 `Save`/`Fetch`/`Update`/`Delete` calls are safe (they execute one at a time rather than
 in parallel). `Initialize`, `Finalize`, and `Instance` are also safe to call concurrently.
 
-`Instance()` returns a `std::shared_ptr<const Database>`; hold on to it for the duration of
-your work. Because the handle keeps the database alive, an operation in progress on one
-thread is never torn down by a concurrent `Finalize()` on another — the connection is closed
-only once the last handle is released.
+**Ownership model.** `Instance()` returns a `std::shared_ptr<const Database>` rather than a
+reference. Each user holds a strong handle, so the database stays alive for as long as anyone
+is using it: an operation in progress on one thread is never torn down by a concurrent
+`Finalize()` on another. `Finalize()` only drops the singleton's own handle; the connection is
+closed by the destructor once the last handle is released. Hold the handle for the duration of
+your work (capture it by value into worker threads) rather than re-fetching it per call:
+
+```c++
+// Each worker captures its own handle by value, keeping the database alive while it runs.
+auto db = Database::Instance();
+std::thread worker([db] {
+    Person p{L"Ada", L"Lovelace", 36};
+    db->SaveAutoIncrement(p);          // safe even if another thread calls Finalize() meanwhile
+});
+worker.join();
+```
+
+Writes (and reads) are serialized, so they are safe but not concurrent; true write parallelism
+is tracked as future work.
 
 ## Saving records
 
