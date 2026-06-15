@@ -57,6 +57,12 @@ void Database::Initialize(const std::string& path) {
 
 void Database::Finalize() {
     std::lock_guard<std::mutex> lock(instance_mutex_);
+    if (instance_ == nullptr) {
+        // Nothing to retire. Crucially, do not overwrite retired_ here: a previous Finalize()
+        // may have retired an instance that outstanding handles still keep alive, and that
+        // guard must remain in effect until those handles are released.
+        return;
+    }
     // Drop the singleton's own reference. The connection is closed by ~Database once the
     // last outstanding Instance() handle is released, so an in-flight operation on another
     // thread keeps the database alive until it finishes. Track the retiring instance so a

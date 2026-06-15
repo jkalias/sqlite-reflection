@@ -178,3 +178,19 @@ TEST_F(ConcurrencyTest, ReinitializeWhileAHandleIsHeldIsRejected) {
     const auto fresh = Database::Instance();
     EXPECT_EQ(0, static_cast<int>(fresh->FetchAll<Person>().size()));
 }
+
+TEST_F(ConcurrencyTest, RepeatedFinalizeDoesNotClearTheReinitializationGuard) {
+    // Calling Finalize() more than once while a handle to the first database is still held
+    // must not drop the guard: the second Finalize() (with instance_ already null) must leave
+    // the retired-handle tracking intact so Initialize() stays blocked.
+    auto db = Database::Instance();
+    Database::Finalize();
+    Database::Finalize();  // second finalize must be a no-op for the guard
+
+    EXPECT_THROW(Database::Initialize(""), std::runtime_error);
+
+    db.reset();
+    Database::Initialize("");
+    const auto fresh = Database::Instance();
+    EXPECT_EQ(0, static_cast<int>(fresh->FetchAll<Person>().size()));
+}
