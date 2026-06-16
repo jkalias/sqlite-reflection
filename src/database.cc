@@ -111,12 +111,6 @@ const Reflection& Database::GetRecord(const std::string& type_id) {
     return GetReflectionRegister().records.at(type_id);
 }
 
-int64_t Database::GetMaxId(const Reflection& record) const {
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    FetchMaxIdQuery query(db_, record);
-    return query.GetMaxId();
-}
-
 void Database::Save(void* p, const Reflection& record) const {
     std::lock_guard<std::mutex> lock(db_mutex_);
     InsertQuery query(db_, record, p);

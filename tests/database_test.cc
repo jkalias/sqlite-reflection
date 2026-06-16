@@ -571,23 +571,6 @@ TEST_F(DatabaseTest, FetchWithPredicateChaining) {
     EXPECT_EQ(37, fetched_persons[1].age);
 }
 
-TEST_F(DatabaseTest, ReadMaxId) {
-    const auto db = Database::Instance();
-
-    std::vector<Person> persons;
-
-    persons.push_back({L"john", L"appleseed", 28, false, 54});
-    persons.push_back({L"mary", L"poppins", 20, false, 156});
-
-    db->Save(persons);
-
-    const auto max_id_person = db->GetMaxId<Person>();
-    EXPECT_EQ(156, max_id_person);
-
-    const auto max_id_pet = db->GetMaxId<Pet>();
-    EXPECT_EQ(0, max_id_pet);
-}
-
 TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
     const auto db = Database::Instance();
 
