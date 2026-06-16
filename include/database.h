@@ -99,15 +99,6 @@ public:
         return Hydrate<T>(query_result, record)[0];
     }
 
-    /// Retrieves the max id of a given record from the database
-    /// This corresponds to SELECT MAX(id) FROM TABLE in the SQL syntax
-    template <typename T>
-    int64_t GetMaxId() const {
-        const auto type_id = typeid(T).name();
-        const auto& record = GetRecord(type_id);
-        return GetMaxId(record);
-    }
-
     /// Saves a given record in the database.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
@@ -212,9 +203,6 @@ private:
 
     /// Returns a record type from its type information, retrieved from typeid(...).name()
     static const Reflection& GetRecord(const std::string& type_id);
-
-    /// Returns the max id currently stored for a given record (SELECT MAX(id) FROM table)
-    int64_t GetMaxId(const Reflection& record) const;
 
     /// Creates concrete record types with initialized members,
     /// based on the textual representation of results from a fetch query
