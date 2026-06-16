@@ -21,8 +21,11 @@ source_group("src" FILES ${TEST_SOURCES})
 # Set Properties->General->Configuration Type to Application
 add_executable (${EXENAME} ${TEST_SOURCES} ${TEST_HEADERS})
 
+# The concurrency tests use std::thread, which needs the platform threading library
+find_package(Threads REQUIRED)
+
 # Properties->Linker->Input->Additional Dependencies
-target_link_libraries(${EXENAME} PUBLIC sqlite_reflection gtest_main)
+target_link_libraries(${EXENAME} PUBLIC sqlite_reflection gtest_main Threads::Threads)
 
 # Creates a folder "executables" and adds target project under it
 set_property(TARGET ${EXENAME} PROPERTY FOLDER "executables")

@@ -49,19 +49,19 @@ int main() {
   // Open a persistent SQLite database file and create tables for all
   // reflected records that have been included in the program.
   Database::Initialize("people.sqlite");
-  const auto& db = Database::Instance();
+  const auto db = Database::Instance();
 
   // Save a strongly typed C++ object. The last constructor argument is the id
   // added by sqlite-reflection to every reflected record.
   Person person{L"John", L"Appleseed", 42, true, 1};
-  db.Save(person);
+  db->Save(person);
 
   // Build a WHERE predicate with member pointers instead of SQL strings.
   const auto adults_named_john = GreaterThanOrEqual(&Person::age, 18)
       .And(Equal(&Person::first_name, L"John"));
 
   // Fetch all Person rows matching the predicate.
-  const auto people = db.Fetch<Person>(&adults_named_john);
+  const auto people = db->Fetch<Person>(&adults_named_john);
 
   // Close the SQLite connection during application shutdown.
   Database::Finalize();
@@ -152,7 +152,8 @@ void StartApplication(const std::string& db_path) {
 }
 
 void StopApplication() {
-  // Finalize releases the singleton database connection.
+  // Finalize releases the singleton's own handle. The underlying connection is closed once
+  // the last outstanding Instance() handle is released (see "Thread safety" below).
   Database::Finalize();
 }
 ```
@@ -164,22 +165,49 @@ Passing an empty path creates an in-memory database, which is useful for tests:
 Database::Initialize("");
 ```
 
+### Thread safety
+
+`Database` is safe to use from multiple threads. The shared connection is opened in
+SQLite's serialized mode and all operations are serialized internally, so concurrent
+`Save`/`Fetch`/`Update`/`Delete` calls are safe (they execute one at a time rather than
+in parallel). `Initialize`, `Finalize`, and `Instance` are also safe to call concurrently.
+
+**Ownership model.** `Instance()` returns a `std::shared_ptr<const Database>` rather than a
+reference. Each user holds a strong handle, so the database stays alive for as long as anyone
+is using it: an operation in progress on one thread is never torn down by a concurrent
+`Finalize()` on another. `Finalize()` only drops the singleton's own handle; the connection is
+closed by the destructor once the last handle is released. Hold the handle for the duration of
+your work (capture it by value into worker threads) rather than re-fetching it per call:
+
+```c++
+// Each worker captures its own handle by value, keeping the database alive while it runs.
+auto db = Database::Instance();
+std::thread worker([db] {
+    Person p{L"Ada", L"Lovelace", 36};
+    db->SaveAutoIncrement(p);          // safe even if another thread calls Finalize() meanwhile
+});
+worker.join();
+```
+
+Writes (and reads) are serialized, so they are safe but not concurrent; true write parallelism
+is tracked as future work.
+
 ## Saving records
 
 Use `Save` when you want to provide the `id` yourself.
 
 ```c++
-const auto& db = Database::Instance();
+const auto db = Database::Instance();
 
 // Save one record with an explicit id.
 Person peter{L"Peter", L"Meier", 32, true, 5};
-db.Save(peter);
+db->Save(peter);
 
 // Save multiple records in one call.
 std::vector<Person> people;
 people.push_back({L"Mary", L"Poppins", 29, false, 6});
 people.push_back({L"Jane", L"Doe", 41, true, 7});
-db.Save(people);
+db->Save(people);
 ```
 
 Use `SaveAutoIncrement` when you want the library to assign the next available `id` for the saved row. The database generates the `id` (via an `AUTOINCREMENT` column, so values are never reused even after rows are deleted) and it is written back into the passed-in object, which must therefore be a mutable (non-`const`) lvalue.
@@ -189,14 +217,14 @@ Use `SaveAutoIncrement` when you want the library to assign the next available `
 ```c++
 // Omit the id and let sqlite-reflection assign the next available value.
 Person new_person{L"John", L"Doe", 28, false};
-db.SaveAutoIncrement(new_person);
+db->SaveAutoIncrement(new_person);
 // new_person.id now holds the value assigned by the database.
 
 // The same auto-increment behavior is available for batches.
 std::vector<Person> more_people;
 more_people.push_back({L"Ada", L"Lovelace", 36, true});
 more_people.push_back({L"Grace", L"Hopper", 85, true});
-db.SaveAutoIncrement(more_people);
+db->SaveAutoIncrement(more_people);
 // Each element's id is now populated.
 ```
 
@@ -206,14 +234,14 @@ Fetch all records of a type:
 
 ```c++
 // SELECT * FROM Person;
-const auto people = db.FetchAll<Person>();
+const auto people = db->FetchAll<Person>();
 ```
 
 Fetch one record by `id`:
 
 ```c++
 // Fetch throws if no Person with id 5 exists.
-const auto person = db.Fetch<Person>(5);
+const auto person = db->Fetch<Person>(5);
 ```
 
 Fetch records with a predicate:
@@ -227,7 +255,7 @@ const auto predicate = GreaterThanOrEqual(&Person::id, 2)
     .And(Equal(&Person::first_name, L"John"));
 
 // SELECT matching Person rows and hydrate them back into C++ objects.
-const auto matches = db.Fetch<Person>(&predicate);
+const auto matches = db->Fetch<Person>(&predicate);
 ```
 
 Available predicate helpers include:
@@ -252,22 +280,22 @@ Fetch or construct a record, change its fields, and pass it to `Update`. The `id
 
 ```c++
 // The row with id 5 will be replaced with these member values.
-Person person = db.Fetch<Person>(5);
+Person person = db->Fetch<Person>(5);
 person.last_name = L"Rambo";
 person.age = 33;
 
-db.Update(person);
+db->Update(person);
 ```
 
 Multiple records can be updated in one call:
 
 ```c++
 // Update each record in the vector by its id.
-std::vector<Person> people = db.FetchAll<Person>();
+std::vector<Person> people = db->FetchAll<Person>();
 people[0].last_name = L"Rambo";
 people[1].age = 20;
 
-db.Update(people);
+db->Update(people);
 ```
 
 ## Deleting records
@@ -276,15 +304,15 @@ Delete by record:
 
 ```c++
 // Delete the row matching person.id.
-const auto person = db.Fetch<Person>(5);
-db.Delete(person);
+const auto person = db->Fetch<Person>(5);
+db->Delete(person);
 ```
 
 Delete by `id`:
 
 ```c++
 // Delete the Person row whose id is 5.
-db.Delete<Person>(5);
+db->Delete<Person>(5);
 ```
 
 Delete by predicate:
@@ -294,7 +322,7 @@ Delete by predicate:
 const auto predicate = SmallerThan(&Person::age, 30)
     .And(Equal(&Person::is_vaccinated, true));
 
-db.Delete<Person>(&predicate);
+db->Delete<Person>(&predicate);
 ```
 
 ## Date and time fields
@@ -322,7 +350,7 @@ using namespace sqlite_reflection;
 
 // TimePoint(0) represents the Unix epoch.
 Event event{L"Created", TimePoint(0), 1};
-db.Save(event);
+db->Save(event);
 ```
 
 ## Raw SQL
@@ -332,10 +360,10 @@ The typed CRUD API should be preferred for normal application code. It uses prep
 For advanced cases, `UnsafeSql` executes raw SQL text directly:
 
 ```c++
-const auto& db = Database::Instance();
+const auto db = Database::Instance();
 
 // Executes the SQL string as-is. Use only for trusted SQL.
-db.UnsafeSql("DELETE FROM Person WHERE length(first_name) <= 4");
+db->UnsafeSql("DELETE FROM Person WHERE length(first_name) <= 4");
 ```
 
 Only use `UnsafeSql` with trusted SQL strings. Do not concatenate user input into raw SQL.

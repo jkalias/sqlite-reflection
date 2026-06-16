@@ -293,7 +293,6 @@ int64_t FetchMaxIdQuery::GetMaxId() {
     const auto sql = PrepareSql();
 
     if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
-        sqlite3_close(db_);
         throw std::runtime_error("Could not retrieve max id for table " + record_.name);
     }
 
@@ -323,7 +322,6 @@ FetchQueryResults FetchRecordsQuery::GetResults() {
     const auto sql = PrepareSql();
 
     if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
-        sqlite3_close(db_);
         throw std::runtime_error((sql + ": could not get results").data());
     }
     BindValues(stmt_, predicate_->Bindings());

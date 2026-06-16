@@ -23,6 +23,8 @@
 #pragma once
 
 #include <stdexcept>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <typeinfo>
 #include <vector>
@@ -45,12 +47,17 @@ public:
     /// in the database. If the path is empty, an in-memory database is created.
     static void Initialize(const std::string& path = "");
 
-    /// This should, ideally,  be called before the program finishes execution, so that
-    /// the database connection is closed.
+    /// Releases the database singleton. The underlying connection is closed once the last
+    /// holder of an Instance() handle has released it, so a concurrent in-flight operation
+    /// keeps the connection alive until it completes.
     static void Finalize();
 
-    /// Retrieves the database singleton wrapper for further operations
-    static const Database& Instance();
+    /// Retrieves the database singleton wrapper for further operations. The returned shared
+    /// handle keeps the database alive for as long as the caller holds it, so an operation in
+    /// progress is never torn down by a concurrent Finalize().
+    static std::shared_ptr<const Database> Instance();
+
+    ~Database();
 
     Database(Database const&) = delete;
     Database(Database&&) = delete;
@@ -98,9 +105,7 @@ public:
     int64_t GetMaxId() const {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
-        FetchMaxIdQuery query(db_, record);
-        const auto max_id = query.GetMaxId();
-        return max_id;
+        return GetMaxId(record);
     }
 
     /// Saves a given record in the database.
@@ -208,6 +213,9 @@ private:
     /// Returns a record type from its type information, retrieved from typeid(...).name()
     static const Reflection& GetRecord(const std::string& type_id);
 
+    /// Returns the max id currently stored for a given record (SELECT MAX(id) FROM table)
+    int64_t GetMaxId(const Reflection& record) const;
+
     /// Creates concrete record types with initialized members,
     /// based on the textual representation of results from a fetch query
     template <typename T>
@@ -234,7 +242,21 @@ private:
     /// Deletes a single record from the database
     void Delete(const Reflection& record, const QueryPredicateBase* predicate) const;
 
-    static Database* instance_;
+    static std::shared_ptr<Database> instance_;
+
+    /// Observes the most recently retired instance. After Finalize() drops the singleton's
+    /// own reference, this stays non-expired for as long as any outstanding Instance() handle
+    /// keeps the previous database alive, which blocks reinitialization until those handles
+    /// are released (so two live databases/connections can never coexist).
+    static std::weak_ptr<Database> retired_;
+
+    /// Guards the singleton lifecycle (Initialize / Finalize / Instance)
+    static std::mutex instance_mutex_;
+
     sqlite3* db_;
+
+    /// Serializes all access to the shared connection db_, so that the per-operation
+    /// BEGIN/COMMIT transaction is never interleaved across threads
+    mutable std::mutex db_mutex_;
 };
 }  // namespace sqlite_reflection
