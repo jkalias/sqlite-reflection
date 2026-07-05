@@ -661,6 +661,25 @@ TEST_F(DatabaseTest, FetchSkipsBlobColumnsWithoutThrowing) {
     EXPECT_EQ(50000.0, fetched.salary);
 }
 
+TEST_F(DatabaseTest, FetchToleratesTableWithFewerColumnsThanCurrentStruct) {
+    const auto db = Database::Instance();
+
+    // Initialize() only ever runs CREATE TABLE IF NOT EXISTS, so a table created by an older
+    // version of a reflected struct is never migrated to add newly introduced columns.
+    // Simulate that drift directly (rather than needing a pre-existing file) by dropping
+    // columns after the row is saved: SELECT * then returns fewer columns than
+    // record.member_metadata.size(), which must not read past the statement's real column
+    // count when hydrating.
+    db->Save(Company{L"Old Corp", 40, L"Nowhere", 12345.0, 1});
+    db->UnsafeSql("ALTER TABLE Company DROP COLUMN address");
+    db->UnsafeSql("ALTER TABLE Company DROP COLUMN salary");
+
+    Company fetched;
+    EXPECT_NO_THROW(fetched = db->Fetch<Company>(1));
+    EXPECT_EQ(L"Old Corp", fetched.name);
+    EXPECT_EQ(40, fetched.age);
+}
+
 TEST_F(DatabaseTest, FetchAllRoundTripsLargeBatchExactly) {
     const auto db = Database::Instance();
 

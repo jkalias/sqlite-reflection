@@ -297,7 +297,12 @@ bool FetchRecordsQuery::StepRow() {
 }
 
 void FetchRecordsQuery::HydrateCurrentRow(void* p, const Reflection& record) const {
-    const auto column_count = record.member_metadata.size();
+    // Initialize() only ever runs CREATE TABLE IF NOT EXISTS, so a table that predates a
+    // field being added to the reflected struct can have fewer actual columns than
+    // record.member_metadata; indexing sqlite3_column_* past the statement's real column
+    // count is undefined behavior, so bound the loop by whichever is smaller, exactly as
+    // the prior text-based path did via sqlite3_column_count(stmt_)
+    const auto column_count = std::min(static_cast<size_t>(sqlite3_column_count(stmt_)), record.member_metadata.size());
     for (size_t j = 0; j < column_count; j++) {
         const auto col = static_cast<int>(j);
 
