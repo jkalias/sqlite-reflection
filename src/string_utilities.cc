@@ -24,7 +24,6 @@
 
 #include <codecvt>
 #include <numeric>
-#include <sstream>
 #ifndef _WIN32
 #include <locale>
 #endif
@@ -85,8 +84,4 @@ std::string StringUtilities::Join(const std::vector<std::string>& list, const st
 
     return std::accumulate(list.begin() + 1, list.end(), list[0],
                            [&](const std::string& a, const std::string& b) { return a + separator + b; });
-}
-
-std::string StringUtilities::Join(const std::vector<std::string>& list, char c) {
-    return Join(list, std::string(1, c));
 }
