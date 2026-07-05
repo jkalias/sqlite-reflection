@@ -641,6 +641,26 @@ TEST_F(DatabaseTest, FetchPreservesNullAndEmptyStringSkipSemantics) {
     EXPECT_EQ(60000.0, second.salary);
 }
 
+TEST_F(DatabaseTest, FetchSkipsBlobColumnsWithoutThrowing) {
+    const auto db = Database::Instance();
+
+    // A BLOB value (reachable via raw SQL despite the column's declared affinity - here an
+    // invalid UTF-8 byte) must be skipped exactly like a NULL, not fed into the typed
+    // accessor for the member's declared storage class. The old text-based path returned an
+    // empty string for any column whose runtime type wasn't INTEGER/FLOAT/TEXT (i.e. NULL or
+    // BLOB) and Hydrate skipped assignment on that; direct hydration must replicate this or
+    // else invalid UTF-8 blob bytes would throw out of FromUtf8 during a TEXT member's
+    // hydration, where the old path silently tolerated the row.
+    db->UnsafeSql("INSERT INTO Company (id, name, age, address, salary) VALUES (1, X'FF', 30, 'Nowhere', 50000.0)");
+
+    Company fetched;
+    EXPECT_NO_THROW(fetched = db->Fetch<Company>(1));
+    EXPECT_EQ(L"", fetched.name);
+    EXPECT_EQ(L"Nowhere", fetched.address);
+    EXPECT_EQ(30, fetched.age);
+    EXPECT_EQ(50000.0, fetched.salary);
+}
+
 TEST_F(DatabaseTest, FetchAllRoundTripsLargeBatchExactly) {
     const auto db = Database::Instance();
 

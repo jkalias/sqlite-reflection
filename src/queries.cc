@@ -301,9 +301,14 @@ void FetchRecordsQuery::HydrateCurrentRow(void* p, const Reflection& record) con
     for (size_t j = 0; j < column_count; j++) {
         const auto col = static_cast<int>(j);
 
-        // A SQL NULL is left unset (member keeps its default value), regardless of the
-        // member's declared storage class
-        if (sqlite3_column_type(stmt_, col) == SQLITE_NULL) {
+        // The prior text-based path only ever produced a non-empty string for INTEGER,
+        // FLOAT, or TEXT columns; NULL and BLOB both fell through to an empty string and
+        // were skipped, regardless of the member's declared storage class. Replicate that
+        // here so a NULL or BLOB value (reachable via UnsafeSql or a foreign database file,
+        // even for a column declared as a different storage class) is never fed to the
+        // wrong typed accessor.
+        const int col_type = sqlite3_column_type(stmt_, col);
+        if (col_type == SQLITE_NULL || col_type == SQLITE_BLOB) {
             continue;
         }
 
