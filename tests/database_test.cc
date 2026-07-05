@@ -571,6 +571,48 @@ TEST_F(DatabaseTest, FetchWithPredicateChaining) {
     EXPECT_EQ(37, fetched_persons[1].age);
 }
 
+TEST_F(DatabaseTest, FetchPreservesInt64ValuesBeyondInt32Range) {
+    const auto db = Database::Instance();
+
+    // Values above INT32_MAX must survive a round-trip; sqlite3_column_int would
+    // truncate/wrap these to 32 bits
+    const int64_t above_int32_max = 5000000000LL;
+    const int64_t near_int64_max = 9000000000000000000LL;
+
+    std::vector<Company> company;
+    company.push_back({L"Big Corp", above_int32_max, L"Nowhere", 1.0, 1});
+    company.push_back({L"Huge Corp", near_int64_max, L"Nowhere", 1.0, 2});
+
+    db->Save(company);
+
+    const auto fetched_first = db->Fetch<Company>(1);
+    EXPECT_EQ(above_int32_max, fetched_first.age);
+
+    const auto fetched_second = db->Fetch<Company>(2);
+    EXPECT_EQ(near_int64_max, fetched_second.age);
+}
+
+TEST_F(DatabaseTest, FetchPreservesHighPrecisionDoubleValues) {
+    const auto db = Database::Instance();
+
+    // std::to_wstring(double) formats with a fixed 6 decimal places, which would
+    // silently drop precision here
+    const double high_precision = 0.12345678901234567;
+    const double large_magnitude = 123456789012345.67;
+
+    std::vector<Company> company;
+    company.push_back({L"Precision Inc", 1, L"Nowhere", high_precision, 1});
+    company.push_back({L"Large Corp", 2, L"Nowhere", large_magnitude, 2});
+
+    db->Save(company);
+
+    const auto fetched_first = db->Fetch<Company>(1);
+    EXPECT_DOUBLE_EQ(high_precision, fetched_first.salary);
+
+    const auto fetched_second = db->Fetch<Company>(2);
+    EXPECT_DOUBLE_EQ(large_magnitude, fetched_second.salary);
+}
+
 TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
     const auto db = Database::Instance();
 
