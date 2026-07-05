@@ -31,10 +31,8 @@ namespace sqlite_reflection {
 /// between strings and concrete types used by SQLite
 class REFLECTION_EXPORT StringUtilities {
 public:
-    static int64_t ToInt(const std::wstring& s);
     static std::string FromInt(int64_t value);
 
-    static double ToDouble(const std::wstring& s);
     static std::string FromDouble(double value);
 
     static std::string ToUtf8(const std::wstring& wide_string);
