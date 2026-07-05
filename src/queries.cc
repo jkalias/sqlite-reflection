@@ -25,14 +25,12 @@
 #include <string.h>
 
 #include <algorithm>
-#include <cstdio>
 #include <cstring>
 #include <iterator>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "fetch_query_results.h"
 #include "internal/sqlite3.h"
 #include "internal/string_utilities.h"
 
@@ -287,71 +285,77 @@ FetchRecordsQuery::~FetchRecordsQuery() {
     }
 }
 
-FetchQueryResults FetchRecordsQuery::GetResults() {
-    const auto sql = PrepareSql();
-
-    if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
-        throw std::runtime_error((sql + ": could not get results").data());
-    }
-    BindValues(stmt_, predicate_->Bindings());
-
-    const auto column_count = sqlite3_column_count(stmt_);
-
-    FetchQueryResults results;
-    results.column_names.reserve(column_count);
-    for (auto i = 0; i < column_count; i++) {
-        results.column_names.emplace_back(sqlite3_column_name(stmt_, i));
-    }
-
-    while (sqlite3_step(stmt_) != SQLITE_DONE) {
-        std::vector<std::wstring> row;
-        row.reserve(column_count);
-        for (auto col = 0; col < column_count; col++) {
-            auto value = GetColumnValue(col);
-            row.emplace_back(value);
+bool FetchRecordsQuery::StepRow() {
+    if (stmt_ == nullptr) {
+        const auto sql = PrepareSql();
+        if (sqlite3_prepare_v2(db_, sql.data(), -1, &stmt_, nullptr)) {
+            throw std::runtime_error((sql + ": could not get results").data());
         }
-        results.row_values.emplace_back(row);
+        BindValues(stmt_, predicate_->Bindings());
     }
-
-    return results;
+    return sqlite3_step(stmt_) != SQLITE_DONE;
 }
 
-void FetchRecordsQuery::Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i) {
-    for (auto j = 0; j < query_results.column_names.size(); j++) {
-        const auto current_storage_class = record.member_metadata[j].storage_class;
-        const auto& content = query_results.row_values[i][j];
-        if (content.empty()) {
+void FetchRecordsQuery::HydrateCurrentRow(void* p, const Reflection& record) const {
+    // Initialize() only ever runs CREATE TABLE IF NOT EXISTS, so a table that predates a
+    // field being added to the reflected struct can have fewer actual columns than
+    // record.member_metadata; indexing sqlite3_column_* past the statement's real column
+    // count is undefined behavior, so bound the loop by whichever is smaller, exactly as
+    // the prior text-based path did via sqlite3_column_count(stmt_)
+    const auto column_count = std::min(static_cast<size_t>(sqlite3_column_count(stmt_)), record.member_metadata.size());
+    for (size_t j = 0; j < column_count; j++) {
+        const auto col = static_cast<int>(j);
+
+        // The prior text-based path only ever produced a non-empty string for INTEGER,
+        // FLOAT, or TEXT columns; NULL and BLOB both fell through to an empty string and
+        // were skipped, regardless of the member's declared storage class. Replicate that
+        // here so a NULL or BLOB value (reachable via UnsafeSql or a foreign database file,
+        // even for a column declared as a different storage class) is never fed to the
+        // wrong typed accessor.
+        const int col_type = sqlite3_column_type(stmt_, col);
+        if (col_type == SQLITE_NULL || col_type == SQLITE_BLOB) {
             continue;
         }
 
+        const auto current_storage_class = record.member_metadata[j].storage_class;
         switch (current_storage_class) {
             case SqliteStorageClass::kInt: {
                 auto& v = *reinterpret_cast<int64_t*>(GetMemberAddress(p, record, j));
-                v = StringUtilities::ToInt(content);
+                v = sqlite3_column_int64(stmt_, col);
                 break;
             }
 
             case SqliteStorageClass::kBool: {
                 auto& v = *reinterpret_cast<bool*>(GetMemberAddress(p, record, j));
-                v = StringUtilities::ToInt(content) == 1;
+                v = sqlite3_column_int64(stmt_, col) == 1;
                 break;
             }
 
             case SqliteStorageClass::kReal: {
                 auto& v = *reinterpret_cast<double*>(GetMemberAddress(p, record, j));
-                v = StringUtilities::ToDouble(content);
+                v = sqlite3_column_double(stmt_, col);
                 break;
             }
 
             case SqliteStorageClass::kText: {
+                const auto byte_count = sqlite3_column_bytes(stmt_, col);
+                if (byte_count == 0) {
+                    continue;
+                }
+                const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
                 auto& v = *reinterpret_cast<std::wstring*>(GetMemberAddress(p, record, j));
-                v = content;
+                v = StringUtilities::FromUtf8(content, byte_count);
                 break;
             }
 
             case SqliteStorageClass::kDateTime: {
+                const auto byte_count = sqlite3_column_bytes(stmt_, col);
+                if (byte_count == 0) {
+                    continue;
+                }
+                const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
                 auto& v = *reinterpret_cast<TimePoint*>(GetMemberAddress(p, record, j));
-                v = TimePoint::FromSystemTime(content);
+                v = TimePoint::FromSystemTime(StringUtilities::FromUtf8(content, byte_count));
                 break;
             }
 
@@ -369,29 +373,4 @@ std::string FetchRecordsQuery::PrepareSql() const {
         sql += " WHERE " + condition_evaluation;
     }
     return sql + ";";
-}
-
-std::wstring FetchRecordsQuery::GetColumnValue(const int col) const {
-    const int col_type = sqlite3_column_type(stmt_, col);
-    switch (col_type) {
-        case SQLITE_INTEGER:
-            return std::to_wstring(sqlite3_column_int64(stmt_, col));
-
-        case SQLITE_FLOAT: {
-            // %.17g round-trips any double exactly; to_wstring's fixed 6-decimal
-            // formatting would silently truncate precision here
-            char buffer[64];
-            std::snprintf(buffer, sizeof(buffer), "%.17g", sqlite3_column_double(stmt_, col));
-            return StringUtilities::FromUtf8(buffer, std::strlen(buffer));
-        }
-
-        case SQLITE_TEXT: {
-            const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
-            const auto byte_count = sqlite3_column_bytes(stmt_, col);
-            return StringUtilities::FromUtf8(content, byte_count);
-        }
-
-        default:
-            return L"";
-    }
 }

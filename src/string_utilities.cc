@@ -30,24 +30,8 @@
 
 using namespace sqlite_reflection;
 
-int64_t StringUtilities::ToInt(const std::wstring& s) {
-    try {
-        return std::stoll(s);
-    } catch (...) {
-        return 0;
-    }
-}
-
 std::string StringUtilities::FromInt(int64_t value) {
     return std::to_string(value);
-}
-
-double StringUtilities::ToDouble(const std::wstring& s) {
-    try {
-        return std::stod(s);
-    } catch (...) {
-        return 0.0;
-    }
 }
 
 std::string StringUtilities::FromDouble(double value) {

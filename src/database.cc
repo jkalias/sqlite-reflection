@@ -101,12 +101,6 @@ std::shared_ptr<const Database> Database::Instance() {
     return instance_;
 }
 
-FetchQueryResults Database::Fetch(const Reflection& record, const QueryPredicateBase* predicate) const {
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    FetchRecordsQuery query(db_, record, predicate);
-    return query.GetResults();
-}
-
 const Reflection& Database::GetRecord(const std::string& type_id) {
     return GetReflectionRegister().records.at(type_id);
 }
