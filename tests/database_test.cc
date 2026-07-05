@@ -613,6 +613,67 @@ TEST_F(DatabaseTest, FetchPreservesHighPrecisionDoubleValues) {
     EXPECT_DOUBLE_EQ(large_magnitude, fetched_second.salary);
 }
 
+TEST_F(DatabaseTest, FetchPreservesNullAndEmptyStringSkipSemantics) {
+    const auto db = Database::Instance();
+
+    // Columns omitted from a raw INSERT are stored as SQL NULL. Direct hydration must skip
+    // assignment for a NULL column, and must also skip assignment for a TEXT column holding
+    // a genuine empty string - matching the pre-refactor behavior exactly. Both are only
+    // observable here for wstring members: std::wstring's default constructor deterministically
+    // produces an empty string regardless of whether it was assigned, whereas a skipped
+    // scalar member (e.g. an omitted INTEGER column) keeps whatever indeterminate value
+    // T's default construction happens to leave it at - both before and after this refactor -
+    // so that case isn't asserted on here. Resolving the NULL/empty-string conflation itself
+    // is tracked separately as #20 and is out of scope here.
+    db->UnsafeSql("INSERT INTO Company (id, name, age, salary) VALUES (1, '', 30, 50000.0)");
+    db->UnsafeSql("INSERT INTO Company (id, age, address, salary) VALUES (2, 31, 'Nowhere', 60000.0)");
+
+    const auto first = db->Fetch<Company>(1);
+    EXPECT_EQ(L"", first.name);     // explicit empty string
+    EXPECT_EQ(L"", first.address);  // omitted column -> SQL NULL
+    EXPECT_EQ(30, first.age);
+    EXPECT_EQ(50000.0, first.salary);
+
+    const auto second = db->Fetch<Company>(2);
+    EXPECT_EQ(L"", second.name);  // omitted column -> SQL NULL
+    EXPECT_EQ(L"Nowhere", second.address);
+    EXPECT_EQ(31, second.age);
+    EXPECT_EQ(60000.0, second.salary);
+}
+
+TEST_F(DatabaseTest, FetchAllRoundTripsLargeBatchExactly) {
+    const auto db = Database::Instance();
+
+    // Correctness-at-scale: a large FetchAll must still hydrate every row exactly, now that
+    // hydration reads directly from the prepared statement instead of materializing the
+    // whole result set as strings first
+    constexpr int kRowCount = 50000;
+    std::vector<Company> companies;
+    companies.reserve(kRowCount);
+    for (int i = 0; i < kRowCount; ++i) {
+        Company c;
+        c.id = i + 1;
+        c.name = L"company_" + std::to_wstring(i);
+        c.age = 5000000000LL + i;  // beyond INT32_MAX for every row
+        c.address = L"address_" + std::to_wstring(i);
+        c.salary = 0.1 + static_cast<double>(i) * 1e-9;  // needs full double precision
+        companies.push_back(c);
+    }
+
+    db->Save(companies);
+
+    const auto fetched = db->FetchAll<Company>();
+    ASSERT_EQ(static_cast<size_t>(kRowCount), fetched.size());
+
+    for (int i = 0; i < kRowCount; ++i) {
+        EXPECT_EQ(companies[i].id, fetched[i].id);
+        EXPECT_EQ(companies[i].name, fetched[i].name);
+        EXPECT_EQ(companies[i].age, fetched[i].age);
+        EXPECT_EQ(companies[i].address, fetched[i].address);
+        EXPECT_DOUBLE_EQ(companies[i].salary, fetched[i].salary);
+    }
+}
+
 TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
     const auto db = Database::Instance();
 

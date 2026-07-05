@@ -22,14 +22,13 @@
 
 #pragma once
 
-#include <stdexcept>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <typeinfo>
 #include <vector>
 
-#include "fetch_query_results.h"
 #include "queries.h"
 #include "query_predicates.h"
 #include "reflection.h"
@@ -71,8 +70,7 @@ public:
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         EmptyPredicate empty;
-        const auto& query_result = Fetch(record, &empty);
-        return Hydrate<T>(query_result, record);
+        return FetchRecords<T>(record, &empty);
     }
 
     /// Retrieves all entries of a given record from the database, which match a given predicate.
@@ -81,8 +79,7 @@ public:
     std::vector<T> Fetch(const QueryPredicateBase* predicate) const {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
-        const auto& query_result = Fetch(record, predicate);
-        return Hydrate<T>(query_result, record);
+        return FetchRecords<T>(record, predicate);
     }
 
     /// Retrieves a single entry of a given record from the database, which matches a given id.
@@ -92,11 +89,11 @@ public:
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         Equal equal_id_condition(&T::id, id);
-        const auto& query_result = Fetch(record, &equal_id_condition);
-        if (query_result.row_values.size() != 1) {
+        auto models = FetchRecords<T>(record, &equal_id_condition);
+        if (models.size() != 1) {
             throw std::runtime_error("No record with this id found");
         }
-        return Hydrate<T>(query_result, record)[0];
+        return models[0];
     }
 
     /// Saves a given record in the database.
@@ -197,22 +194,21 @@ public:
 private:
     explicit Database(const char* path);
 
-    /// Executes a fetch query (SELECT) for a given record with a given predicate,
-    /// and returns the results in a textual representation
-    FetchQueryResults Fetch(const Reflection& record, const QueryPredicateBase* predicate) const;
-
     /// Returns a record type from its type information, retrieved from typeid(...).name()
     static const Reflection& GetRecord(const std::string& type_id);
 
-    /// Creates concrete record types with initialized members,
-    /// based on the textual representation of results from a fetch query
+    /// Executes a fetch query (SELECT) for a given record with a given predicate, streaming
+    /// each matching row directly from the prepared statement into a newly constructed T -
+    /// no intermediate string materialization of the result set
     template <typename T>
-    std::vector<T> Hydrate(const FetchQueryResults& query_results, const Reflection& record) const {
+    std::vector<T> FetchRecords(const Reflection& record, const QueryPredicateBase* predicate) const {
+        std::lock_guard<std::mutex> lock(db_mutex_);
+        FetchRecordsQuery query(db_, record, predicate);
         std::vector<T> models;
-        for (auto i = 0; i < query_results.row_values.size(); i++) {
+        while (query.StepRow()) {
             T model;
-            FetchRecordsQuery::Hydrate((void*)&model, query_results, record, i);
-            models.emplace_back(model);
+            query.HydrateCurrentRow((void*)&model, record);
+            models.emplace_back(std::move(model));
         }
         return models;
     }

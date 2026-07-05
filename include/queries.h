@@ -139,8 +139,6 @@ protected:
     void* p_;
 };
 
-struct FetchQueryResults;
-
 /// A query for retrieving all records from the database, which match a given predicate condition
 /// This maps to SELECT * in SQL
 class REFLECTION_EXPORT FetchRecordsQuery final : public Query {
@@ -148,17 +146,17 @@ public:
     explicit FetchRecordsQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate);
     ~FetchRecordsQuery() override;
 
-    /// Returns a textual representation of the results of the query
-    FetchQueryResults GetResults();
+    /// Prepares the underlying statement on first use and advances it to the next matching
+    /// row. Returns false once there are no more rows left to fetch.
+    bool StepRow();
 
-    /// Reconstructs all record member values based on their concrete type,
-    /// based on the textual representation of the corresponding row result
-    /// of the fetch query
-    static void Hydrate(void* p, const FetchQueryResults& query_results, const Reflection& record, size_t i);
+    /// Hydrates the type-erased record pointed to by p from the current row of the prepared
+    /// statement, reading each column directly via its typed SQLite accessor, with no
+    /// intermediate string representation of the fetched values
+    void HydrateCurrentRow(void* p, const Reflection& record) const;
 
 protected:
     std::string PrepareSql() const override;
-    std::wstring GetColumnValue(int col) const;
 
     sqlite3_stmt* stmt_;
     const QueryPredicateBase* predicate_;
