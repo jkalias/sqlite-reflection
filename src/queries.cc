@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <iterator>
 #include <stdexcept>
@@ -374,10 +375,15 @@ std::wstring FetchRecordsQuery::GetColumnValue(const int col) const {
     const int col_type = sqlite3_column_type(stmt_, col);
     switch (col_type) {
         case SQLITE_INTEGER:
-            return std::to_wstring(sqlite3_column_int(stmt_, col));
+            return std::to_wstring(sqlite3_column_int64(stmt_, col));
 
-        case SQLITE_FLOAT:
-            return std::to_wstring(sqlite3_column_double(stmt_, col));
+        case SQLITE_FLOAT: {
+            // %.17g round-trips any double exactly; to_wstring's fixed 6-decimal
+            // formatting would silently truncate precision here
+            char buffer[64];
+            std::snprintf(buffer, sizeof(buffer), "%.17g", sqlite3_column_double(stmt_, col));
+            return StringUtilities::FromUtf8(buffer, std::strlen(buffer));
+        }
 
         case SQLITE_TEXT: {
             const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
