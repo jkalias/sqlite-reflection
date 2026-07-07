@@ -135,6 +135,14 @@ Supported field macros:
 | `sqlite_reflection::TimePoint` | `MEMBER_DATETIME(name)` |
 | member function declaration | `FUNC(signature)` |
 
+**Layout constraint.** Reflectable records must be simple, standard-layout structs: no base
+classes, no virtual functions, no virtual/multiple inheritance. Member access is computed from
+`offsetof`/pointer-to-member byte offsets, which are only well-defined for such types; a struct
+outside these bounds is rejected at compile time via a `static_assert` if it's polymorphic (has a
+vtable), but other standard-layout violations are not otherwise detectable across all supported
+compilers and would silently compute wrong member offsets instead of failing to compile. Stick to
+plain data members declared through the `MEMBER_*` macros and you're always within these bounds.
+
 Make sure each reflected record header is included by your program before `Database::Initialize()` is called. During initialization, the library creates one table for each registered record type if that table does not already exist.
 
 ## Opening and closing the database
