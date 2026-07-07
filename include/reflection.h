@@ -203,6 +203,15 @@ static_assert(!std::is_polymorphic<REFLECTABLE>::value,
               "sqlite-reflection: reflectable records must not be polymorphic "
               "(no virtual functions or virtual/multiple inheritance).");
 
+// Stronger guard, attempted separately from the polymorphic check above: is_standard_layout is
+// only true for REFLECTABLE if std::wstring and sqlite_reflection::TimePoint both happen to be
+// standard-layout on this standard library, which is implementation-defined and unverified here
+// on libc++ (macOS) / MSVC (Windows) - verified true on libstdc++ (Linux). If this line fails to
+// compile on any CI platform, that failure isolates to exactly this static_assert; remove it and
+// keep only the polymorphic guard above (see #21 and #25).
+static_assert(std::is_standard_layout<REFLECTABLE>::value,
+              "sqlite-reflection: reflectable records must be standard-layout.");
+
 /// Provide a static registration function for each reflectable struct
 static std::string CAT(Register, REFLECTABLE)() {
     std::string type_id = typeid(REFLECTABLE).name();

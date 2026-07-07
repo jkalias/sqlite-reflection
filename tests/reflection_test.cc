@@ -51,3 +51,14 @@ TEST(ReflectionTest, ReflectableRecordsAreNotPolymorphic) {
     EXPECT_FALSE(std::is_polymorphic<Company>::value);
     EXPECT_FALSE(std::is_polymorphic<DatetimeContainer>::value);
 }
+
+// Mirrors the stronger is_standard_layout static_assert in include/reflection.h (attempted
+// separately from the polymorphic guard, since it's only verified on libstdc++/Linux so far -
+// see #21). If that assert is ever removed because a CI platform can't satisfy it, this test
+// should be removed alongside it rather than weakened to keep passing.
+TEST(ReflectionTest, ReflectableRecordsAreStandardLayout) {
+    EXPECT_TRUE(std::is_standard_layout<Person>::value);
+    EXPECT_TRUE(std::is_standard_layout<Pet>::value);
+    EXPECT_TRUE(std::is_standard_layout<Company>::value);
+    EXPECT_TRUE(std::is_standard_layout<DatetimeContainer>::value);
+}
