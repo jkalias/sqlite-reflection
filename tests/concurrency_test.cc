@@ -20,8 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "database.h"
-
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -30,6 +28,7 @@
 #include <thread>
 #include <vector>
 
+#include "database.h"
 #include "person.h"
 
 using namespace sqlite_reflection;
@@ -177,6 +176,27 @@ TEST_F(ConcurrencyTest, ReinitializeWhileAHandleIsHeldIsRejected) {
     Database::Initialize("");
     const auto fresh = Database::Instance();
     EXPECT_EQ(0, static_cast<int>(fresh->FetchAll<Person>().size()));
+}
+
+TEST_F(ConcurrencyTest, InitializeLeavesCleanStateAfterOpenFailure) {
+    // A path inside a non-existent parent directory fails to open: SQLITE_OPEN_CREATE creates
+    // the leaf database file but not missing parent directories, so sqlite3_open_v2 fails
+    // identically on POSIX and Windows. Before the fix, the sqlite3* handle it can still
+    // allocate on failure leaked, since it was discarded without a matching sqlite3_close.
+    Database::Finalize();
+
+    EXPECT_THROW(Database::Initialize("nonexistent_dir_xyz/inner/db.sqlite"), std::invalid_argument);
+
+    // The failed init must leave clean, recoverable state: instance_ was never assigned (the
+    // exception propagates out of the Database constructor before the owning shared_ptr is
+    // formed) and retired_ is untouched, so a subsequent Initialize() with a valid path must
+    // succeed and be fully usable.
+    Database::Initialize("");
+    const auto db = Database::Instance();
+    Person p{L"ada", L"lovelace", 36};
+    db->SaveAutoIncrement(p);
+    const auto all = db->FetchAll<Person>();
+    EXPECT_EQ(1, static_cast<int>(all.size()));
 }
 
 TEST_F(ConcurrencyTest, RepeatedFinalizeDoesNotClearTheReinitializationGuard) {

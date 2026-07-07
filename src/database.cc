@@ -82,14 +82,26 @@ Database::Database(const char* path) : db_(nullptr) {
     // multiple threads; access is additionally serialized through db_mutex_.
     const int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
     if (sqlite3_open_v2(path, &db_, flags, nullptr)) {
+        // sqlite3_open_v2 can allocate a handle even on failure (except on OOM); it must
+        // still be passed to sqlite3_close, which is a documented no-op if db_ is null
+        sqlite3_close(db_);
+        db_ = nullptr;
         throw std::invalid_argument("Database could not be initialized");
     }
 
-    auto& reg = GetReflectionRegister();
-    for (const auto& contents : reg.records) {
-        const auto& record = contents.second;
-        CreateTableQuery query(db_, record);
-        query.Execute();
+    try {
+        auto& reg = GetReflectionRegister();
+        for (const auto& contents : reg.records) {
+            const auto& record = contents.second;
+            CreateTableQuery query(db_, record);
+            query.Execute();
+        }
+    } catch (...) {
+        // The constructor never completes on this path, so ~Database will not run to close
+        // db_; close it here before the exception propagates
+        sqlite3_close(db_);
+        db_ = nullptr;
+        throw;
     }
 }
 
