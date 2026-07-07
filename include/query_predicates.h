@@ -24,6 +24,7 @@
 
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -82,12 +83,18 @@ protected:
         : symbol_(symbol) {
         auto record = GetRecordFromTypeId(typeid(T).name());
         auto offset = OffsetFromStart(fn);
+        auto found = false;
         for (auto i = 0; i < record.member_metadata.size(); ++i) {
             if (record.member_metadata[i].offset == offset) {
                 member_name_ = record.member_metadata[i].name;
                 value_ = value_retrieval((void*)&value, record.member_metadata[i].storage_class);
+                found = true;
                 break;
             }
+        }
+        if (!found) {
+            throw std::runtime_error("No registered member of '" + record.name +
+                                      "' matches the given pointer-to-member (type id: " + typeid(T).name() + ")");
         }
     }
 

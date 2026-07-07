@@ -195,7 +195,10 @@ static std::string CAT(Register, REFLECTABLE)() {
     ReflectionRegister& instance = *GetReflectionRegisterInstance();
     auto isRecordRegisterd = instance.records.find(type_id) != instance.records.end();
     if (!isRecordRegisterd) {
-        auto& reflectable = GetRecordFromTypeId(type_id);
+        // Create the entry directly (operator[] default-inserts on miss); this is registration's
+        // own create path, scoped by the find() guard above, and is intentionally not routed
+        // through GetRecordFromTypeId, which is a pure lookup that throws on a miss
+        auto& reflectable = instance.records[type_id];
         reflectable.name = name;
 
         // store member metadata
