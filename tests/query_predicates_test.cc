@@ -174,7 +174,36 @@ TEST(QueryPredicatesTest, LikePayloadStaysInBindings) {
     const auto evalution = condition.Evaluate();
     const auto bindings = condition.Bindings();
 
-    EXPECT_EQ(0, strcmp(evalution.data(), "first_name LIKE ?"));
+    EXPECT_EQ(0, strcmp(evalution.data(), R"(first_name LIKE ? ESCAPE '\')"));
     ASSERT_EQ(1, bindings.size());
-    EXPECT_EQ("%john%' OR 1=1 --%", bindings[0].text_value);
+    // The literal '%' in the payload is escaped, since it is caller-supplied text, not an
+    // intentional wildcard
+    EXPECT_EQ(R"(%john\%' OR 1=1 --%)", bindings[0].text_value);
+}
+
+TEST(QueryPredicatesTest, LikeEscapesWildcardsAndEmitsEscapeClause) {
+    const Like condition(&Person::first_name, L"50%_a\\b");
+    const auto evaluation = condition.Evaluate();
+    const auto bindings = condition.Bindings();
+
+    EXPECT_EQ(0, strcmp(evaluation.data(), R"(first_name LIKE ? ESCAPE '\')"));
+    ASSERT_EQ(1, bindings.size());
+    // %, _ and \ in the caller's value are each escaped with a backslash before the outer
+    // "contains" wildcards are added
+    EXPECT_EQ(R"(%50\%\_a\\b%)", bindings[0].text_value);
+}
+
+TEST(QueryPredicatesTest, LikeInsideAndSurvivesCloneWithEscapeClause) {
+    // BinaryPredicate stores Clone()d operands, and QueryPredicate::Clone() returns a base
+    // QueryPredicate rather than a Like - the ESCAPE clause must therefore come from
+    // QueryPredicate::Evaluate() itself (keyed on symbol_ == "LIKE") to survive this, not from
+    // a Like-only Evaluate() override
+    const auto condition = Like(&Person::first_name, L"50%").And(Equal(&Person::age, 30));
+    const auto evaluation = condition.Evaluate();
+    const auto bindings = condition.Bindings();
+
+    EXPECT_EQ(0, strcmp(evaluation.data(), R"((first_name LIKE ? ESCAPE '\' AND age = ?))"));
+    ASSERT_EQ(2, bindings.size());
+    EXPECT_EQ(R"(%50\%%)", bindings[0].text_value);
+    EXPECT_EQ(30, bindings[1].int_value);
 }

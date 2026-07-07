@@ -29,6 +29,24 @@ using namespace sqlite_reflection;
 constexpr char space[] = " ";
 constexpr char percent[] = "%";
 
+namespace {
+/// Escapes backslash, % and _ in a LIKE value so it is matched literally, rather than being
+/// interpreted as SQLite LIKE wildcards. Must be paired with an ESCAPE '\' clause in the
+/// generated SQL (see QueryPredicate::Evaluate). Backslash is escaped as it is encountered,
+/// so a backslash inserted to escape % or _ is never itself re-escaped.
+std::string EscapeLikeWildcards(const std::string& value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (const char c : value) {
+        if (c == '\\' || c == '%' || c == '_') {
+            escaped += '\\';
+        }
+        escaped += c;
+    }
+    return escaped;
+}
+}  // namespace
+
 SqlValue::SqlValue() : storage_class(SqliteStorageClass::kText), int_value(0), bool_value(false), real_value(0.0) {}
 
 QueryPredicateBase* QueryPredicate::Clone() const {
@@ -56,7 +74,15 @@ OrPredicate QueryPredicateBase::Or(const QueryPredicateBase& other) const {
 }
 
 std::string QueryPredicate::Evaluate() const {
-    return member_name_ + space + symbol_ + space + "?";
+    auto evaluation = member_name_ + space + symbol_ + space + "?";
+    if (symbol_ == "LIKE") {
+        // The escape character used by EscapeLikeWildcards on the bound value must be
+        // declared here to take effect; symbol_ and the already-escaped value_ both survive
+        // Clone() (unlike a Like-only Evaluate() override), so this stays correct for a Like
+        // combined via And()/Or() too
+        evaluation += " ESCAPE '\\'";
+    }
+    return evaluation;
 }
 
 std::vector<SqlValue> QueryPredicate::Bindings() const {
@@ -99,19 +125,20 @@ SqlValue Like::GetSqlValue(void* v, SqliteStorageClass storage_class) const {
     switch (storage_class) {
         case SqliteStorageClass::kInt:
             value.storage_class = SqliteStorageClass::kText;
-            value.text_value = percent + StringUtilities::FromInt(value.int_value) + percent;
+            value.text_value = percent + EscapeLikeWildcards(StringUtilities::FromInt(value.int_value)) + percent;
             return value;
         case SqliteStorageClass::kBool:
             value.storage_class = SqliteStorageClass::kText;
-            value.text_value = percent + StringUtilities::FromInt(value.bool_value ? 1 : 0) + percent;
+            value.text_value =
+                percent + EscapeLikeWildcards(StringUtilities::FromInt(value.bool_value ? 1 : 0)) + percent;
             return value;
         case SqliteStorageClass::kReal:
             value.storage_class = SqliteStorageClass::kText;
-            value.text_value = percent + StringUtilities::FromDouble(value.real_value) + percent;
+            value.text_value = percent + EscapeLikeWildcards(StringUtilities::FromDouble(value.real_value)) + percent;
             return value;
         case SqliteStorageClass::kText:
         case SqliteStorageClass::kDateTime:
-            value.text_value = percent + value.text_value + percent;
+            value.text_value = percent + EscapeLikeWildcards(value.text_value) + percent;
             return value;
         default:
             throw std::domain_error("Blob cannot be compared against similarity");
