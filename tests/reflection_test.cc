@@ -45,20 +45,15 @@ static_assert(!std::is_polymorphic<DatetimeContainer>::value, "DatetimeContainer
 
 // Mirrors the static_asserts above as ordinary runtime expectations, so the guarantee is also
 // visible in normal test output rather than only enforced silently at compile time.
+//
+// A stronger ReflectableRecordsAreStandardLayout test (mirroring
+// static_assert(std::is_standard_layout<REFLECTABLE>::value, ...)) was attempted alongside this
+// one and confirmed via CI to fail on MSVC (Windows), in both C++11 and C++20 - std::wstring
+// and/or TimePoint are not standard-layout on that standard library - so it was removed; see the
+// comment in include/reflection.h next to the REFLECTABLE struct definition.
 TEST(ReflectionTest, ReflectableRecordsAreNotPolymorphic) {
     EXPECT_FALSE(std::is_polymorphic<Person>::value);
     EXPECT_FALSE(std::is_polymorphic<Pet>::value);
     EXPECT_FALSE(std::is_polymorphic<Company>::value);
     EXPECT_FALSE(std::is_polymorphic<DatetimeContainer>::value);
-}
-
-// Mirrors the stronger is_standard_layout static_assert in include/reflection.h (attempted
-// separately from the polymorphic guard, since it's only verified on libstdc++/Linux so far -
-// see #21). If that assert is ever removed because a CI platform can't satisfy it, this test
-// should be removed alongside it rather than weakened to keep passing.
-TEST(ReflectionTest, ReflectableRecordsAreStandardLayout) {
-    EXPECT_TRUE(std::is_standard_layout<Person>::value);
-    EXPECT_TRUE(std::is_standard_layout<Pet>::value);
-    EXPECT_TRUE(std::is_standard_layout<Company>::value);
-    EXPECT_TRUE(std::is_standard_layout<DatetimeContainer>::value);
 }
