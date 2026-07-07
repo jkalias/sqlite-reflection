@@ -23,6 +23,7 @@
 #include "reflection.h"
 
 #include <memory>
+#include <stdexcept>
 
 static std::unique_ptr<ReflectionRegister> p = nullptr;
 
@@ -35,8 +36,11 @@ ReflectionRegister* GetReflectionRegisterInstance() {
 
 Reflection& GetRecordFromTypeId(const std::string& type_id) {
     ReflectionRegister& instance = *GetReflectionRegisterInstance();
-    auto& meta_struct = instance.records[type_id];
-    return meta_struct;
+    auto it = instance.records.find(type_id);
+    if (it == instance.records.end()) {
+        throw std::runtime_error("Reflection lookup failed: type not registered: " + type_id);
+    }
+    return it->second;
 }
 
 char* GetMemberAddress(void* precord, const Reflection& record, const size_t i) {

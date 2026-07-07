@@ -207,3 +207,38 @@ TEST(QueryPredicatesTest, LikeInsideAndSurvivesCloneWithEscapeClause) {
     EXPECT_EQ(R"(%50\%%)", bindings[0].text_value);
     EXPECT_EQ(30, bindings[1].int_value);
 }
+
+namespace {
+// A plain struct that is deliberately never run through the REFLECTABLE/FIELDS registration
+// macros, so its type id never appears in the reflection registry.
+struct UnregisteredRecord {
+    int64_t id;
+    int64_t value;
+};
+
+// A plain struct that is also never run through the registration macros, but is manually and
+// incompletely registered below (name only, no member metadata) to exercise the
+// registered-but-offset-mismatch guard, as distinct from the unregistered-type guard above.
+struct MismatchedRecord {
+    int64_t id;
+    int64_t value;
+};
+}  // namespace
+
+TEST(QueryPredicatesTest, PredicateConstructionThrowsForUnregisteredType) {
+    // #23: GetRecordFromTypeId must fail fast for a type that was never registered, instead of
+    // std::map::operator[] silently default-inserting an empty Reflection (empty table name, no
+    // columns), which would otherwise surface later as an opaque SQLite prepare error
+    EXPECT_THROW(Equal(&UnregisteredRecord::value, 42), std::runtime_error);
+}
+
+TEST(QueryPredicatesTest, PredicateConstructionThrowsWhenNoMemberMatches) {
+    // #22: even for a registered type, if no member_metadata entry's offset matches the
+    // pointer-to-member (here because the type was registered by hand with no members at all,
+    // rather than via the FIELDS macro), the QueryPredicate constructor must fail fast instead
+    // of silently leaving member_name_ empty and emitting malformed SQL like " = ?"
+    auto& instance = *GetReflectionRegisterInstance();
+    instance.records[typeid(MismatchedRecord).name()].name = "MismatchedRecord";
+
+    EXPECT_THROW(Equal(&MismatchedRecord::value, 42), std::runtime_error);
+}
