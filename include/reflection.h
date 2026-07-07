@@ -29,6 +29,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <typeinfo>
 #include <vector>
 
@@ -153,6 +154,11 @@ REFLECTION_EXPORT char* GetMemberAddress(void* p, const Reflection& record, size
 #pragma warning(push)
 #pragma warning(disable : 4002)  // "too many actual parameters for macro 'MEMBER'"
 
+/// Reflectable records must be simple, standard-layout structs: no base classes, no virtual
+/// functions, no virtual inheritance. Member access is computed via offsetof/pointer-to-member
+/// byte offsets (see OffsetFromStart and DEFINE_MEMBER above), which only give correct answers
+/// for such types; a struct outside these bounds gets WRONG member offsets silently (data
+/// corruption, not a compile or runtime error) unless caught by the static_assert below.
 struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
     // member declaration according to the order given in source code
 #define MEMBER_DECLARE(L, R) L R;
@@ -187,6 +193,24 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
 #undef MEMBER_BOOL
 #undef FUNC
 };
+
+// Reject the realistic footgun that actually breaks OffsetFromStart's pointer-to-member byte
+// hack and offsetof's standard-layout requirement: giving a record a vtable via a virtual
+// function or virtual/multiple inheritance. This does not depend on standard-library string
+// layout (a struct with wstring members is never polymorphic on its own), so it holds on every
+// supported compiler/platform.
+static_assert(!std::is_polymorphic<REFLECTABLE>::value,
+              "sqlite-reflection: reflectable records must not be polymorphic "
+              "(no virtual functions or virtual/multiple inheritance).");
+
+// A stronger static_assert(std::is_standard_layout<REFLECTABLE>::value, ...) was attempted here
+// and confirmed via CI to fail to compile on MSVC (Windows), in both C++11 and C++20, for the
+// existing test records - std::wstring and/or sqlite_reflection::TimePoint are not
+// standard-layout on that standard library. It compiled fine on GCC/libstdc++ (Linux) and
+// Clang/libc++ (macOS). Since is_standard_layout is implementation-defined and this project
+// supports MSVC, that guard is not enforceable portably today; it's deferred pending #25 (moving
+// the text representation off std::wstring). The polymorphic guard above remains the enforced,
+// portable constraint.
 
 /// Provide a static registration function for each reflectable struct
 static std::string CAT(Register, REFLECTABLE)() {
