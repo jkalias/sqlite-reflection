@@ -571,6 +571,94 @@ TEST_F(DatabaseTest, FetchWithPredicateChaining) {
     EXPECT_EQ(37, fetched_persons[1].age);
 }
 
+TEST_F(DatabaseTest, LikeMatchesPercentWildcardLiterally) {
+    const auto db = Database::Instance();
+
+    std::vector<Person> persons;
+    persons.push_back({L"50% off", L"doe", 30, false, 1});
+    persons.push_back({L"5000 off", L"doe", 30, false, 2});
+    db->Save(persons);
+
+    // A literal '%' in the search value must not act as a SQLite LIKE wildcard
+    const auto fetch_condition = Like(&Person::first_name, L"50%");
+    const auto fetched = db->Fetch<Person>(&fetch_condition);
+
+    ASSERT_EQ(1, fetched.size());
+    EXPECT_EQ(1, fetched[0].id);
+    EXPECT_EQ(L"50% off", fetched[0].first_name);
+}
+
+TEST_F(DatabaseTest, LikeMatchesUnderscoreWildcardLiterally) {
+    const auto db = Database::Instance();
+
+    std::vector<Person> persons;
+    persons.push_back({L"a_b", L"doe", 30, false, 1});
+    persons.push_back({L"axb", L"doe", 30, false, 2});
+    db->Save(persons);
+
+    // A literal '_' in the search value must not act as a SQLite LIKE any-single-char wildcard
+    const auto fetch_condition = Like(&Person::first_name, L"a_b");
+    const auto fetched = db->Fetch<Person>(&fetch_condition);
+
+    ASSERT_EQ(1, fetched.size());
+    EXPECT_EQ(1, fetched[0].id);
+    EXPECT_EQ(L"a_b", fetched[0].first_name);
+}
+
+TEST_F(DatabaseTest, LikeMatchesBackslashLiterally) {
+    const auto db = Database::Instance();
+
+    std::vector<Person> persons;
+    persons.push_back({L"a\\b", L"doe", 30, false, 1});
+    persons.push_back({L"axb", L"doe", 30, false, 2});
+    db->Save(persons);
+
+    // A literal backslash in the search value must match literally, not be misinterpreted as
+    // (or interfere with) the ESCAPE character
+    const auto fetch_condition = Like(&Person::first_name, L"a\\b");
+    const auto fetched = db->Fetch<Person>(&fetch_condition);
+
+    ASSERT_EQ(1, fetched.size());
+    EXPECT_EQ(1, fetched[0].id);
+    EXPECT_EQ(L"a\\b", fetched[0].first_name);
+}
+
+TEST_F(DatabaseTest, LikeInsideAndCombinationStillMatchesWildcardsLiterally) {
+    const auto db = Database::Instance();
+
+    std::vector<Person> persons;
+    persons.push_back({L"50% off", L"doe", 30, false, 1});
+    persons.push_back({L"5000 off", L"doe", 30, false, 2});
+    persons.push_back({L"50% off", L"roe", 40, false, 3});
+    db->Save(persons);
+
+    // Combining Like via And() clones it into a base QueryPredicate (see
+    // QueryPredicate::Clone()); the ESCAPE clause and the already-escaped bound value must
+    // both survive that clone for the match to stay literal here
+    const auto fetch_condition = Like(&Person::first_name, L"50%").And(Equal(&Person::age, 30));
+    const auto fetched = db->Fetch<Person>(&fetch_condition);
+
+    ASSERT_EQ(1, fetched.size());
+    EXPECT_EQ(1, fetched[0].id);
+}
+
+TEST_F(DatabaseTest, LikeWithoutWildcardsStillMatchesSubstring) {
+    const auto db = Database::Instance();
+
+    std::vector<Person> persons;
+    persons.push_back({L"hello world", L"doe", 30, false, 1});
+    persons.push_back({L"goodbye", L"doe", 30, false, 2});
+    db->Save(persons);
+
+    // Regression: a value with no %/_/\ must still behave as a plain substring/contains match
+    const auto fetch_condition = Like(&Person::first_name, L"hello");
+    const auto fetched = db->Fetch<Person>(&fetch_condition);
+
+    ASSERT_EQ(1, fetched.size());
+    EXPECT_EQ(1, fetched[0].id);
+    EXPECT_EQ(L"hello world", fetched[0].first_name);
+}
+
 TEST_F(DatabaseTest, FetchPreservesInt64ValuesBeyondInt32Range) {
     const auto db = Database::Instance();
 
