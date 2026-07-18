@@ -62,6 +62,12 @@ struct CanFetchAllThroughConst : std::false_type {};
 template <typename T>
 struct CanFetchAllThroughConst<T, typename MakeVoid<decltype(std::declval<const Database&>().FetchAll<T>())>::type>
     : std::true_type {};
+
+void RecreateCompanyTableAllowingNulls(const std::shared_ptr<Database>& db) {
+    db->UnsafeSql("DROP TABLE Company;");
+    db->UnsafeSql("CREATE TABLE Company (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER, "
+                  "address TEXT, salary REAL);");
+}
 }  // namespace
 
 // The const-correctness contract (#26): const means read-only. A handle to a const Database
@@ -837,6 +843,7 @@ TEST_F(DatabaseTest, FetchPreservesHighPrecisionDoubleValues) {
 
 TEST_F(DatabaseTest, FetchPreservesNullAndEmptyStringSkipSemantics) {
     const auto db = Database::Instance();
+    RecreateCompanyTableAllowingNulls(db);
 
     // Columns omitted from a raw INSERT are stored as SQL NULL. Direct hydration must skip
     // assignment for a NULL column, and must also skip assignment for a TEXT column holding
@@ -865,6 +872,7 @@ TEST_F(DatabaseTest, FetchPreservesNullAndEmptyStringSkipSemantics) {
 
 TEST_F(DatabaseTest, FetchSkipsBlobColumnsWithoutThrowing) {
     const auto db = Database::Instance();
+    RecreateCompanyTableAllowingNulls(db);
 
     // A BLOB value (reachable via raw SQL despite the column's declared affinity - here an
     // invalid UTF-8 byte) must be skipped exactly like a NULL, not fed into the typed
