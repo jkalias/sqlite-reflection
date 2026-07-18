@@ -110,6 +110,12 @@ protected:
               return GetOptionalSqlValue(v, storage_class);
           }) {}
 
+    template <typename T, typename R>
+    QueryPredicate(fcpp::optional_t<R> T::* fn, fcpp::optional_t<R> value, const std::string& symbol)
+        : QueryPredicate(fn, value, symbol, [&](void* v, SqliteStorageClass storage_class) {
+              return GetOptionalSqlValue(v, storage_class);
+          }) {}
+
     QueryPredicate(const std::string& symbol, const std::string& member_name, const SqlValue& value)
         : symbol_(symbol), member_name_(member_name), value_(value) {}
 
@@ -189,6 +195,9 @@ public:
     template <typename T, typename R>
     explicit Equal(fcpp::optional_t<R> T::* fn, R value) : QueryPredicate(fn, value, "=") {}
 
+    template <typename T, typename R>
+    explicit Equal(fcpp::optional_t<R> T::* fn, fcpp::optional_t<R> value) : QueryPredicate(fn, value, "=") {}
+
     template <typename T>
     explicit Equal(int64_t T::* fn, int value) : Equal(fn, (int64_t)value) {}
 
@@ -205,6 +214,9 @@ public:
 
     template <typename T, typename R>
     explicit Unequal(fcpp::optional_t<R> T::* fn, R value) : QueryPredicate(fn, value, "!=") {}
+
+    template <typename T, typename R>
+    explicit Unequal(fcpp::optional_t<R> T::* fn, fcpp::optional_t<R> value) : QueryPredicate(fn, value, "!=") {}
 
     template <typename T>
     explicit Unequal(int64_t T::* fn, int value) : Unequal(fn, (int64_t)value) {}
@@ -225,6 +237,12 @@ public:
     template <typename T, typename R>
     explicit Like(fcpp::optional_t<R> T::* fn, R value)
         : QueryPredicate(fn, fcpp::optional_t<R>(value), "LIKE", [&](void* v, SqliteStorageClass storage_class) {
+              return GetOptionalSqlValue(v, storage_class);
+          }) {}
+
+    template <typename T, typename R>
+    explicit Like(fcpp::optional_t<R> T::* fn, fcpp::optional_t<R> value)
+        : QueryPredicate(fn, value, "LIKE", [&](void* v, SqliteStorageClass storage_class) {
               return GetOptionalSqlValue(v, storage_class);
           }) {}
 

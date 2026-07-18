@@ -275,6 +275,11 @@ TEST(QueryPredicatesTest, NullableValuePredicatesUseContainedValue) {
     EXPECT_EQ(42, bindings[0].int_value);
 }
 
+TEST(QueryPredicatesTest, UnsetOptionalValuePredicateThrows) {
+    const fcpp::optional_t<int64_t> unset;
+    EXPECT_THROW(Equal(&NullableRecord::optional_int, unset), std::invalid_argument);
+}
+
 TEST(QueryPredicatesTest, NullPredicatesHaveNoBindings) {
     const IsNull is_null(&NullableRecord::optional_text);
     EXPECT_EQ(0, strcmp(is_null.Evaluate().data(), "optional_text IS NULL"));

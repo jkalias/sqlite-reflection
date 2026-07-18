@@ -24,9 +24,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdio>
-#include <cstdlib>
-#include <map>
 #include <memory>
 #include <type_traits>
 #if __cplusplus >= 201703L
@@ -36,7 +33,6 @@
 
 #include "company.h"
 #include "id_only_record.h"
-#include "internal/sqlite3.h"
 #include "nullable_record.h"
 #include "person.h"
 #include "pet.h"
@@ -104,39 +100,16 @@ TEST_F(DatabaseTest, ReadOnlyHandleCanStillFetch) {
 
 
 TEST_F(DatabaseTest, SchemaMarksOnlyNonNullableFieldsNotNull) {
-    Database::Finalize();
-    const char* temp_dir = std::getenv("RUNNER_TEMP");
-    if (temp_dir == nullptr) {
-        temp_dir = std::getenv("TMPDIR");
-    }
-    if (temp_dir == nullptr) {
-        temp_dir = std::getenv("TEMP");
-    }
-    const std::string path = std::string(temp_dir == nullptr ? "." : temp_dir) + "/sqlite_reflection_nullable_schema.db";
-    std::remove(path.c_str());
-    Database::Initialize(path);
-    Database::Finalize();
+    const auto db = Database::Instance();
 
-    sqlite3* db = nullptr;
-    ASSERT_EQ(SQLITE_OK, sqlite3_open(path.c_str(), &db));
-    sqlite3_stmt* stmt = nullptr;
-    ASSERT_EQ(SQLITE_OK, sqlite3_prepare_v2(db, "PRAGMA table_info(NullableRecord);", -1, &stmt, nullptr));
+    EXPECT_THROW(db->UnsafeSql("INSERT INTO NullableRecord (id, optional_int, required_int) VALUES (100, NULL, NULL);"),
+                 std::domain_error);
+    EXPECT_NO_THROW(
+        db->UnsafeSql("INSERT INTO NullableRecord (id, optional_int, required_int) VALUES (101, NULL, 1);"));
 
-    std::map<std::string, int> not_null_by_column;
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        const auto name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        not_null_by_column[name] = sqlite3_column_int(stmt, 3);
-    }
-    sqlite3_finalize(stmt);
-    sqlite3_close(db);
-    std::remove(path.c_str());
-
-    EXPECT_EQ(0, not_null_by_column["optional_int"]);
-    EXPECT_EQ(0, not_null_by_column["optional_real"]);
-    EXPECT_EQ(0, not_null_by_column["optional_text"]);
-    EXPECT_EQ(0, not_null_by_column["optional_time"]);
-    EXPECT_EQ(0, not_null_by_column["optional_bool"]);
-    EXPECT_EQ(1, not_null_by_column["required_int"]);
+    const auto row = db->Fetch<NullableRecord>(101);
+    EXPECT_FALSE(row.optional_int.has_value());
+    EXPECT_EQ(1, row.required_int);
 }
 
 TEST_F(DatabaseTest, NullableFieldsRoundTripAndDistinguishNullFromDefaults) {

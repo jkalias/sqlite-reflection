@@ -6,7 +6,6 @@ include(GoogleTest)
 
 # Properties->C/C++->General->Additional Include Directories
 include_directories ("${PROJECT_SOURCE_DIR}/include")
-include_directories ("${PROJECT_SOURCE_DIR}/src")
 include_directories ("./include")
 
 # Collect test sources into the variable TEST_SOURCES

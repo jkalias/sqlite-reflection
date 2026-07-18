@@ -135,16 +135,41 @@ SqlValue QueryPredicate::GetSqlValue(void* v, SqliteStorageClass storage_class) 
 
 SqlValue QueryPredicate::GetOptionalSqlValue(void* v, SqliteStorageClass storage_class) const {
     switch (storage_class) {
-        case SqliteStorageClass::kInt:
-            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<int64_t>*>(v)->value(), storage_class);
-        case SqliteStorageClass::kBool:
-            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<bool>*>(v)->value(), storage_class);
-        case SqliteStorageClass::kReal:
-            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<double>*>(v)->value(), storage_class);
-        case SqliteStorageClass::kText:
-            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<std::wstring>*>(v)->value(), storage_class);
-        case SqliteStorageClass::kDateTime:
-            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<TimePoint>*>(v)->value(), storage_class);
+        case SqliteStorageClass::kInt: {
+            auto& value = *reinterpret_cast<fcpp::optional_t<int64_t>*>(v);
+            if (!value.has_value()) {
+                throw std::invalid_argument("Unset optional cannot be used in a value predicate; use IsNull instead");
+            }
+            return GetSqlValue(&value.value(), storage_class);
+        }
+        case SqliteStorageClass::kBool: {
+            auto& value = *reinterpret_cast<fcpp::optional_t<bool>*>(v);
+            if (!value.has_value()) {
+                throw std::invalid_argument("Unset optional cannot be used in a value predicate; use IsNull instead");
+            }
+            return GetSqlValue(&value.value(), storage_class);
+        }
+        case SqliteStorageClass::kReal: {
+            auto& value = *reinterpret_cast<fcpp::optional_t<double>*>(v);
+            if (!value.has_value()) {
+                throw std::invalid_argument("Unset optional cannot be used in a value predicate; use IsNull instead");
+            }
+            return GetSqlValue(&value.value(), storage_class);
+        }
+        case SqliteStorageClass::kText: {
+            auto& value = *reinterpret_cast<fcpp::optional_t<std::wstring>*>(v);
+            if (!value.has_value()) {
+                throw std::invalid_argument("Unset optional cannot be used in a value predicate; use IsNull instead");
+            }
+            return GetSqlValue(&value.value(), storage_class);
+        }
+        case SqliteStorageClass::kDateTime: {
+            auto& value = *reinterpret_cast<fcpp::optional_t<TimePoint>*>(v);
+            if (!value.has_value()) {
+                throw std::invalid_argument("Unset optional cannot be used in a value predicate; use IsNull instead");
+            }
+            return GetSqlValue(&value.value(), storage_class);
+        }
         default:
             throw std::domain_error("Blob cannot be compared");
     }
