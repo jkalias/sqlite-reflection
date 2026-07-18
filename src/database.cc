@@ -105,7 +105,7 @@ Database::Database(const char* path) : db_(nullptr) {
     }
 }
 
-std::shared_ptr<const Database> Database::Instance() {
+std::shared_ptr<Database> Database::Instance() {
     std::lock_guard<std::mutex> lock(instance_mutex_);
     if (instance_ == nullptr) {
         throw std::runtime_error("Database has not been initialized; call Database::Initialize() first");
@@ -117,13 +117,13 @@ const Reflection& Database::GetRecord(const std::string& type_id) {
     return GetReflectionRegister().records.at(type_id);
 }
 
-void Database::Save(void* p, const Reflection& record) const {
+void Database::Save(void* p, const Reflection& record) {
     std::lock_guard<std::mutex> lock(db_mutex_);
     InsertQuery query(db_, record, p);
     query.Execute();
 }
 
-int64_t Database::SaveAutoIncrement(void* p, const Reflection& record) const {
+int64_t Database::SaveAutoIncrement(void* p, const Reflection& record) {
     // The lock spans both the insert and the rowid read so that, on the shared connection,
     // sqlite3_last_insert_rowid() reflects this insert and not one from another thread.
     std::lock_guard<std::mutex> lock(db_mutex_);
@@ -132,19 +132,19 @@ int64_t Database::SaveAutoIncrement(void* p, const Reflection& record) const {
     return sqlite3_last_insert_rowid(db_);
 }
 
-void Database::Update(void* p, const Reflection& record) const {
+void Database::Update(void* p, const Reflection& record) {
     std::lock_guard<std::mutex> lock(db_mutex_);
     UpdateQuery query(db_, record, p);
     query.Execute();
 }
 
-void Database::Delete(const Reflection& record, const QueryPredicateBase* predicate) const {
+void Database::Delete(const Reflection& record, const QueryPredicateBase* predicate) {
     std::lock_guard<std::mutex> lock(db_mutex_);
     DeleteQuery query(db_, record, predicate);
     query.Execute();
 }
 
-void Database::UnsafeSql(const std::string& raw_sql_query) const {
+void Database::UnsafeSql(const std::string& raw_sql_query) {
     std::lock_guard<std::mutex> lock(db_mutex_);
     SqlQuery sql(db_, raw_sql_query);
     sql.Execute();

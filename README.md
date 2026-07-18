@@ -180,7 +180,7 @@ SQLite's serialized mode and all operations are serialized internally, so concur
 `Save`/`Fetch`/`Update`/`Delete` calls are safe (they execute one at a time rather than
 in parallel). `Initialize`, `Finalize`, and `Instance` are also safe to call concurrently.
 
-**Ownership model.** `Instance()` returns a `std::shared_ptr<const Database>` rather than a
+**Ownership model.** `Instance()` returns a `std::shared_ptr<Database>` rather than a
 reference. Each user holds a strong handle, so the database stays alive for as long as anyone
 is using it: an operation in progress on one thread is never torn down by a concurrent
 `Finalize()` on another. `Finalize()` only drops the singleton's own handle; the connection is
@@ -195,6 +195,17 @@ std::thread worker([db] {
     db->SaveAutoIncrement(p);          // safe even if another thread calls Finalize() meanwhile
 });
 worker.join();
+```
+
+The write methods (`Save`, `SaveAutoIncrement`, `Update`, `Delete`, `UnsafeSql`) are
+non-`const`, and the fetch methods are `const`. To hand a component a read-only view, assign
+the handle to a `std::shared_ptr<const Database>` (the conversion is implicit) — through it,
+only the fetch methods compile:
+
+```c++
+std::shared_ptr<const Database> reader = Database::Instance();
+auto people = reader->FetchAll<Person>();  // ok
+// reader->Save(person);                   // does not compile: Save is not const
 ```
 
 Writes (and reads) are serialized, so they are safe but not concurrent; true write parallelism

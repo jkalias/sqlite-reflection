@@ -53,8 +53,10 @@ public:
 
     /// Retrieves the database singleton wrapper for further operations. The returned shared
     /// handle keeps the database alive for as long as the caller holds it, so an operation in
-    /// progress is never torn down by a concurrent Finalize().
-    static std::shared_ptr<const Database> Instance();
+    /// progress is never torn down by a concurrent Finalize(). The handle is writable; for a
+    /// read-only view, assign it to a std::shared_ptr<const Database> (the conversion is
+    /// implicit), through which only the const fetch methods are callable.
+    static std::shared_ptr<Database> Instance();
 
     ~Database();
 
@@ -99,7 +101,7 @@ public:
     /// Saves a given record in the database.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void Save(const T& model) const {
+    void Save(const T& model) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         Save((void*)&model, record);
@@ -109,7 +111,7 @@ public:
     /// The newly generated id is written back into the passed-in model.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void SaveAutoIncrement(T& model) const {
+    void SaveAutoIncrement(T& model) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         model.id = SaveAutoIncrement((void*)&model, record);
@@ -118,7 +120,7 @@ public:
     /// Saves multiple records iteratively in the database.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void Save(const std::vector<T>& models) const {
+    void Save(const std::vector<T>& models) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         for (const auto& model : models) {
@@ -130,7 +132,7 @@ public:
     /// The newly generated ids are written back into the passed-in models.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void SaveAutoIncrement(std::vector<T>& models) const {
+    void SaveAutoIncrement(std::vector<T>& models) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         for (auto& model : models) {
@@ -141,7 +143,7 @@ public:
     /// Updates a given record in the database.
     /// This corresponds to an UPDATE query in the SQL syntax
     template <typename T>
-    void Update(const T& model) const {
+    void Update(const T& model) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         Update((void*)&model, record);
@@ -150,7 +152,7 @@ public:
     /// Updates multiple records iteratively in the database.
     /// This corresponds to an UPDATE query in the SQL syntax
     template <typename T>
-    void Update(const std::vector<T>& models) const {
+    void Update(const std::vector<T>& models) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         for (const auto& model : models) {
@@ -161,7 +163,7 @@ public:
     /// Deletes a given record from the database.
     /// This corresponds to an DELETE query in the SQL syntax
     template <typename T>
-    void Delete(const T& model) const {
+    void Delete(const T& model) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         const auto equal_id_predicate = Equal(&T::id, model.id);
@@ -171,7 +173,7 @@ public:
     /// Deletes a given record from the database, which matches a given id.
     /// This corresponds to an DELETE query in the SQL syntax
     template <typename T>
-    void Delete(int64_t id) const {
+    void Delete(int64_t id) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         const auto equal_id_predicate = Equal(&T::id, id);
@@ -181,7 +183,7 @@ public:
     /// Deletes multiple records of a given type from the database, which match a given predicate.
     /// This corresponds to an DELETE query in the SQL syntax, with an additional WHERE clause
     template <typename T>
-    void Delete(const QueryPredicateBase* predicate) const {
+    void Delete(const QueryPredicateBase* predicate) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         Delete(record, predicate);
@@ -189,7 +191,7 @@ public:
 
     /// Executes a raw SQL query. A trailing semicolon is added if needed.
     /// Prefer the type-safe CRUD APIs for user-provided values.
-    void UnsafeSql(const std::string& raw_sql_query) const;
+    void UnsafeSql(const std::string& raw_sql_query);
 
 private:
     explicit Database(const char* path);
@@ -214,17 +216,17 @@ private:
     }
 
     /// Saves a single record in the database
-    void Save(void* p, const Reflection& record) const;
+    void Save(void* p, const Reflection& record);
 
     /// Saves a single record in the database, letting SQLite assign its id,
     /// and returns the id that was generated for the inserted row
-    int64_t SaveAutoIncrement(void* p, const Reflection& record) const;
+    int64_t SaveAutoIncrement(void* p, const Reflection& record);
 
     /// Updates a single record in the database
-    void Update(void* p, const Reflection& record) const;
+    void Update(void* p, const Reflection& record);
 
     /// Deletes a single record from the database
-    void Delete(const Reflection& record, const QueryPredicateBase* predicate) const;
+    void Delete(const Reflection& record, const QueryPredicateBase* predicate);
 
     static std::shared_ptr<Database> instance_;
 
