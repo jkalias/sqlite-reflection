@@ -24,12 +24,48 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+
 #include "company.h"
 #include "id_only_record.h"
 #include "person.h"
 #include "pet.h"
 
 using namespace sqlite_reflection;
+
+namespace {
+// C++11 stand-in for std::void_t (C++17)
+template <typename...>
+struct MakeVoid {
+    typedef void type;
+};
+
+// Detects whether Save(const T&) is invocable through a const Database
+template <typename T, typename = void>
+struct CanSaveThroughConst : std::false_type {};
+
+template <typename T>
+struct CanSaveThroughConst<
+    T, typename MakeVoid<decltype(std::declval<const Database&>().Save(std::declval<const T&>()))>::type>
+    : std::true_type {};
+
+// Detects whether FetchAll<T>() is invocable through a const Database
+template <typename T, typename = void>
+struct CanFetchAllThroughConst : std::false_type {};
+
+template <typename T>
+struct CanFetchAllThroughConst<T, typename MakeVoid<decltype(std::declval<const Database&>().FetchAll<T>())>::type>
+    : std::true_type {};
+}  // namespace
+
+// The const-correctness contract (#26): const means read-only. A handle to a const Database
+// can fetch but not mutate; the write methods are only invocable through a non-const handle.
+static_assert(!CanSaveThroughConst<Person>::value,
+              "Save must not be invocable through a const Database - write methods are non-const");
+static_assert(CanFetchAllThroughConst<Person>::value,
+              "FetchAll must remain invocable through a const Database - read methods are const");
 
 class DatabaseTest : public ::testing::Test {
     void SetUp() override {
@@ -40,6 +76,19 @@ class DatabaseTest : public ::testing::Test {
         Database::Finalize();
     }
 };
+
+TEST_F(DatabaseTest, ReadOnlyHandleCanStillFetch) {
+    const auto db = Database::Instance();
+    const Person p{L"ada", L"lovelace", 36, true, 1};
+    db->Save(p);
+
+    // The implicit shared_ptr<Database> -> shared_ptr<const Database> conversion yields a
+    // read-only view, through which the const fetch methods keep working
+    std::shared_ptr<const Database> reader = Database::Instance();
+    const auto all = reader->FetchAll<Person>();
+    ASSERT_EQ(1, all.size());
+    EXPECT_EQ(p.first_name, all[0].first_name);
+}
 
 TEST_F(DatabaseTest, Initialization) {
     const auto db = Database::Instance();
