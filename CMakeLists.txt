@@ -22,7 +22,12 @@ FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
 )
-FetchContent_MakeAvailable(googletest)
+FetchContent_Declare(
+  functional_cpp
+  URL https://github.com/jkalias/functional_cpp/archive/refs/tags/1.1.1.zip
+  SOURCE_SUBDIR src
+)
+FetchContent_MakeAvailable(googletest functional_cpp)
 
 # Set compiler settings based on the current platform
 if(CMAKE_HOST_UNIX)

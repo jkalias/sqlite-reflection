@@ -47,10 +47,23 @@ std::string EscapeLikeWildcards(const std::string& value) {
 }
 }  // namespace
 
-SqlValue::SqlValue() : storage_class(SqliteStorageClass::kText), int_value(0), bool_value(false), real_value(0.0) {}
+SqlValue::SqlValue()
+    : storage_class(SqliteStorageClass::kText), int_value(0), bool_value(false), real_value(0.0), is_null(false) {}
 
 QueryPredicateBase* QueryPredicate::Clone() const {
     return new QueryPredicate(symbol_, member_name_, value_);
+}
+
+std::string NullPredicate::Evaluate() const {
+    return member_name_ + space + symbol_;
+}
+
+std::vector<SqlValue> NullPredicate::Bindings() const {
+    return {};
+}
+
+QueryPredicateBase* NullPredicate::Clone() const {
+    return new NullPredicate(symbol_, member_name_);
 }
 
 std::string EmptyPredicate::Evaluate() const {
@@ -117,6 +130,23 @@ SqlValue QueryPredicate::GetSqlValue(void* v, SqliteStorageClass storage_class) 
         }
         default:
             throw std::domain_error("Blob cannot be compared against equality");
+    }
+}
+
+SqlValue QueryPredicate::GetOptionalSqlValue(void* v, SqliteStorageClass storage_class) const {
+    switch (storage_class) {
+        case SqliteStorageClass::kInt:
+            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<int64_t>*>(v)->value(), storage_class);
+        case SqliteStorageClass::kBool:
+            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<bool>*>(v)->value(), storage_class);
+        case SqliteStorageClass::kReal:
+            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<double>*>(v)->value(), storage_class);
+        case SqliteStorageClass::kText:
+            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<std::wstring>*>(v)->value(), storage_class);
+        case SqliteStorageClass::kDateTime:
+            return GetSqlValue(&reinterpret_cast<fcpp::optional_t<TimePoint>*>(v)->value(), storage_class);
+        default:
+            throw std::domain_error("Blob cannot be compared");
     }
 }
 

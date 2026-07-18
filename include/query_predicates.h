@@ -42,6 +42,7 @@ struct REFLECTION_EXPORT SqlValue {
     bool bool_value;
     double real_value;
     std::string text_value;
+    bool is_null;
 };
 
 /// The base class of all WHERE predicates used in SQLite queries
@@ -103,6 +104,12 @@ protected:
         : QueryPredicate(fn, value, symbol,
                          [&](void* v, SqliteStorageClass storage_class) { return GetSqlValue(v, storage_class); }) {}
 
+    template <typename T, typename R>
+    QueryPredicate(fcpp::optional_t<R> T::* fn, R value, const std::string& symbol)
+        : QueryPredicate(fn, fcpp::optional_t<R>(value), symbol, [&](void* v, SqliteStorageClass storage_class) {
+              return GetOptionalSqlValue(v, storage_class);
+          }) {}
+
     QueryPredicate(const std::string& symbol, const std::string& member_name, const SqlValue& value)
         : symbol_(symbol), member_name_(member_name), value_(value) {}
 
@@ -110,6 +117,7 @@ protected:
     /// (defined from the pointer-to-member function) will be compared. The value needs
     /// to be type-erased, so that the header file is not bloated with unnecessary implementation details
     virtual SqlValue GetSqlValue(void* v, SqliteStorageClass storage_class) const;
+    virtual SqlValue GetOptionalSqlValue(void* v, SqliteStorageClass storage_class) const;
 
     /// The symbol used for the comparison, for example "=" for equality
     std::string symbol_;
@@ -120,6 +128,47 @@ protected:
 
     /// The comparison value that will be bound to the generated SQL placeholder
     SqlValue value_;
+};
+
+/// A wrapper for an empty predicate, used to fetch all elements of an SQLite table
+class REFLECTION_EXPORT NullPredicate : public QueryPredicateBase {
+public:
+    template <typename T, typename R>
+    NullPredicate(R T::* fn, const std::string& symbol) : symbol_(symbol) {
+        auto record = GetRecordFromTypeId(typeid(T).name());
+        auto offset = OffsetFromStart(fn);
+        for (auto i = 0; i < record.member_metadata.size(); ++i) {
+            if (record.member_metadata[i].offset == offset) {
+                member_name_ = record.member_metadata[i].name;
+                return;
+            }
+        }
+        throw std::runtime_error("No registered member of '" + record.name +
+                                 "' matches the given pointer-to-member (type id: " + typeid(T).name() + ")");
+    }
+
+    std::string Evaluate() const override;
+    std::vector<SqlValue> Bindings() const override;
+    QueryPredicateBase* Clone() const override;
+
+protected:
+    NullPredicate(const std::string& symbol, const std::string& member_name)
+        : symbol_(symbol), member_name_(member_name) {}
+
+    std::string symbol_;
+    std::string member_name_;
+};
+
+class REFLECTION_EXPORT IsNull final : public NullPredicate {
+public:
+    template <typename T, typename R>
+    explicit IsNull(R T::* fn) : NullPredicate(fn, "IS NULL") {}
+};
+
+class REFLECTION_EXPORT IsNotNull final : public NullPredicate {
+public:
+    template <typename T, typename R>
+    explicit IsNotNull(R T::* fn) : NullPredicate(fn, "IS NOT NULL") {}
 };
 
 /// A wrapper for an empty predicate, used to fetch all elements of an SQLite table
@@ -137,6 +186,9 @@ public:
     template <typename T, typename R>
     explicit Equal(R T::* fn, R value) : QueryPredicate(fn, value, "=") {}
 
+    template <typename T, typename R>
+    explicit Equal(fcpp::optional_t<R> T::* fn, R value) : QueryPredicate(fn, value, "=") {}
+
     template <typename T>
     explicit Equal(int64_t T::* fn, int value) : Equal(fn, (int64_t)value) {}
 
@@ -150,6 +202,9 @@ class REFLECTION_EXPORT Unequal final : public QueryPredicate {
 public:
     template <typename T, typename R>
     explicit Unequal(R T::* fn, R value) : QueryPredicate(fn, value, "!=") {}
+
+    template <typename T, typename R>
+    explicit Unequal(fcpp::optional_t<R> T::* fn, R value) : QueryPredicate(fn, value, "!=") {}
 
     template <typename T>
     explicit Unequal(int64_t T::* fn, int value) : Unequal(fn, (int64_t)value) {}
@@ -166,6 +221,12 @@ public:
     explicit Like(R T::* fn, R value)
         : QueryPredicate(fn, value, "LIKE",
                          [&](void* v, SqliteStorageClass storage_class) { return GetSqlValue(v, storage_class); }) {}
+
+    template <typename T, typename R>
+    explicit Like(fcpp::optional_t<R> T::* fn, R value)
+        : QueryPredicate(fn, fcpp::optional_t<R>(value), "LIKE", [&](void* v, SqliteStorageClass storage_class) {
+              return GetOptionalSqlValue(v, storage_class);
+          }) {}
 
     template <typename T>
     explicit Like(int64_t T::* fn, int value) : Like(fn, (int64_t)value) {}
@@ -189,6 +250,12 @@ public:
 
     template <typename T>
     explicit GreaterThan(double T::* fn, double value) : QueryPredicate(fn, value, ">") {}
+
+    template <typename T>
+    explicit GreaterThan(fcpp::optional_t<int64_t> T::* fn, int64_t value) : QueryPredicate(fn, value, ">") {}
+
+    template <typename T>
+    explicit GreaterThan(fcpp::optional_t<double> T::* fn, double value) : QueryPredicate(fn, value, ">") {}
 };
 
 /// A wrapper for a comparison predicate, for which the value of the
@@ -203,6 +270,12 @@ public:
 
     template <typename T>
     explicit GreaterThanOrEqual(double T::* fn, double value) : QueryPredicate(fn, value, ">=") {}
+
+    template <typename T>
+    explicit GreaterThanOrEqual(fcpp::optional_t<int64_t> T::* fn, int64_t value) : QueryPredicate(fn, value, ">=") {}
+
+    template <typename T>
+    explicit GreaterThanOrEqual(fcpp::optional_t<double> T::* fn, double value) : QueryPredicate(fn, value, ">=") {}
 };
 
 /// A wrapper for a comparison predicate, for which the value of the
@@ -217,6 +290,12 @@ public:
 
     template <typename T>
     explicit SmallerThan(double T::* fn, double value) : QueryPredicate(fn, value, "<") {}
+
+    template <typename T>
+    explicit SmallerThan(fcpp::optional_t<int64_t> T::* fn, int64_t value) : QueryPredicate(fn, value, "<") {}
+
+    template <typename T>
+    explicit SmallerThan(fcpp::optional_t<double> T::* fn, double value) : QueryPredicate(fn, value, "<") {}
 };
 
 /// A wrapper for a comparison predicate, for which the value of the
@@ -231,6 +310,12 @@ public:
 
     template <typename T>
     explicit SmallerThanOrEqual(double T::* fn, double value) : QueryPredicate(fn, value, "<=") {}
+
+    template <typename T>
+    explicit SmallerThanOrEqual(fcpp::optional_t<int64_t> T::* fn, int64_t value) : QueryPredicate(fn, value, "<=") {}
+
+    template <typename T>
+    explicit SmallerThanOrEqual(fcpp::optional_t<double> T::* fn, double value) : QueryPredicate(fn, value, "<=") {}
 };
 
 /// A wrapper of a compound predicate, which combines two other predicates,

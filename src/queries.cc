@@ -42,6 +42,10 @@ std::string Placeholders(size_t count) {
 }
 
 void BindValue(sqlite3_stmt* stmt, int index, const SqlValue& value) {
+    if (value.is_null) {
+        sqlite3_bind_null(stmt, index);
+        return;
+    }
     switch (value.storage_class) {
         case SqliteStorageClass::kInt:
             sqlite3_bind_int64(stmt, index, value.int_value);
@@ -137,32 +141,79 @@ std::vector<SqlValue> ExecutionQuery::GetValues(void* p, bool skip_id) const {
         const auto current_storage_class = members[j].storage_class;
         SqlValue value;
         value.storage_class = current_storage_class;
+        value.is_null = members[j].nullable;
+        const auto address = GetMemberAddress(p, record_, j);
 
         switch (current_storage_class) {
             case SqliteStorageClass::kInt: {
-                value.int_value = *reinterpret_cast<int64_t*>(GetMemberAddress(p, record_, j));
+                if (members[j].nullable) {
+                    auto& optional_value = *reinterpret_cast<fcpp::optional_t<int64_t>*>(address);
+                    if (optional_value.has_value()) {
+                        value.is_null = false;
+                        value.int_value = optional_value.value();
+                    }
+                } else {
+                    value.is_null = false;
+                    value.int_value = *reinterpret_cast<int64_t*>(address);
+                }
                 break;
             }
 
             case SqliteStorageClass::kBool: {
-                value.bool_value = *reinterpret_cast<bool*>(GetMemberAddress(p, record_, j));
+                if (members[j].nullable) {
+                    auto& optional_value = *reinterpret_cast<fcpp::optional_t<bool>*>(address);
+                    if (optional_value.has_value()) {
+                        value.is_null = false;
+                        value.bool_value = optional_value.value();
+                    }
+                } else {
+                    value.is_null = false;
+                    value.bool_value = *reinterpret_cast<bool*>(address);
+                }
                 break;
             }
 
             case SqliteStorageClass::kReal: {
-                value.real_value = *reinterpret_cast<double*>(GetMemberAddress(p, record_, j));
+                if (members[j].nullable) {
+                    auto& optional_value = *reinterpret_cast<fcpp::optional_t<double>*>(address);
+                    if (optional_value.has_value()) {
+                        value.is_null = false;
+                        value.real_value = optional_value.value();
+                    }
+                } else {
+                    value.is_null = false;
+                    value.real_value = *reinterpret_cast<double*>(address);
+                }
                 break;
             }
 
             case SqliteStorageClass::kText: {
-                auto& text = *reinterpret_cast<std::wstring*>(GetMemberAddress(p, record_, j));
-                value.text_value = StringUtilities::ToUtf8(text);
+                if (members[j].nullable) {
+                    auto& optional_value = *reinterpret_cast<fcpp::optional_t<std::wstring>*>(address);
+                    if (optional_value.has_value()) {
+                        value.is_null = false;
+                        value.text_value = StringUtilities::ToUtf8(optional_value.value());
+                    }
+                } else {
+                    value.is_null = false;
+                    auto& text = *reinterpret_cast<std::wstring*>(address);
+                    value.text_value = StringUtilities::ToUtf8(text);
+                }
                 break;
             }
 
             case SqliteStorageClass::kDateTime: {
-                auto& time_point = *reinterpret_cast<TimePoint*>(GetMemberAddress(p, record_, j));
-                value.text_value = StringUtilities::ToUtf8(time_point.SystemTime());
+                if (members[j].nullable) {
+                    auto& optional_value = *reinterpret_cast<fcpp::optional_t<TimePoint>*>(address);
+                    if (optional_value.has_value()) {
+                        value.is_null = false;
+                        value.text_value = StringUtilities::ToUtf8(optional_value.value().SystemTime());
+                    }
+                } else {
+                    value.is_null = false;
+                    auto& time_point = *reinterpret_cast<TimePoint*>(address);
+                    value.text_value = StringUtilities::ToUtf8(time_point.SystemTime());
+                }
                 break;
             }
 
@@ -196,7 +247,8 @@ std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
 
     // AUTOINCREMENT guarantees that ids are never reused, even after the row with the
     // highest id is deleted
-    return is_id ? name + " PRIMARY KEY AUTOINCREMENT" : name;
+    return is_id ? name + " PRIMARY KEY AUTOINCREMENT"
+                 : (record_.member_metadata[index].nullable ? name : name + " NOT NULL");
 }
 
 DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate)
@@ -312,39 +364,79 @@ void FetchRecordsQuery::HydrateCurrentRow(void* p, const Reflection& record) con
         // here so a NULL or BLOB value (reachable via UnsafeSql or a foreign database file,
         // even for a column declared as a different storage class) is never fed to the
         // wrong typed accessor.
+        const auto& metadata = record.member_metadata[j];
         const int col_type = sqlite3_column_type(stmt_, col);
+        if (metadata.nullable && col_type == SQLITE_NULL) {
+            const auto address = GetMemberAddress(p, record, j);
+            switch (metadata.storage_class) {
+                case SqliteStorageClass::kInt:
+                    *reinterpret_cast<fcpp::optional_t<int64_t>*>(address) = fcpp::optional_t<int64_t>();
+                    break;
+                case SqliteStorageClass::kBool:
+                    *reinterpret_cast<fcpp::optional_t<bool>*>(address) = fcpp::optional_t<bool>();
+                    break;
+                case SqliteStorageClass::kReal:
+                    *reinterpret_cast<fcpp::optional_t<double>*>(address) = fcpp::optional_t<double>();
+                    break;
+                case SqliteStorageClass::kText:
+                    *reinterpret_cast<fcpp::optional_t<std::wstring>*>(address) = fcpp::optional_t<std::wstring>();
+                    break;
+                case SqliteStorageClass::kDateTime:
+                    *reinterpret_cast<fcpp::optional_t<TimePoint>*>(address) = fcpp::optional_t<TimePoint>();
+                    break;
+            }
+            continue;
+        }
         if (col_type == SQLITE_NULL || col_type == SQLITE_BLOB) {
             continue;
         }
 
-        const auto current_storage_class = record.member_metadata[j].storage_class;
+        const auto current_storage_class = metadata.storage_class;
+        const auto address = GetMemberAddress(p, record, j);
         switch (current_storage_class) {
             case SqliteStorageClass::kInt: {
-                auto& v = *reinterpret_cast<int64_t*>(GetMemberAddress(p, record, j));
-                v = sqlite3_column_int64(stmt_, col);
+                if (metadata.nullable) {
+                    *reinterpret_cast<fcpp::optional_t<int64_t>*>(address) = sqlite3_column_int64(stmt_, col);
+                } else {
+                    auto& v = *reinterpret_cast<int64_t*>(address);
+                    v = sqlite3_column_int64(stmt_, col);
+                }
                 break;
             }
 
             case SqliteStorageClass::kBool: {
-                auto& v = *reinterpret_cast<bool*>(GetMemberAddress(p, record, j));
-                v = sqlite3_column_int64(stmt_, col) == 1;
+                if (metadata.nullable) {
+                    *reinterpret_cast<fcpp::optional_t<bool>*>(address) = sqlite3_column_int64(stmt_, col) == 1;
+                } else {
+                    auto& v = *reinterpret_cast<bool*>(address);
+                    v = sqlite3_column_int64(stmt_, col) == 1;
+                }
                 break;
             }
 
             case SqliteStorageClass::kReal: {
-                auto& v = *reinterpret_cast<double*>(GetMemberAddress(p, record, j));
-                v = sqlite3_column_double(stmt_, col);
+                if (metadata.nullable) {
+                    *reinterpret_cast<fcpp::optional_t<double>*>(address) = sqlite3_column_double(stmt_, col);
+                } else {
+                    auto& v = *reinterpret_cast<double*>(address);
+                    v = sqlite3_column_double(stmt_, col);
+                }
                 break;
             }
 
             case SqliteStorageClass::kText: {
                 const auto byte_count = sqlite3_column_bytes(stmt_, col);
-                if (byte_count == 0) {
+                if (!metadata.nullable && byte_count == 0) {
                     continue;
                 }
                 const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
-                auto& v = *reinterpret_cast<std::wstring*>(GetMemberAddress(p, record, j));
-                v = StringUtilities::FromUtf8(content, byte_count);
+                const auto value = StringUtilities::FromUtf8(content, byte_count);
+                if (metadata.nullable) {
+                    *reinterpret_cast<fcpp::optional_t<std::wstring>*>(address) = value;
+                } else {
+                    auto& v = *reinterpret_cast<std::wstring*>(address);
+                    v = value;
+                }
                 break;
             }
 
@@ -354,8 +446,13 @@ void FetchRecordsQuery::HydrateCurrentRow(void* p, const Reflection& record) con
                     continue;
                 }
                 const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt_, col));
-                auto& v = *reinterpret_cast<TimePoint*>(GetMemberAddress(p, record, j));
-                v = TimePoint::FromSystemTime(StringUtilities::FromUtf8(content, byte_count));
+                const auto value = TimePoint::FromSystemTime(StringUtilities::FromUtf8(content, byte_count));
+                if (metadata.nullable) {
+                    *reinterpret_cast<fcpp::optional_t<TimePoint>*>(address) = value;
+                } else {
+                    auto& v = *reinterpret_cast<TimePoint*>(address);
+                    v = value;
+                }
                 break;
             }
 

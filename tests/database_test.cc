@@ -24,12 +24,19 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdio>
+#include <map>
 #include <memory>
 #include <type_traits>
+#if __cplusplus >= 201703L
+#include <optional>
+#endif
 #include <utility>
 
 #include "company.h"
 #include "id_only_record.h"
+#include "internal/sqlite3.h"
+#include "nullable_record.h"
 #include "person.h"
 #include "pet.h"
 
@@ -66,6 +73,10 @@ static_assert(!CanSaveThroughConst<Person>::value,
               "Save must not be invocable through a const Database - write methods are non-const");
 static_assert(CanFetchAllThroughConst<Person>::value,
               "FetchAll must remain invocable through a const Database - read methods are const");
+#if __cplusplus >= 201703L
+static_assert(std::is_same<decltype(NullableRecord::optional_int), std::optional<int64_t>>::value,
+              "functional_cpp optional_t must alias std::optional in C++17 and later");
+#endif
 
 class DatabaseTest : public ::testing::Test {
     void SetUp() override {
@@ -88,6 +99,99 @@ TEST_F(DatabaseTest, ReadOnlyHandleCanStillFetch) {
     const auto all = reader->FetchAll<Person>();
     ASSERT_EQ(1, all.size());
     EXPECT_EQ(p.first_name, all[0].first_name);
+}
+
+
+TEST_F(DatabaseTest, SchemaMarksOnlyNonNullableFieldsNotNull) {
+    Database::Finalize();
+    const std::string path = "/tmp/sqlite_reflection_nullable_schema.db";
+    std::remove(path.c_str());
+    Database::Initialize(path);
+    Database::Finalize();
+
+    sqlite3* db = nullptr;
+    ASSERT_EQ(SQLITE_OK, sqlite3_open(path.c_str(), &db));
+    sqlite3_stmt* stmt = nullptr;
+    ASSERT_EQ(SQLITE_OK, sqlite3_prepare_v2(db, "PRAGMA table_info(NullableRecord);", -1, &stmt, nullptr));
+
+    std::map<std::string, int> not_null_by_column;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const auto name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        not_null_by_column[name] = sqlite3_column_int(stmt, 3);
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    std::remove(path.c_str());
+
+    EXPECT_EQ(0, not_null_by_column["optional_int"]);
+    EXPECT_EQ(0, not_null_by_column["optional_real"]);
+    EXPECT_EQ(0, not_null_by_column["optional_text"]);
+    EXPECT_EQ(0, not_null_by_column["optional_time"]);
+    EXPECT_EQ(0, not_null_by_column["optional_bool"]);
+    EXPECT_EQ(1, not_null_by_column["required_int"]);
+}
+
+TEST_F(DatabaseTest, NullableFieldsRoundTripAndDistinguishNullFromDefaults) {
+    const auto db = Database::Instance();
+
+    NullableRecord unset;
+    unset.required_int = 7;
+    unset.id = 1;
+    db->Save(unset);
+
+    NullableRecord set;
+    set.optional_int = int64_t{0};
+    set.optional_real = 0.0;
+    set.optional_text = std::wstring();
+    set.optional_time = TimePoint(int64_t{0});
+    set.optional_bool = false;
+    set.required_int = 8;
+    set.id = 2;
+    db->Save(set);
+
+    const auto fetched = db->FetchAll<NullableRecord>();
+    ASSERT_EQ(2, fetched.size());
+    EXPECT_FALSE(fetched[0].optional_int.has_value());
+    EXPECT_FALSE(fetched[0].optional_real.has_value());
+    EXPECT_FALSE(fetched[0].optional_text.has_value());
+    EXPECT_FALSE(fetched[0].optional_time.has_value());
+    EXPECT_FALSE(fetched[0].optional_bool.has_value());
+
+    ASSERT_TRUE(fetched[1].optional_int.has_value());
+    EXPECT_EQ(0, fetched[1].optional_int.value());
+    ASSERT_TRUE(fetched[1].optional_real.has_value());
+    EXPECT_EQ(0.0, fetched[1].optional_real.value());
+    ASSERT_TRUE(fetched[1].optional_text.has_value());
+    EXPECT_EQ(std::wstring(), fetched[1].optional_text.value());
+    ASSERT_TRUE(fetched[1].optional_time.has_value());
+    EXPECT_EQ(TimePoint(int64_t{0}).SystemTime(), fetched[1].optional_time.value().SystemTime());
+    ASSERT_TRUE(fetched[1].optional_bool.has_value());
+    EXPECT_FALSE(fetched[1].optional_bool.value());
+}
+
+TEST_F(DatabaseTest, NullPredicatesSelectExpectedRows) {
+    const auto db = Database::Instance();
+
+    NullableRecord unset;
+    unset.required_int = 7;
+    unset.id = 1;
+    db->Save(unset);
+
+    NullableRecord set;
+    set.optional_text = L"value";
+    set.required_int = 8;
+    set.id = 2;
+    db->Save(set);
+
+    const IsNull null_text(&NullableRecord::optional_text);
+    const auto null_rows = db->Fetch<NullableRecord>(&null_text);
+    ASSERT_EQ(1, null_rows.size());
+    EXPECT_EQ(1, null_rows[0].id);
+
+    const IsNotNull not_null_text(&NullableRecord::optional_text);
+    const auto not_null_rows = db->Fetch<NullableRecord>(&not_null_text);
+    ASSERT_EQ(1, not_null_rows.size());
+    EXPECT_EQ(2, not_null_rows[0].id);
 }
 
 TEST_F(DatabaseTest, Initialization) {

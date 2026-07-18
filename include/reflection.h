@@ -33,6 +33,7 @@
 #include <typeinfo>
 #include <vector>
 
+#include "optional.h"
 #include "reflection_export.h"
 
 /// The storage class in an SQLite column for a given member of a struct, for which reflection is enabled
@@ -47,11 +48,12 @@ struct REFLECTION_EXPORT Reflection {
     /// This holds the metadata of a given struct member
     class MemberMetadata {
     public:
-        MemberMetadata(const std::string& _name, SqliteStorageClass _storage_class, size_t _offset)
+        MemberMetadata(const std::string& _name, SqliteStorageClass _storage_class, size_t _offset, bool _nullable = false)
             : name(_name),
               storage_class(_storage_class),
               sqlite_column_name(ToSqliteColumnName(_storage_class)),
-              offset(_offset) {}
+              offset(_offset),
+              nullable(_nullable) {}
 
         /// The struct variable member name, as defined in the source code
         std::string name;
@@ -65,6 +67,9 @@ struct REFLECTION_EXPORT Reflection {
 
         /// The memory offset in bytes of this member from the struct's start, including any padding bits
         size_t offset;
+
+        /// Whether this member is represented by optional_t<T> and may carry SQL NULL
+        bool nullable;
 
     private:
         /// Helper for conversion between member storage class and SQLite column name
@@ -113,7 +118,9 @@ size_t OffsetFromStart(R T::* fn) {
 #define CAT(A, B) CAT_NOEXPAND(A, B)
 
 #define DEFINE_MEMBER(R, T) \
-    reflectable.member_metadata.push_back(Reflection::MemberMetadata(STR(R), T, offsetof(struct REFLECTABLE, R)));
+    reflectable.member_metadata.push_back(Reflection::MemberMetadata(STR(R), T, offsetof(struct REFLECTABLE, R), false));
+#define DEFINE_MEMBER_NULLABLE(R, T) \
+    reflectable.member_metadata.push_back(Reflection::MemberMetadata(STR(R), T, offsetof(struct REFLECTABLE, R), true));
 
 /// A singleton object which holds all reflectable structs, and is guaranteed to be
 /// instantiated before main.cpp starts
@@ -167,6 +174,11 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
 #define MEMBER_TEXT(R) MEMBER_DECLARE(std::wstring, R)
 #define MEMBER_DATETIME(R) MEMBER_DECLARE(sqlite_reflection::TimePoint, R)
 #define MEMBER_BOOL(R) MEMBER_DECLARE(bool, R)
+#define MEMBER_INT_NULLABLE(R) MEMBER_DECLARE(fcpp::optional_t<int64_t>, R)
+#define MEMBER_REAL_NULLABLE(R) MEMBER_DECLARE(fcpp::optional_t<double>, R)
+#define MEMBER_TEXT_NULLABLE(R) MEMBER_DECLARE(fcpp::optional_t<std::wstring>, R)
+#define MEMBER_DATETIME_NULLABLE(R) MEMBER_DECLARE(fcpp::optional_t<sqlite_reflection::TimePoint>, R)
+#define MEMBER_BOOL_NULLABLE(R) MEMBER_DECLARE(fcpp::optional_t<bool>, R)
 #define FUNC(SIGNATURE)
     FIELDS
 #undef MEMBER_DECLARE
@@ -175,6 +187,11 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
 #undef MEMBER_TEXT
 #undef MEMBER_DATETIME
 #undef MEMBER_BOOL
+#undef MEMBER_INT_NULLABLE
+#undef MEMBER_REAL_NULLABLE
+#undef MEMBER_TEXT_NULLABLE
+#undef MEMBER_DATETIME_NULLABLE
+#undef MEMBER_BOOL_NULLABLE
 #undef FUNC
     int64_t id;
 
@@ -184,6 +201,11 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
 #define MEMBER_TEXT(R)
 #define MEMBER_DATETIME(R)
 #define MEMBER_BOOL(R)
+#define MEMBER_INT_NULLABLE(R)
+#define MEMBER_REAL_NULLABLE(R)
+#define MEMBER_TEXT_NULLABLE(R)
+#define MEMBER_DATETIME_NULLABLE(R)
+#define MEMBER_BOOL_NULLABLE(R)
 #define FUNC(SIGNATURE) SIGNATURE;
     FIELDS
 #undef MEMBER_INT
@@ -191,6 +213,11 @@ struct REFLECTABLE_DLL_EXPORT REFLECTABLE {
 #undef MEMBER_TEXT
 #undef MEMBER_DATETIME
 #undef MEMBER_BOOL
+#undef MEMBER_INT_NULLABLE
+#undef MEMBER_REAL_NULLABLE
+#undef MEMBER_TEXT_NULLABLE
+#undef MEMBER_DATETIME_NULLABLE
+#undef MEMBER_BOOL_NULLABLE
 #undef FUNC
 };
 
@@ -232,6 +259,11 @@ static std::string CAT(Register, REFLECTABLE)() {
 #define MEMBER_TEXT(R) DEFINE_MEMBER(R, SqliteStorageClass::kText)
 #define MEMBER_DATETIME(R) DEFINE_MEMBER(R, SqliteStorageClass::kDateTime)
 #define MEMBER_BOOL(R) DEFINE_MEMBER(R, SqliteStorageClass::kBool)
+#define MEMBER_INT_NULLABLE(R) DEFINE_MEMBER_NULLABLE(R, SqliteStorageClass::kInt)
+#define MEMBER_REAL_NULLABLE(R) DEFINE_MEMBER_NULLABLE(R, SqliteStorageClass::kReal)
+#define MEMBER_TEXT_NULLABLE(R) DEFINE_MEMBER_NULLABLE(R, SqliteStorageClass::kText)
+#define MEMBER_DATETIME_NULLABLE(R) DEFINE_MEMBER_NULLABLE(R, SqliteStorageClass::kDateTime)
+#define MEMBER_BOOL_NULLABLE(R) DEFINE_MEMBER_NULLABLE(R, SqliteStorageClass::kBool)
 #define FUNC(SIGNATURE)
         FIELDS
 #undef MEMBER_INT
@@ -239,6 +271,11 @@ static std::string CAT(Register, REFLECTABLE)() {
 #undef MEMBER_TEXT
 #undef MEMBER_DATETIME
 #undef MEMBER_BOOL
+#undef MEMBER_INT_NULLABLE
+#undef MEMBER_REAL_NULLABLE
+#undef MEMBER_TEXT_NULLABLE
+#undef MEMBER_DATETIME_NULLABLE
+#undef MEMBER_BOOL_NULLABLE
 #undef FUNC
     }
     return name;

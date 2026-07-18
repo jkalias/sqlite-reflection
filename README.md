@@ -133,7 +133,16 @@ Supported field macros:
 | `std::wstring` | `MEMBER_TEXT(name)` |
 | `bool` | `MEMBER_BOOL(name)` |
 | `sqlite_reflection::TimePoint` | `MEMBER_DATETIME(name)` |
+| `fcpp::optional_t<int64_t>` | `MEMBER_INT_NULLABLE(name)` |
+| `fcpp::optional_t<double>` | `MEMBER_REAL_NULLABLE(name)` |
+| `fcpp::optional_t<std::wstring>` | `MEMBER_TEXT_NULLABLE(name)` |
+| `fcpp::optional_t<bool>` | `MEMBER_BOOL_NULLABLE(name)` |
+| `fcpp::optional_t<sqlite_reflection::TimePoint>` | `MEMBER_DATETIME_NULLABLE(name)` |
 | member function declaration | `FUNC(signature)` |
+
+Nullable macros store SQL `NULL` as an empty optional and bind an empty optional back as SQL `NULL`; present optional values round-trip using the same storage class as their non-nullable counterparts, so `NULL`, an empty string, and numeric/boolean zero remain distinguishable after fetch. The optional type comes from [`functional_cpp`](https://github.com/jkalias/functional_cpp): under C++17 and later `fcpp::optional_t<T>` aliases `std::optional<T>`, while C++11 builds use the library fallback. Use `IsNull(&T::field)` and `IsNotNull(&T::field)` predicates for null checks. Value predicates such as `Equal(&T::nullable_field, value)` compare against a present contained value; pass the contained `T` value, not an optional.
+
+**Schema nullability caveat.** Newly created tables now declare non-nullable reflected fields as `NOT NULL` and omit `NOT NULL` for nullable fields. Because initialization uses `CREATE TABLE IF NOT EXISTS`, existing database files keep their previous column definitions until you recreate or migrate those tables, just like the `AUTOINCREMENT` caveat below.
 
 **Layout constraint.** Reflectable records must be simple, standard-layout structs: no base
 classes, no virtual functions, no virtual/multiple inheritance. Member access is computed from

@@ -27,6 +27,7 @@
 #include <string>
 #include <utility>
 
+#include "nullable_record.h"
 #include "person.h"
 #include "pet.h"
 
@@ -262,4 +263,24 @@ TEST(QueryPredicatesTest, PredicateConstructionThrowsWhenNoMemberMatches) {
     const ScopedRegistryCleanup cleanup(type_id);
 
     EXPECT_THROW(Equal(&MismatchedRecord::value, 42), std::runtime_error);
+}
+
+
+TEST(QueryPredicatesTest, NullableValuePredicatesUseContainedValue) {
+    const Equal condition(&NullableRecord::optional_int, int64_t{42});
+    EXPECT_EQ(0, strcmp(condition.Evaluate().data(), "optional_int = ?"));
+    const auto bindings = condition.Bindings();
+    ASSERT_EQ(1, bindings.size());
+    EXPECT_EQ(SqliteStorageClass::kInt, bindings[0].storage_class);
+    EXPECT_EQ(42, bindings[0].int_value);
+}
+
+TEST(QueryPredicatesTest, NullPredicatesHaveNoBindings) {
+    const IsNull is_null(&NullableRecord::optional_text);
+    EXPECT_EQ(0, strcmp(is_null.Evaluate().data(), "optional_text IS NULL"));
+    EXPECT_TRUE(is_null.Bindings().empty());
+
+    const IsNotNull is_not_null(&NullableRecord::optional_text);
+    EXPECT_EQ(0, strcmp(is_not_null.Evaluate().data(), "optional_text IS NOT NULL"));
+    EXPECT_TRUE(is_not_null.Bindings().empty());
 }
