@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <memory>
 #include <type_traits>
@@ -104,7 +105,14 @@ TEST_F(DatabaseTest, ReadOnlyHandleCanStillFetch) {
 
 TEST_F(DatabaseTest, SchemaMarksOnlyNonNullableFieldsNotNull) {
     Database::Finalize();
-    const std::string path = "/tmp/sqlite_reflection_nullable_schema.db";
+    const char* temp_dir = std::getenv("RUNNER_TEMP");
+    if (temp_dir == nullptr) {
+        temp_dir = std::getenv("TMPDIR");
+    }
+    if (temp_dir == nullptr) {
+        temp_dir = std::getenv("TEMP");
+    }
+    const std::string path = std::string(temp_dir == nullptr ? "." : temp_dir) + "/sqlite_reflection_nullable_schema.db";
     std::remove(path.c_str());
     Database::Initialize(path);
     Database::Finalize();
