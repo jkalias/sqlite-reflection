@@ -135,6 +135,55 @@ Supported field macros:
 | `sqlite_reflection::TimePoint` | `MEMBER_DATETIME(name)` |
 | member function declaration | `FUNC(signature)` |
 
+### Nullable fields
+
+Each field macro has a `_NULLABLE` variant (`MEMBER_INT_NULLABLE`, `MEMBER_REAL_NULLABLE`,
+`MEMBER_TEXT_NULLABLE`, `MEMBER_BOOL_NULLABLE`, `MEMBER_DATETIME_NULLABLE`) declaring a field
+that can represent the absence of a value. The field's type is `fcpp::optional_t<T>` from
+[functional_cpp](https://github.com/jkalias/functional_cpp): under C++17 and later that is
+literally `std::optional<T>`, so you get the standard type and API; under C++11 an equivalent
+fallback with the core API (`has_value()`, `value()`, `operator*`/`->`, assignment from a value)
+is used.
+
+```c++
+#define REFLECTABLE Employee
+#define FIELDS \
+MEMBER_TEXT(name) \
+MEMBER_TEXT_NULLABLE(middle_name) \
+MEMBER_REAL_NULLABLE(salary)
+#include "reflection.h"
+
+Employee e;
+e.name = L"Ada Lovelace";       // middle_name and salary stay unset
+db->Save(e);                    // unset fields are stored as SQL NULL
+
+const auto fetched = db->Fetch<Employee>(e.id);
+if (fetched.salary.has_value()) { /* a real value was stored */ }
+```
+
+Round-trip semantics: saving an unset nullable field binds SQL `NULL`
+(`sqlite3_bind_null`), and fetching a `NULL` column hydrates the field back to the empty
+state. A stored empty string and a stored zero are distinct from `NULL` and hydrate to a
+*present* empty/zero value — absence and emptiness are no longer conflated.
+
+Two predicates cover nullness tests, since SQL's `= NULL` never matches:
+
+```c++
+const auto unpaid = db->Fetch<Employee>(&IsNull(&Employee::salary));
+const auto paid = db->Fetch<Employee>(&IsNotNull(&Employee::salary));
+```
+
+Value predicates (`Equal`, `Like`, ...) on a nullable field compare against the contained
+value and take an optional as the comparison argument, e.g.
+`Equal(&Employee::salary, fcpp::optional_t<double>(50000.0))`. Passing an *empty* optional to a
+value predicate throws `std::invalid_argument` — use `IsNull`/`IsNotNull` for that instead.
+
+Non-nullable columns are now created with an explicit `NOT NULL` constraint, so the schema
+enforces what the object model assumes. Because tables are created with
+`CREATE TABLE IF NOT EXISTS`, this only affects newly created tables; pre-existing database
+files keep their previous schema until migrated (the library has no migration layer yet) —
+the same caveat that applies to `AUTOINCREMENT`.
+
 **Layout constraint.** Reflectable records must be simple, standard-layout structs: no base
 classes, no virtual functions, no virtual/multiple inheritance. Member access is computed from
 `offsetof`/pointer-to-member byte offsets, which are only well-defined for such types; a struct
