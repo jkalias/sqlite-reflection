@@ -13,6 +13,7 @@ A C++ wrapper for SQLite that provides compile-time checked CRUD operations for 
 - [Opening and closing the database](#opening-and-closing-the-database)
 - [Saving records](#saving-records)
 - [Fetching records](#fetching-records)
+- [Working with query results](#working-with-query-results)
 - [Updating records](#updating-records)
 - [Deleting records](#deleting-records)
 - [Date and time fields](#date-and-time-fields)
@@ -346,6 +347,38 @@ Available predicate helpers include:
 
 Predicate values are bound with SQLite prepared statements. Text payloads are treated as values, not SQL syntax.
 
+## Working with query results
+
+`FetchAll` and `Fetch` return an [`fcpp::vector<T>`](https://github.com/jkalias/functional_cpp)
+rather than a `std::vector<T>`, so functional operations can be chained directly on the result
+without wrapping it yourself:
+
+```c++
+// Full names of every adult, straight off the query result.
+const auto adult_names = db->FetchAll<Person>()
+    .filter([](const Person& p) { return p.age >= 18; })
+    .map<std::wstring>([](const Person& p) { return p.GetFullName(); });
+
+// Predicate-style checks are available too.
+const bool everyone_is_adult = db->FetchAll<Person>()
+    .all_of([](const Person& p) { return p.age >= 18; });
+```
+
+`fcpp::vector` also supports `map`, `all_of`/`any_of`/`none_of`, `sort`, `distinct`, `zip`, and lazy
+pipelines via `.lazy()`; see the [functional_cpp](https://github.com/jkalias/functional_cpp)
+documentation. The batch `Save`, `SaveAutoIncrement`, and `Update` overloads accept an
+`fcpp::vector<T>` as well.
+
+**Migration note.** Because the result type changed from `std::vector<T>` to `fcpp::vector<T>`:
+
+- `auto` call sites, range-`for` loops, indexing (`result[i]`), and `size()` are unaffected.
+- Code that binds a result to a `std::vector<T>` explicitly no longer compiles, because there is no
+  implicit conversion back. Iterate the result directly, keep it as `fcpp::vector` (or `auto`), or
+  construct a `std::vector` from its iterators: `std::vector<Person>(result.begin(), result.end())`.
+- Indexing is **always bounds-checked**, in release builds too: `result[i]` for an out-of-range `i`
+  calls `std::abort()` instead of being undefined behavior (unless the library is built with
+  `FCPP_NO_PRECONDITION_CHECKS`).
+
 ## Updating records
 
 Fetch or construct a record, change its fields, and pass it to `Update`. The `id` identifies the row to update.
@@ -363,7 +396,7 @@ Multiple records can be updated in one call:
 
 ```c++
 // Update each record in the vector by its id.
-std::vector<Person> people = db->FetchAll<Person>();
+auto people = db->FetchAll<Person>();  // fcpp::vector<Person>
 people[0].last_name = L"Rambo";
 people[1].age = 20;
 
@@ -494,6 +527,8 @@ You can also open the generated `build/sqlite-cpp-reflection.sln` in Visual Stud
 
 - CMake 3.14 or newer
 - A C++11-compatible compiler
+- [functional_cpp](https://github.com/jkalias/functional_cpp) for `fcpp::vector` (query results) and
+  `fcpp::optional_t` (nullable fields), header-only, fetched by CMake
 - GoogleTest for tests, fetched by CMake
 - SQLite, vendored in `src/sqlite3.c` and `src/internal/sqlite3.h`
 
