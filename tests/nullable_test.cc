@@ -217,6 +217,51 @@ TEST_F(NullableTest, ValuePredicatesOperateOnTheContainedValue) {
     EXPECT_THROW(Equal(&NullableRecord::maybe_int, fcpp::optional_t<int64_t>()), std::invalid_argument);
 }
 
+TEST_F(NullableTest, RangePredicatesOperateOnTheContainedValue) {
+    const auto db = Database::Instance();
+
+    NullableRecord low;
+    low.label = L"low";
+    low.maybe_int = static_cast<int64_t>(3);
+    low.maybe_real = 1.5;
+    low.id = 1;
+    db->Save(low);
+
+    NullableRecord high;
+    high.label = L"high";
+    high.maybe_int = static_cast<int64_t>(9);
+    high.maybe_real = 9.5;
+    high.id = 2;
+    db->Save(high);
+
+    // A row with NULL columns never matches a range comparison in SQL
+    NullableRecord unset;
+    unset.label = L"unset";
+    unset.id = 3;
+    db->Save(unset);
+
+    const auto greater = GreaterThan(&NullableRecord::maybe_int, fcpp::optional_t<int64_t>(static_cast<int64_t>(5)));
+    const auto greater_rows = db->Fetch<NullableRecord>(&greater);
+    ASSERT_EQ(1, greater_rows.size());
+    EXPECT_EQ(2, greater_rows[0].id);
+
+    const auto greater_equal =
+        GreaterThanOrEqual(&NullableRecord::maybe_int, fcpp::optional_t<int64_t>(static_cast<int64_t>(3)));
+    EXPECT_EQ(2, db->Fetch<NullableRecord>(&greater_equal).size());
+
+    const auto smaller = SmallerThan(&NullableRecord::maybe_real, fcpp::optional_t<double>(9.5));
+    const auto smaller_rows = db->Fetch<NullableRecord>(&smaller);
+    ASSERT_EQ(1, smaller_rows.size());
+    EXPECT_EQ(1, smaller_rows[0].id);
+
+    const auto smaller_equal = SmallerThanOrEqual(&NullableRecord::maybe_real, fcpp::optional_t<double>(9.5));
+    EXPECT_EQ(2, db->Fetch<NullableRecord>(&smaller_equal).size());
+
+    // Like every value predicate, an empty optional is a misuse and fails fast
+    EXPECT_THROW(GreaterThan(&NullableRecord::maybe_int, fcpp::optional_t<int64_t>()), std::invalid_argument);
+    EXPECT_THROW(SmallerThan(&NullableRecord::maybe_real, fcpp::optional_t<double>()), std::invalid_argument);
+}
+
 TEST_F(NullableTest, NonNullableRecordsRoundTripUnchanged) {
     const auto db = Database::Instance();
 

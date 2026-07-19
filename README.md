@@ -169,14 +169,18 @@ state. A stored empty string and a stored zero are distinct from `NULL` and hydr
 Two predicates cover nullness tests, since SQL's `= NULL` never matches:
 
 ```c++
-const auto unpaid = db->Fetch<Employee>(&IsNull(&Employee::salary));
-const auto paid = db->Fetch<Employee>(&IsNotNull(&Employee::salary));
+const auto is_unpaid = IsNull(&Employee::salary);
+const auto unpaid = db->Fetch<Employee>(&is_unpaid);
+const auto is_paid = IsNotNull(&Employee::salary);
+const auto paid = db->Fetch<Employee>(&is_paid);
 ```
 
-Value predicates (`Equal`, `Like`, ...) on a nullable field compare against the contained
-value and take an optional as the comparison argument, e.g.
-`Equal(&Employee::salary, fcpp::optional_t<double>(50000.0))`. Passing an *empty* optional to a
-value predicate throws `std::invalid_argument` — use `IsNull`/`IsNotNull` for that instead.
+Value predicates (`Equal`, `Like`, `GreaterThan`, `SmallerThanOrEqual`, ...) on a nullable
+field compare against the contained value and take an optional as the comparison argument,
+e.g. `Equal(&Employee::salary, fcpp::optional_t<double>(50000.0))` or
+`GreaterThan(&Employee::salary, fcpp::optional_t<double>(40000.0))`. Passing an *empty*
+optional to a value predicate throws `std::invalid_argument` — use `IsNull`/`IsNotNull` for
+that instead.
 
 Non-nullable columns are now created with an explicit `NOT NULL` constraint, so the schema
 enforces what the object model assumes. Because tables are created with

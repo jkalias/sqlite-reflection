@@ -265,6 +265,14 @@ public:
 
     template <typename T>
     explicit GreaterThan(double T::* fn, double value) : QueryPredicate(fn, value, ">") {}
+
+    template <typename T>
+    explicit GreaterThan(fcpp::optional_t<int64_t> T::* fn, fcpp::optional_t<int64_t> value)
+        : QueryPredicate(fn, value, ">") {}
+
+    template <typename T>
+    explicit GreaterThan(fcpp::optional_t<double> T::* fn, fcpp::optional_t<double> value)
+        : QueryPredicate(fn, value, ">") {}
 };
 
 /// A wrapper for a comparison predicate, for which the value of the
@@ -279,6 +287,14 @@ public:
 
     template <typename T>
     explicit GreaterThanOrEqual(double T::* fn, double value) : QueryPredicate(fn, value, ">=") {}
+
+    template <typename T>
+    explicit GreaterThanOrEqual(fcpp::optional_t<int64_t> T::* fn, fcpp::optional_t<int64_t> value)
+        : QueryPredicate(fn, value, ">=") {}
+
+    template <typename T>
+    explicit GreaterThanOrEqual(fcpp::optional_t<double> T::* fn, fcpp::optional_t<double> value)
+        : QueryPredicate(fn, value, ">=") {}
 };
 
 /// A wrapper for a comparison predicate, for which the value of the
@@ -293,6 +309,14 @@ public:
 
     template <typename T>
     explicit SmallerThan(double T::* fn, double value) : QueryPredicate(fn, value, "<") {}
+
+    template <typename T>
+    explicit SmallerThan(fcpp::optional_t<int64_t> T::* fn, fcpp::optional_t<int64_t> value)
+        : QueryPredicate(fn, value, "<") {}
+
+    template <typename T>
+    explicit SmallerThan(fcpp::optional_t<double> T::* fn, fcpp::optional_t<double> value)
+        : QueryPredicate(fn, value, "<") {}
 };
 
 /// A wrapper for a comparison predicate, for which the value of the
@@ -307,6 +331,14 @@ public:
 
     template <typename T>
     explicit SmallerThanOrEqual(double T::* fn, double value) : QueryPredicate(fn, value, "<=") {}
+
+    template <typename T>
+    explicit SmallerThanOrEqual(fcpp::optional_t<int64_t> T::* fn, fcpp::optional_t<int64_t> value)
+        : QueryPredicate(fn, value, "<=") {}
+
+    template <typename T>
+    explicit SmallerThanOrEqual(fcpp::optional_t<double> T::* fn, fcpp::optional_t<double> value)
+        : QueryPredicate(fn, value, "<=") {}
 };
 
 /// A wrapper of a compound predicate, which combines two other predicates,
