@@ -71,11 +71,16 @@ TEST_F(NullableTest, UnsetNullableFieldsRoundTripAsNull) {
 
     // SQL-level proof that a real NULL was stored: SQLite's own IS NULL matches the row for
     // each storage class, which a bound value or empty string never would
-    EXPECT_EQ(1, db->Fetch<NullableRecord>(&IsNull(&NullableRecord::maybe_int)).size());
-    EXPECT_EQ(1, db->Fetch<NullableRecord>(&IsNull(&NullableRecord::maybe_real)).size());
-    EXPECT_EQ(1, db->Fetch<NullableRecord>(&IsNull(&NullableRecord::maybe_text)).size());
-    EXPECT_EQ(1, db->Fetch<NullableRecord>(&IsNull(&NullableRecord::maybe_bool)).size());
-    EXPECT_EQ(1, db->Fetch<NullableRecord>(&IsNull(&NullableRecord::maybe_date)).size());
+    const auto int_is_null = IsNull(&NullableRecord::maybe_int);
+    EXPECT_EQ(1, db->Fetch<NullableRecord>(&int_is_null).size());
+    const auto real_is_null = IsNull(&NullableRecord::maybe_real);
+    EXPECT_EQ(1, db->Fetch<NullableRecord>(&real_is_null).size());
+    const auto text_is_null = IsNull(&NullableRecord::maybe_text);
+    EXPECT_EQ(1, db->Fetch<NullableRecord>(&text_is_null).size());
+    const auto bool_is_null = IsNull(&NullableRecord::maybe_bool);
+    EXPECT_EQ(1, db->Fetch<NullableRecord>(&bool_is_null).size());
+    const auto date_is_null = IsNull(&NullableRecord::maybe_date);
+    EXPECT_EQ(1, db->Fetch<NullableRecord>(&date_is_null).size());
 }
 
 TEST_F(NullableTest, SetNullableFieldsRoundTripEqual) {
