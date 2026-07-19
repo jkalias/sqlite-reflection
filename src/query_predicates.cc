@@ -47,10 +47,50 @@ std::string EscapeLikeWildcards(const std::string& value) {
 }
 }  // namespace
 
-SqlValue::SqlValue() : storage_class(SqliteStorageClass::kText), int_value(0), bool_value(false), real_value(0.0) {}
+SqlValue::SqlValue()
+    : storage_class(SqliteStorageClass::kText), int_value(0), bool_value(false), real_value(0.0), is_null(false) {}
 
 QueryPredicateBase* QueryPredicate::Clone() const {
     return new QueryPredicate(symbol_, member_name_, value_);
+}
+
+void* QueryPredicate::NullableContainedValue(void* v, SqliteStorageClass storage_class) {
+    switch (storage_class) {
+        case SqliteStorageClass::kInt: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<int64_t>*>(v);
+            return optional.has_value() ? (void*)&*optional : nullptr;
+        }
+        case SqliteStorageClass::kBool: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<bool>*>(v);
+            return optional.has_value() ? (void*)&*optional : nullptr;
+        }
+        case SqliteStorageClass::kReal: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<double>*>(v);
+            return optional.has_value() ? (void*)&*optional : nullptr;
+        }
+        case SqliteStorageClass::kText: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<std::wstring>*>(v);
+            return optional.has_value() ? (void*)&*optional : nullptr;
+        }
+        case SqliteStorageClass::kDateTime: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<TimePoint>*>(v);
+            return optional.has_value() ? (void*)&*optional : nullptr;
+        }
+        default:
+            throw std::domain_error("Blob cannot be used in a nullable comparison");
+    }
+}
+
+std::string NullnessPredicate::Evaluate() const {
+    return member_name_ + space + symbol_;
+}
+
+std::vector<SqlValue> NullnessPredicate::Bindings() const {
+    return {};
+}
+
+QueryPredicateBase* NullnessPredicate::Clone() const {
+    return new NullnessPredicate(symbol_, member_name_);
 }
 
 std::string EmptyPredicate::Evaluate() const {

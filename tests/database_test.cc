@@ -753,15 +753,23 @@ TEST_F(DatabaseTest, FetchPreservesHighPrecisionDoubleValues) {
 TEST_F(DatabaseTest, FetchPreservesNullAndEmptyStringSkipSemantics) {
     const auto db = Database::Instance();
 
-    // Columns omitted from a raw INSERT are stored as SQL NULL. Direct hydration must skip
-    // assignment for a NULL column, and must also skip assignment for a TEXT column holding
-    // a genuine empty string - matching the pre-refactor behavior exactly. Both are only
-    // observable here for wstring members: std::wstring's default constructor deterministically
-    // produces an empty string regardless of whether it was assigned, whereas a skipped
-    // scalar member (e.g. an omitted INTEGER column) keeps whatever indeterminate value
-    // T's default construction happens to leave it at - both before and after this refactor -
-    // so that case isn't asserted on here. Resolving the NULL/empty-string conflation itself
-    // is tracked separately as #20 and is out of scope here.
+    // Columns omitted from a raw INSERT are stored as SQL NULL. For NON-nullable members,
+    // direct hydration must skip assignment for a NULL column, and must also skip assignment
+    // for a TEXT column holding a genuine empty string. Both are only observable here for
+    // wstring members: std::wstring's default constructor deterministically produces an empty
+    // string regardless of whether it was assigned, whereas a skipped scalar member (e.g. an
+    // omitted INTEGER column) keeps whatever indeterminate value T's default construction
+    // happens to leave it at, so that case isn't asserted on here. Nullable members hydrate
+    // NULL as an empty optional instead - see nullable_test.cc.
+    //
+    // Freshly created tables now carry NOT NULL on non-nullable columns, so a NULL can no
+    // longer be inserted into them through this library's own schema. Recreate the table the
+    // way a legacy database file (created before NOT NULL was emitted) or a foreign file
+    // would look, which is exactly the scenario the skip semantics protect.
+    db->UnsafeSql("DROP TABLE Company");
+    db->UnsafeSql(
+        "CREATE TABLE Company (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER, "
+        "address TEXT, salary REAL)");
     db->UnsafeSql("INSERT INTO Company (id, name, age, salary) VALUES (1, '', 30, 50000.0)");
     db->UnsafeSql("INSERT INTO Company (id, age, address, salary) VALUES (2, 31, 'Nowhere', 60000.0)");
 

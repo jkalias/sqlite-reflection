@@ -42,6 +42,10 @@ struct REFLECTION_EXPORT SqlValue {
     bool bool_value;
     double real_value;
     std::string text_value;
+
+    /// When true, the value represents SQL NULL (an unset nullable member) and is bound
+    /// via sqlite3_bind_null; the typed value members above are then meaningless
+    bool is_null;
 };
 
 /// The base class of all WHERE predicates used in SQLite queries
@@ -87,14 +91,25 @@ protected:
         for (auto i = 0; i < record.member_metadata.size(); ++i) {
             if (record.member_metadata[i].offset == offset) {
                 member_name_ = record.member_metadata[i].name;
-                value_ = value_retrieval((void*)&value, record.member_metadata[i].storage_class);
+                auto value_address = (void*)&value;
+                if (record.member_metadata[i].nullable) {
+                    // A value predicate on a nullable member compares against the contained
+                    // value; an empty optional cannot be expressed as "= ?" in SQL (a bound
+                    // NULL never matches), so demand IsNull()/IsNotNull() for that instead
+                    value_address = NullableContainedValue(value_address, record.member_metadata[i].storage_class);
+                    if (value_address == nullptr) {
+                        throw std::invalid_argument("Value predicate on nullable member '" + member_name_ +
+                                                    "' was given an empty optional; use IsNull()/IsNotNull() instead");
+                    }
+                }
+                value_ = value_retrieval(value_address, record.member_metadata[i].storage_class);
                 found = true;
                 break;
             }
         }
         if (!found) {
             throw std::runtime_error("No registered member of '" + record.name +
-                                      "' matches the given pointer-to-member (type id: " + typeid(T).name() + ")");
+                                     "' matches the given pointer-to-member (type id: " + typeid(T).name() + ")");
         }
     }
 
@@ -111,6 +126,14 @@ protected:
     /// to be type-erased, so that the header file is not bloated with unnecessary implementation details
     virtual SqlValue GetSqlValue(void* v, SqliteStorageClass storage_class) const;
 
+private:
+    /// For a type-erased pointer to an fcpp::optional_t of the underlying type of the given
+    /// storage class, returns a pointer to the contained value, or nullptr when the optional
+    /// is empty. Lets the constructor above unwrap a nullable comparison value once, so the
+    /// virtual GetSqlValue overloads only ever see the plain underlying types
+    static void* NullableContainedValue(void* v, SqliteStorageClass storage_class);
+
+protected:
     /// The symbol used for the comparison, for example "=" for equality
     std::string symbol_;
 
@@ -175,6 +198,59 @@ public:
 
 protected:
     SqlValue GetSqlValue(void* v, SqliteStorageClass storage_class) const override;
+};
+
+/// A predicate testing a column for the presence or absence of SQL NULL. Unlike the value
+/// predicates it binds no value ("= NULL" never matches in SQL; nullness needs the dedicated
+/// IS NULL / IS NOT NULL syntax), so it derives from QueryPredicateBase directly
+class REFLECTION_EXPORT NullnessPredicate : public QueryPredicateBase {
+public:
+    std::string Evaluate() const override;
+    std::vector<SqlValue> Bindings() const override;
+    QueryPredicateBase* Clone() const override;
+
+protected:
+    template <typename T, typename R>
+    NullnessPredicate(R T::* fn, const std::string& symbol) : symbol_(symbol) {
+        auto record = GetRecordFromTypeId(typeid(T).name());
+        auto offset = OffsetFromStart(fn);
+        auto found = false;
+        for (auto i = 0; i < record.member_metadata.size(); ++i) {
+            if (record.member_metadata[i].offset == offset) {
+                member_name_ = record.member_metadata[i].name;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            throw std::runtime_error("No registered member of '" + record.name +
+                                     "' matches the given pointer-to-member (type id: " + typeid(T).name() + ")");
+        }
+    }
+
+    NullnessPredicate(const std::string& symbol, const std::string& member_name)
+        : symbol_(symbol), member_name_(member_name) {}
+
+    /// The nullness test, either "IS NULL" or "IS NOT NULL"
+    std::string symbol_;
+
+    /// The name of the tested member, as defined in source code
+    std::string member_name_;
+};
+
+/// A predicate matching rows whose column holds SQL NULL, i.e. rows whose
+/// nullable member was saved in the unset/empty state
+class REFLECTION_EXPORT IsNull final : public NullnessPredicate {
+public:
+    template <typename T, typename R>
+    explicit IsNull(R T::* fn) : NullnessPredicate(fn, "IS NULL") {}
+};
+
+/// A predicate matching rows whose column holds a present (non-NULL) value
+class REFLECTION_EXPORT IsNotNull final : public NullnessPredicate {
+public:
+    template <typename T, typename R>
+    explicit IsNotNull(R T::* fn) : NullnessPredicate(fn, "IS NOT NULL") {}
 };
 
 /// A wrapper for a comparison predicate, for which the value of the
