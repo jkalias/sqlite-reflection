@@ -24,6 +24,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+# functional_cpp provides fcpp::optional_t, the nullable-field representation
+# (std::optional under C++17 and later, an equivalent C++11 fallback otherwise).
+# It is consumed header-only: SOURCE_SUBDIR points at the header directory, which
+# contains no CMakeLists.txt, so FetchContent only downloads the sources without
+# building functional_cpp's own library and test targets.
+FetchContent_Declare(
+  functional_cpp
+  GIT_REPOSITORY https://github.com/jkalias/functional_cpp.git
+  GIT_TAG 1.1.1
+  SOURCE_SUBDIR include
+)
+FetchContent_MakeAvailable(functional_cpp)
+include_directories(${functional_cpp_SOURCE_DIR}/include)
+
 # Set compiler settings based on the current platform
 if(CMAKE_HOST_UNIX)
     add_definitions(-w -fpermissive -Wshadow -Wunused -Woverloaded-virtual -Wnon-virtual-dtor -Werror)
