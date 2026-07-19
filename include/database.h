@@ -151,14 +151,14 @@ public:
         }
     }
 
-    /// std::vector compatibility overload: copies into an fcpp::vector, forwards, and writes the
-    /// generated ids back into the caller's std::vector.
+    /// std::vector compatibility overload: saves each record through the single-record overload, so
+    /// every generated id is written back into the caller's std::vector as soon as its row is
+    /// inserted. This preserves the ids of already-committed rows if a later row in the batch fails
+    /// (each insert commits independently), matching the pre-fcpp::vector behavior.
     template <typename T>
     void SaveAutoIncrement(std::vector<T>& models) {
-        fcpp::vector<T> functional_models(models);
-        SaveAutoIncrement(functional_models);
-        for (size_t i = 0; i < models.size(); ++i) {
-            models[i].id = functional_models[i].id;
+        for (auto& model : models) {
+            SaveAutoIncrement(model);
         }
     }
 
