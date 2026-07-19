@@ -42,6 +42,12 @@ std::string Placeholders(size_t count) {
 }
 
 void BindValue(sqlite3_stmt* stmt, int index, const SqlValue& value) {
+    if (value.is_null) {
+        // An unset nullable member is stored as SQL NULL, regardless of its storage class
+        sqlite3_bind_null(stmt, index);
+        return;
+    }
+
     switch (value.storage_class) {
         case SqliteStorageClass::kInt:
             sqlite3_bind_int64(stmt, index, value.int_value);
@@ -66,6 +72,135 @@ void BindValue(sqlite3_stmt* stmt, int index, const SqlValue& value) {
 void BindValues(sqlite3_stmt* stmt, const std::vector<SqlValue>& values) {
     for (auto i = 0; i < values.size(); ++i) {
         BindValue(stmt, static_cast<int>(i + 1), values[i]);
+    }
+}
+
+/// Reads a nullable member (an fcpp::optional_t of the underlying type of the given storage
+/// class) into an SqlValue: the contained value when set, or a null SqlValue when empty
+SqlValue GetNullableValue(char* member_address, SqliteStorageClass storage_class) {
+    SqlValue value;
+    value.storage_class = storage_class;
+    switch (storage_class) {
+        case SqliteStorageClass::kInt: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<int64_t>*>(member_address);
+            if (optional.has_value()) {
+                value.int_value = *optional;
+            } else {
+                value.is_null = true;
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kBool: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<bool>*>(member_address);
+            if (optional.has_value()) {
+                value.bool_value = *optional;
+            } else {
+                value.is_null = true;
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kReal: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<double>*>(member_address);
+            if (optional.has_value()) {
+                value.real_value = *optional;
+            } else {
+                value.is_null = true;
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kText: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<std::wstring>*>(member_address);
+            if (optional.has_value()) {
+                value.text_value = StringUtilities::ToUtf8(*optional);
+            } else {
+                value.is_null = true;
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kDateTime: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<TimePoint>*>(member_address);
+            if (optional.has_value()) {
+                value.text_value = StringUtilities::ToUtf8((*optional).SystemTime());
+            } else {
+                value.is_null = true;
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+    return value;
+}
+
+/// Hydrates a nullable member (an fcpp::optional_t of the underlying type of the given storage
+/// class) from the current statement row: SQL NULL sets the optional to empty, a present value
+/// is assigned as the contained value. An empty TEXT hydrates to a contained empty string -
+/// distinct from NULL - while an empty DATETIME string carries no parseable instant and is
+/// treated as absent, like NULL. The caller has already excluded BLOB columns.
+void HydrateNullableColumn(sqlite3_stmt* stmt, char* member_address, SqliteStorageClass storage_class, int col,
+                           int col_type) {
+    switch (storage_class) {
+        case SqliteStorageClass::kInt: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<int64_t>*>(member_address);
+            if (col_type == SQLITE_NULL) {
+                optional = fcpp::optional_t<int64_t>();
+            } else {
+                optional = static_cast<int64_t>(sqlite3_column_int64(stmt, col));
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kBool: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<bool>*>(member_address);
+            if (col_type == SQLITE_NULL) {
+                optional = fcpp::optional_t<bool>();
+            } else {
+                optional = sqlite3_column_int64(stmt, col) == 1;
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kReal: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<double>*>(member_address);
+            if (col_type == SQLITE_NULL) {
+                optional = fcpp::optional_t<double>();
+            } else {
+                optional = sqlite3_column_double(stmt, col);
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kText: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<std::wstring>*>(member_address);
+            if (col_type == SQLITE_NULL) {
+                optional = fcpp::optional_t<std::wstring>();
+            } else {
+                const auto byte_count = sqlite3_column_bytes(stmt, col);
+                const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
+                optional = byte_count == 0 ? std::wstring() : StringUtilities::FromUtf8(content, byte_count);
+            }
+            break;
+        }
+
+        case SqliteStorageClass::kDateTime: {
+            auto& optional = *reinterpret_cast<fcpp::optional_t<TimePoint>*>(member_address);
+            const auto byte_count = col_type == SQLITE_NULL ? 0 : sqlite3_column_bytes(stmt, col);
+            if (byte_count == 0) {
+                optional = fcpp::optional_t<TimePoint>();
+            } else {
+                const auto content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
+                optional = TimePoint::FromSystemTime(StringUtilities::FromUtf8(content, byte_count));
+            }
+            break;
+        }
+
+        default:
+            break;
     }
 }
 
@@ -135,6 +270,12 @@ std::vector<SqlValue> ExecutionQuery::GetValues(void* p, bool skip_id) const {
     // The id is always the first member (index 0); skip it when the caller asks
     for (size_t j = skip_id ? 1 : 0; j < members.size(); j++) {
         const auto current_storage_class = members[j].storage_class;
+
+        if (members[j].nullable) {
+            values.emplace_back(GetNullableValue(GetMemberAddress(p, record_, j), current_storage_class));
+            continue;
+        }
+
         SqlValue value;
         value.storage_class = current_storage_class;
 
@@ -195,8 +336,16 @@ std::string CreateTableQuery::CustomizedColumnName(size_t index) const {
     name += " " + record_.member_metadata[index].sqlite_column_name;
 
     // AUTOINCREMENT guarantees that ids are never reused, even after the row with the
-    // highest id is deleted
-    return is_id ? name + " PRIMARY KEY AUTOINCREMENT" : name;
+    // highest id is deleted (an INTEGER PRIMARY KEY is implicitly NOT NULL in SQLite)
+    if (is_id) {
+        return name + " PRIMARY KEY AUTOINCREMENT";
+    }
+
+    // Non-nullable members get an explicit NOT NULL, so the schema enforces the contract the
+    // object model assumes; nullable members leave the column physically nullable. Since
+    // tables are created with CREATE TABLE IF NOT EXISTS, this only affects newly created
+    // tables - pre-existing database files keep their schema until migrated
+    return record_.member_metadata[index].nullable ? name : name + " NOT NULL";
 }
 
 DeleteQuery::DeleteQuery(sqlite3* db, const Reflection& record, const QueryPredicateBase* predicate)
@@ -305,6 +454,18 @@ void FetchRecordsQuery::HydrateCurrentRow(void* p, const Reflection& record) con
     const auto column_count = std::min(static_cast<size_t>(sqlite3_column_count(stmt_)), record.member_metadata.size());
     for (size_t j = 0; j < column_count; j++) {
         const auto col = static_cast<int>(j);
+        const int col_type = sqlite3_column_type(stmt_, col);
+
+        if (record.member_metadata[j].nullable) {
+            // A nullable member carries "absent" as a first-class state: SQL NULL hydrates to
+            // an empty optional instead of being skipped. BLOB stays skipped for the same
+            // accessor-safety reason as for non-nullable members below.
+            if (col_type != SQLITE_BLOB) {
+                HydrateNullableColumn(stmt_, GetMemberAddress(p, record, j), record.member_metadata[j].storage_class,
+                                      col, col_type);
+            }
+            continue;
+        }
 
         // The prior text-based path only ever produced a non-empty string for INTEGER,
         // FLOAT, or TEXT columns; NULL and BLOB both fell through to an empty string and
@@ -312,7 +473,6 @@ void FetchRecordsQuery::HydrateCurrentRow(void* p, const Reflection& record) con
         // here so a NULL or BLOB value (reachable via UnsafeSql or a foreign database file,
         // even for a column declared as a different storage class) is never fed to the
         // wrong typed accessor.
-        const int col_type = sqlite3_column_type(stmt_, col);
         if (col_type == SQLITE_NULL || col_type == SQLITE_BLOB) {
             continue;
         }
