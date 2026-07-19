@@ -155,7 +155,7 @@ MEMBER_REAL_NULLABLE(salary)
 
 Employee e;
 e.name = L"Ada Lovelace";       // middle_name and salary stay unset
-db->Save(e);                    // unset fields are stored as SQL NULL
+db->SaveAutoIncrement(e);       // unset fields are stored as SQL NULL; e.id gets assigned
 
 const auto fetched = db->Fetch<Employee>(e.id);
 if (fetched.salary.has_value()) { /* a real value was stored */ }
