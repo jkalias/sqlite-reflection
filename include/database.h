@@ -32,6 +32,7 @@
 #include "queries.h"
 #include "query_predicates.h"
 #include "reflection.h"
+#include "vector.h"  // fcpp::vector, the functional container returned by the query API
 
 struct sqlite3;
 
@@ -66,9 +67,11 @@ public:
     Database& operator=(Database&&) = delete;
 
     /// Retrieves all entries of a given record from the database.
-    /// This corresponds to a SELECT query in the SQL syntax
+    /// This corresponds to a SELECT query in the SQL syntax.
+    /// The result is an fcpp::vector, so functional operations (filter/map/...) can be chained
+    /// directly on it; range-for, indexing and size() work as with a std::vector.
     template <typename T>
-    std::vector<T> FetchAll() const {
+    fcpp::vector<T> FetchAll() const {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         EmptyPredicate empty;
@@ -76,9 +79,11 @@ public:
     }
 
     /// Retrieves all entries of a given record from the database, which match a given predicate.
-    /// This corresponds to a SELECT query in the SQL syntax
+    /// This corresponds to a SELECT query in the SQL syntax.
+    /// The result is an fcpp::vector, so functional operations (filter/map/...) can be chained
+    /// directly on it; range-for, indexing and size() work as with a std::vector.
     template <typename T>
-    std::vector<T> Fetch(const QueryPredicateBase* predicate) const {
+    fcpp::vector<T> Fetch(const QueryPredicateBase* predicate) const {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         return FetchRecords<T>(record, predicate);
@@ -120,7 +125,7 @@ public:
     /// Saves multiple records iteratively in the database.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void Save(const std::vector<T>& models) {
+    void Save(const fcpp::vector<T>& models) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         for (const auto& model : models) {
@@ -128,15 +133,32 @@ public:
         }
     }
 
+    /// std::vector compatibility overload: copies into an fcpp::vector and forwards.
+    template <typename T>
+    void Save(const std::vector<T>& models) {
+        Save(fcpp::vector<T>(models));
+    }
+
     /// Saves multiple records iteratively in the database, letting the database assign their ids.
     /// The newly generated ids are written back into the passed-in models.
     /// This corresponds to an INSERT query in the SQL syntax
     template <typename T>
-    void SaveAutoIncrement(std::vector<T>& models) {
+    void SaveAutoIncrement(fcpp::vector<T>& models) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         for (auto& model : models) {
             model.id = SaveAutoIncrement((void*)&model, record);
+        }
+    }
+
+    /// std::vector compatibility overload: saves each record through the single-record overload, so
+    /// every generated id is written back into the caller's std::vector as soon as its row is
+    /// inserted. This preserves the ids of already-committed rows if a later row in the batch fails
+    /// (each insert commits independently), matching the pre-fcpp::vector behavior.
+    template <typename T>
+    void SaveAutoIncrement(std::vector<T>& models) {
+        for (auto& model : models) {
+            SaveAutoIncrement(model);
         }
     }
 
@@ -152,12 +174,18 @@ public:
     /// Updates multiple records iteratively in the database.
     /// This corresponds to an UPDATE query in the SQL syntax
     template <typename T>
-    void Update(const std::vector<T>& models) {
+    void Update(const fcpp::vector<T>& models) {
         const auto type_id = typeid(T).name();
         const auto& record = GetRecord(type_id);
         for (const auto& model : models) {
             Update((void*)&model, record);
         }
+    }
+
+    /// std::vector compatibility overload: copies into an fcpp::vector and forwards.
+    template <typename T>
+    void Update(const std::vector<T>& models) {
+        Update(fcpp::vector<T>(models));
     }
 
     /// Deletes a given record from the database.
@@ -203,14 +231,14 @@ private:
     /// each matching row directly from the prepared statement into a newly constructed T -
     /// no intermediate string materialization of the result set
     template <typename T>
-    std::vector<T> FetchRecords(const Reflection& record, const QueryPredicateBase* predicate) const {
+    fcpp::vector<T> FetchRecords(const Reflection& record, const QueryPredicateBase* predicate) const {
         std::lock_guard<std::mutex> lock(db_mutex_);
         FetchRecordsQuery query(db_, record, predicate);
-        std::vector<T> models;
+        fcpp::vector<T> models;
         while (query.StepRow()) {
             T model;
             query.HydrateCurrentRow((void*)&model, record);
-            models.emplace_back(std::move(model));
+            models.insert_back(std::move(model));
         }
         return models;
     }
