@@ -136,6 +136,17 @@ Supported field macros:
 | `sqlite_reflection::TimePoint` | `MEMBER_DATETIME(name)` |
 | member function declaration | `FUNC(signature)` |
 
+### Text encoding
+
+`MEMBER_TEXT` fields are `std::wstring` in C++ and are stored as UTF-8 in SQLite. The full
+Unicode range is supported, including code points above U+FFFF such as emoji and the CJK
+extension blocks, and text round-trips unchanged on every supported platform regardless of
+whether `wchar_t` is 16 bits (Windows) or 32 bits (Linux, macOS).
+
+Text that is not valid Unicode is rejected rather than silently altered: converting a
+`std::wstring` containing unpaired UTF-16 surrogates, or reading a column whose bytes are not
+well-formed UTF-8, throws `std::range_error`.
+
 ### Nullable fields
 
 Each field macro has a `_NULLABLE` variant (`MEMBER_INT_NULLABLE`, `MEMBER_REAL_NULLABLE`,

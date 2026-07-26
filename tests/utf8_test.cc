@@ -20,8 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "internal/utf8.h"
+
 #include <gtest/gtest.h>
 
+#include <stdexcept>
 #include <string>
 
 #include "internal/string_utilities.h"
@@ -122,4 +125,120 @@ TEST(Utf8Test, SupplementaryCodePointSurvivesLengthAndContent) {
     const std::wstring decoded = FromUtf8(kEmojiUtf8);
     EXPECT_FALSE(decoded.empty());
     EXPECT_EQ(std::wstring(L"\U0001F600"), decoded);
+}
+
+// ---------------------------------------------------------------------------
+// Code-point core, exercised directly so both the UTF-16 and UTF-32 paths are covered on every
+// platform rather than only the one matching this machine's wchar_t width. The UTF-16 path is
+// where the replaced <codecvt> facet was wrong, and on Linux and macOS it is unreachable
+// through the wstring API.
+// ---------------------------------------------------------------------------
+
+namespace {
+std::u32string CodePoints(const std::string& utf8) {
+    return Utf8::ToCodePoints(utf8.data(), utf8.size());
+}
+
+std::string Utf8From(const std::u32string& code_points) {
+    return Utf8::FromCodePoints(code_points.data(), code_points.size());
+}
+
+std::u16string Utf16From(const std::u32string& code_points) {
+    return Utf8::Utf16FromCodePoints(code_points.data(), code_points.size());
+}
+
+std::u32string FromUtf16(const std::u16string& code_units) {
+    return Utf8::CodePointsFromUtf16(code_units.data(), code_units.size());
+}
+}  // namespace
+
+TEST(Utf8CoreTest, EncodesSupplementaryCodePointAsSurrogatePair) {
+    const std::u32string emoji(1, 0x1F600);
+    const std::u16string units = Utf16From(emoji);
+    ASSERT_EQ(static_cast<size_t>(2), units.size());
+    EXPECT_EQ(0xD83D, units[0]);
+    EXPECT_EQ(0xDE00, units[1]);
+}
+
+TEST(Utf8CoreTest, CombinesSurrogatePairIntoSupplementaryCodePoint) {
+    std::u16string units;
+    units.push_back(0xD83D);
+    units.push_back(0xDE00);
+    const std::u32string code_points = FromUtf16(units);
+    ASSERT_EQ(static_cast<size_t>(1), code_points.size());
+    EXPECT_EQ(0x1F600u, static_cast<unsigned>(code_points[0]));
+}
+
+TEST(Utf8CoreTest, RoundTripsSurrogateBoundaryThroughUtf16) {
+    std::u32string code_points;
+    code_points.push_back(0xFFFF);   // last BMP
+    code_points.push_back(0x10000);  // first supplementary
+    code_points.push_back(0x10FFFF);
+    EXPECT_EQ(code_points, FromUtf16(Utf16From(code_points)));
+}
+
+TEST(Utf8CoreTest, EncodesSupplementaryCodePointAsFourUtf8Bytes) {
+    EXPECT_EQ(std::string(kEmojiUtf8), Utf8From(std::u32string(1, 0x1F600)));
+}
+
+TEST(Utf8CoreTest, RejectsUnpairedHighSurrogateInUtf16) {
+    EXPECT_THROW(FromUtf16(std::u16string(1, 0xD83D)), std::range_error);
+}
+
+TEST(Utf8CoreTest, RejectsUnpairedLowSurrogateInUtf16) {
+    EXPECT_THROW(FromUtf16(std::u16string(1, 0xDE00)), std::range_error);
+}
+
+TEST(Utf8CoreTest, RejectsHighSurrogateFollowedByNonSurrogate) {
+    std::u16string units;
+    units.push_back(0xD83D);
+    units.push_back(0x0041);
+    EXPECT_THROW(FromUtf16(units), std::range_error);
+}
+
+TEST(Utf8CoreTest, RejectsSurrogateCodePointOnEncode) {
+    EXPECT_THROW(Utf8From(std::u32string(1, 0xD800)), std::range_error);
+    EXPECT_THROW(Utf16From(std::u32string(1, 0xDFFF)), std::range_error);
+}
+
+TEST(Utf8CoreTest, RejectsCodePointAboveUnicodeMaximumOnEncode) {
+    EXPECT_THROW(Utf8From(std::u32string(1, 0x110000)), std::range_error);
+}
+
+TEST(Utf8CoreTest, RejectsInvalidLeadByte) {
+    EXPECT_THROW(CodePoints("\xFF"), std::range_error);              // 0xFF is never a lead byte
+    EXPECT_THROW(CodePoints("\xC0\xAF"), std::range_error);          // overlong ASCII
+    EXPECT_THROW(CodePoints("\x80"), std::range_error);              // stray continuation byte
+    EXPECT_THROW(CodePoints("\xF5\x80\x80\x80"), std::range_error);  // above U+10FFFF
+}
+
+TEST(Utf8CoreTest, RejectsTruncatedSequence) {
+    EXPECT_THROW(CodePoints("\xF0\x9F\x98"), std::range_error);  // emoji missing its last byte
+    EXPECT_THROW(CodePoints("\xCF"), std::range_error);          // two-byte lead, nothing follows
+}
+
+TEST(Utf8CoreTest, RejectsMissingContinuationByte) {
+    EXPECT_THROW(CodePoints("\xF0\x9F"
+                            "A"
+                            "\x80"),
+                 std::range_error);
+    EXPECT_THROW(CodePoints("\xCF"
+                            "A"),
+                 std::range_error);
+}
+
+TEST(Utf8CoreTest, RejectsOverlongEncoding) {
+    EXPECT_THROW(CodePoints("\xE0\x80\xAF"), std::range_error);      // overlong three-byte
+    EXPECT_THROW(CodePoints("\xF0\x80\x80\xAF"), std::range_error);  // overlong four-byte
+}
+
+TEST(Utf8CoreTest, RejectsSurrogateEncodedInUtf8) {
+    // CESU-8: exactly what the replaced facet emitted for supplementary code points, so it must
+    // not be silently accepted on the way back in either.
+    EXPECT_THROW(CodePoints("\xED\xA0\xBD"), std::range_error);
+    EXPECT_THROW(CodePoints("\xED\xA0\xBD\xED\xB8\x80"), std::range_error);
+}
+
+TEST(Utf8CoreTest, RejectsCodePointAboveUnicodeMaximumOnDecode) {
+    EXPECT_THROW(CodePoints("\xF4\x90\x80\x80"), std::range_error);  // U+110000
 }

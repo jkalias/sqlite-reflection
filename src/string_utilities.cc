@@ -22,13 +22,65 @@
 
 #include "internal/string_utilities.h"
 
-#include <codecvt>
 #include <numeric>
-#ifndef _WIN32
-#include <locale>
-#endif
+
+#include "internal/utf8.h"
 
 using namespace sqlite_reflection;
+
+namespace {
+// wchar_t holds UTF-16 code units where it is 16 bits wide (Windows) and Unicode code points
+// where it is 32 bits wide (Linux, macOS). Selecting the path by width is what keeps text above
+// U+FFFF identical across platforms; a single facet cannot serve both, which is the defect this
+// replaced. See internal/utf8.h.
+template <size_t WideCharSize>
+struct WideCodec;
+
+template <>
+struct WideCodec<2> {
+    static std::u32string ToCodePoints(const std::wstring& wide_string) {
+        std::u16string code_units;
+        code_units.reserve(wide_string.size());
+        for (size_t i = 0; i < wide_string.size(); ++i) {
+            code_units.push_back(static_cast<char16_t>(wide_string[i]));
+        }
+        return Utf8::CodePointsFromUtf16(code_units.data(), code_units.size());
+    }
+
+    static std::wstring FromCodePoints(const std::u32string& code_points) {
+        const auto code_units = Utf8::Utf16FromCodePoints(code_points.data(), code_points.size());
+        std::wstring wide_string;
+        wide_string.reserve(code_units.size());
+        for (size_t i = 0; i < code_units.size(); ++i) {
+            wide_string.push_back(static_cast<wchar_t>(code_units[i]));
+        }
+        return wide_string;
+    }
+};
+
+template <>
+struct WideCodec<4> {
+    static std::u32string ToCodePoints(const std::wstring& wide_string) {
+        std::u32string code_points;
+        code_points.reserve(wide_string.size());
+        for (size_t i = 0; i < wide_string.size(); ++i) {
+            code_points.push_back(static_cast<char32_t>(wide_string[i]));
+        }
+        return code_points;
+    }
+
+    static std::wstring FromCodePoints(const std::u32string& code_points) {
+        std::wstring wide_string;
+        wide_string.reserve(code_points.size());
+        for (size_t i = 0; i < code_points.size(); ++i) {
+            wide_string.push_back(static_cast<wchar_t>(code_points[i]));
+        }
+        return wide_string;
+    }
+};
+
+typedef WideCodec<sizeof(wchar_t)> PlatformWideCodec;
+}  // namespace
 
 std::string StringUtilities::FromInt(int64_t value) {
     return std::to_string(value);
@@ -45,15 +97,13 @@ std::string StringUtilities::FromDouble(double value) {
 }
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    auto utf8_string = converter.to_bytes(wide_string.data(), wide_string.data() + wide_string.size());
-    return utf8_string;
+    const auto code_points = PlatformWideCodec::ToCodePoints(wide_string);
+    return Utf8::FromCodePoints(code_points.data(), code_points.size());
 }
 
 std::wstring StringUtilities::FromUtf8(const char* utf8_string, size_t byte_count) {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    auto wide_string = converter.from_bytes(utf8_string, utf8_string + byte_count);
-    return wide_string;
+    const auto code_points = Utf8::ToCodePoints(utf8_string, byte_count);
+    return PlatformWideCodec::FromCodePoints(code_points);
 }
 
 std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {
