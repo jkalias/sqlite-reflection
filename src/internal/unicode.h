@@ -46,13 +46,18 @@ namespace sqlite_reflection {
 /// overlong encodings, truncated sequences, stray or invalid lead and continuation bytes,
 /// surrogate code points encoded directly (CESU-8), unpaired UTF-16 surrogates, and anything
 /// above U+10FFFF.
-class REFLECTION_EXPORT Utf8 {
+///
+/// Note that rejecting CESU-8 means text written by a pre-fix build of this library, where
+/// wchar_t is 16 bits, no longer reads back. That data was stored ill-formed; because encoding
+/// and decoding were wrong in the same way it used to survive a round trip on Windows, so the
+/// break surfaces only now. See the text encoding section of README.md.
+class REFLECTION_EXPORT Unicode {
 public:
     /// Encodes Unicode code points as UTF-8
-    static std::string FromCodePoints(const char32_t* code_points, size_t count);
+    static std::string Utf8FromCodePoints(const char32_t* code_points, size_t count);
 
     /// Decodes UTF-8 into Unicode code points
-    static std::u32string ToCodePoints(const char* utf8_string, size_t byte_count);
+    static std::u32string CodePointsFromUtf8(const char* utf8_string, size_t byte_count);
 
     /// Encodes Unicode code points as UTF-16 code units, using a surrogate pair above U+FFFF
     static std::u16string Utf16FromCodePoints(const char32_t* code_points, size_t count);

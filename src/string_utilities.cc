@@ -24,60 +24,59 @@
 
 #include <numeric>
 
-#include "internal/utf8.h"
+#include "internal/unicode.h"
 
 using namespace sqlite_reflection;
 
 namespace {
+// Copies a string of code units into a string of a different unit type, one unit at a time. The
+// casts are value-preserving in the directions used below, except for a negative wchar_t on a
+// platform where it is signed, which widens to a value above U+10FFFF and is then rejected by
+// the validation in Unicode.
+template <typename To, typename From>
+To cast_each(const From& source) {
+    To result;
+    result.reserve(source.size());
+    for (size_t i = 0; i < source.size(); ++i) {
+        result.push_back(static_cast<typename To::value_type>(source[i]));
+    }
+    return result;
+}
+
 // wchar_t holds UTF-16 code units where it is 16 bits wide (Windows) and Unicode code points
 // where it is 32 bits wide (Linux, macOS). Selecting the path by width is what keeps text above
 // U+FFFF identical across platforms; a single facet cannot serve both, which is the defect this
-// replaced. See internal/utf8.h.
+// replaced. See internal/unicode.h.
 template <size_t WideCharSize>
 struct WideCodec;
 
 template <>
 struct WideCodec<2> {
     static std::u32string ToCodePoints(const std::wstring& wide_string) {
-        std::u16string code_units;
-        code_units.reserve(wide_string.size());
-        for (size_t i = 0; i < wide_string.size(); ++i) {
-            code_units.push_back(static_cast<char16_t>(wide_string[i]));
-        }
-        return Utf8::CodePointsFromUtf16(code_units.data(), code_units.size());
+        const auto code_units = cast_each<std::u16string>(wide_string);
+        return Unicode::CodePointsFromUtf16(code_units.data(), code_units.size());
     }
 
     static std::wstring FromCodePoints(const std::u32string& code_points) {
-        const auto code_units = Utf8::Utf16FromCodePoints(code_points.data(), code_points.size());
-        std::wstring wide_string;
-        wide_string.reserve(code_units.size());
-        for (size_t i = 0; i < code_units.size(); ++i) {
-            wide_string.push_back(static_cast<wchar_t>(code_units[i]));
-        }
-        return wide_string;
+        const auto code_units = Unicode::Utf16FromCodePoints(code_points.data(), code_points.size());
+        return cast_each<std::wstring>(code_units);
     }
 };
 
 template <>
 struct WideCodec<4> {
     static std::u32string ToCodePoints(const std::wstring& wide_string) {
-        std::u32string code_points;
-        code_points.reserve(wide_string.size());
-        for (size_t i = 0; i < wide_string.size(); ++i) {
-            code_points.push_back(static_cast<char32_t>(wide_string[i]));
-        }
-        return code_points;
+        return cast_each<std::u32string>(wide_string);
     }
 
     static std::wstring FromCodePoints(const std::u32string& code_points) {
-        std::wstring wide_string;
-        wide_string.reserve(code_points.size());
-        for (size_t i = 0; i < code_points.size(); ++i) {
-            wide_string.push_back(static_cast<wchar_t>(code_points[i]));
-        }
-        return wide_string;
+        return cast_each<std::wstring>(code_points);
     }
 };
+
+// Only the two widths above are implemented; without this the failure is an incomplete-type
+// error inside the typedef rather than a statement about portability.
+static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4, "sqlite_reflection supports wchar_t of 16 or 32 bits only");
 
 typedef WideCodec<sizeof(wchar_t)> PlatformWideCodec;
 }  // namespace
@@ -98,11 +97,11 @@ std::string StringUtilities::FromDouble(double value) {
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
     const auto code_points = PlatformWideCodec::ToCodePoints(wide_string);
-    return Utf8::FromCodePoints(code_points.data(), code_points.size());
+    return Unicode::Utf8FromCodePoints(code_points.data(), code_points.size());
 }
 
 std::wstring StringUtilities::FromUtf8(const char* utf8_string, size_t byte_count) {
-    const auto code_points = Utf8::ToCodePoints(utf8_string, byte_count);
+    const auto code_points = Unicode::CodePointsFromUtf8(utf8_string, byte_count);
     return PlatformWideCodec::FromCodePoints(code_points);
 }
 

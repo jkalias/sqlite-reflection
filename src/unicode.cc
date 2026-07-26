@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "internal/utf8.h"
+#include "internal/unicode.h"
 
 #include <stdexcept>
 
@@ -28,8 +28,6 @@ using namespace sqlite_reflection;
 
 namespace {
 const char32_t kMaxCodePoint = 0x10FFFF;
-const char32_t kFirstSurrogate = 0xD800;
-const char32_t kLastSurrogate = 0xDFFF;
 const char32_t kFirstSupplementary = 0x10000;
 
 const char16_t kFirstHighSurrogate = 0xD800;
@@ -37,22 +35,24 @@ const char16_t kLastHighSurrogate = 0xDBFF;
 const char16_t kFirstLowSurrogate = 0xDC00;
 const char16_t kLastLowSurrogate = 0xDFFF;
 
-void reject(const char* reason) {
+[[noreturn]] void throw_invalid_unicode(const char* reason) {
     throw std::range_error(std::string("invalid Unicode input: ") + reason);
 }
 
+// The surrogate range is exactly the first high through the last low surrogate; the char16_t
+// operands widen to char32_t for the comparison.
 bool is_surrogate(char32_t code_point) {
-    return code_point >= kFirstSurrogate && code_point <= kLastSurrogate;
+    return code_point >= kFirstHighSurrogate && code_point <= kLastLowSurrogate;
 }
 
 // A code point that no valid encoding may carry: surrogates are reserved for UTF-16 pairing
 // and must never appear on their own, and nothing above U+10FFFF exists.
 void reject_if_not_scalar_value(char32_t code_point) {
     if (is_surrogate(code_point)) {
-        reject("surrogate code point");
+        throw_invalid_unicode("surrogate code point");
     }
     if (code_point > kMaxCodePoint) {
-        reject("code point above U+10FFFF");
+        throw_invalid_unicode("code point above U+10FFFF");
     }
 }
 
@@ -83,21 +83,23 @@ size_t sequence_length(unsigned char lead) {
 // code point above U+10FFFF. The lead byte alone cannot exclude these (Unicode Table 3-7).
 void reject_if_invalid_second_byte(unsigned char lead, unsigned char second) {
     if (lead == 0xE0 && second < 0xA0) {
-        reject("overlong three-byte sequence");
+        throw_invalid_unicode("overlong three-byte sequence");
     }
     if (lead == 0xED && second > 0x9F) {
-        reject("surrogate code point encoded in UTF-8");
+        throw_invalid_unicode(
+            "surrogate code point encoded in UTF-8 (CESU-8), as written by a pre-fix build of this "
+            "library where wchar_t is 16 bits");
     }
     if (lead == 0xF0 && second < 0x90) {
-        reject("overlong four-byte sequence");
+        throw_invalid_unicode("overlong four-byte sequence");
     }
     if (lead == 0xF4 && second > 0x8F) {
-        reject("code point above U+10FFFF");
+        throw_invalid_unicode("code point above U+10FFFF");
     }
 }
 }  // namespace
 
-std::string Utf8::FromCodePoints(const char32_t* code_points, size_t count) {
+std::string Unicode::Utf8FromCodePoints(const char32_t* code_points, size_t count) {
     std::string utf8_string;
     utf8_string.reserve(count);
 
@@ -125,7 +127,7 @@ std::string Utf8::FromCodePoints(const char32_t* code_points, size_t count) {
     return utf8_string;
 }
 
-std::u32string Utf8::ToCodePoints(const char* utf8_string, size_t byte_count) {
+std::u32string Unicode::CodePointsFromUtf8(const char* utf8_string, size_t byte_count) {
     std::u32string code_points;
     code_points.reserve(byte_count);
 
@@ -134,10 +136,10 @@ std::u32string Utf8::ToCodePoints(const char* utf8_string, size_t byte_count) {
         const auto lead = static_cast<unsigned char>(utf8_string[i]);
         const size_t length = sequence_length(lead);
         if (length == 0) {
-            reject("byte cannot start a UTF-8 sequence");
+            throw_invalid_unicode("byte cannot start a UTF-8 sequence");
         }
         if (i + length > byte_count) {
-            reject("truncated UTF-8 sequence");
+            throw_invalid_unicode("truncated UTF-8 sequence");
         }
 
         if (length == 1) {
@@ -148,7 +150,7 @@ std::u32string Utf8::ToCodePoints(const char* utf8_string, size_t byte_count) {
 
         const auto second = static_cast<unsigned char>(utf8_string[i + 1]);
         if (!is_continuation(second)) {
-            reject("missing UTF-8 continuation byte");
+            throw_invalid_unicode("missing UTF-8 continuation byte");
         }
         reject_if_invalid_second_byte(lead, second);
 
@@ -164,7 +166,7 @@ std::u32string Utf8::ToCodePoints(const char* utf8_string, size_t byte_count) {
         for (size_t j = 1; j < length; ++j) {
             const auto byte = static_cast<unsigned char>(utf8_string[i + j]);
             if (!is_continuation(byte)) {
-                reject("missing UTF-8 continuation byte");
+                throw_invalid_unicode("missing UTF-8 continuation byte");
             }
             code_point = (code_point << 6) | static_cast<char32_t>(byte & 0x3F);
         }
@@ -177,7 +179,7 @@ std::u32string Utf8::ToCodePoints(const char* utf8_string, size_t byte_count) {
     return code_points;
 }
 
-std::u16string Utf8::Utf16FromCodePoints(const char32_t* code_points, size_t count) {
+std::u16string Unicode::Utf16FromCodePoints(const char32_t* code_points, size_t count) {
     std::u16string utf16_string;
     utf16_string.reserve(count);
 
@@ -198,7 +200,7 @@ std::u16string Utf8::Utf16FromCodePoints(const char32_t* code_points, size_t cou
     return utf16_string;
 }
 
-std::u32string Utf8::CodePointsFromUtf16(const char16_t* utf16_string, size_t count) {
+std::u32string Unicode::CodePointsFromUtf16(const char16_t* utf16_string, size_t count) {
     std::u32string code_points;
     code_points.reserve(count);
 
@@ -207,7 +209,7 @@ std::u32string Utf8::CodePointsFromUtf16(const char16_t* utf16_string, size_t co
         const char16_t unit = utf16_string[i];
 
         if (unit >= kFirstLowSurrogate && unit <= kLastLowSurrogate) {
-            reject("unpaired low surrogate");
+            throw_invalid_unicode("unpaired low surrogate");
         }
 
         if (unit < kFirstHighSurrogate || unit > kLastHighSurrogate) {
@@ -217,12 +219,12 @@ std::u32string Utf8::CodePointsFromUtf16(const char16_t* utf16_string, size_t co
         }
 
         if (i + 1 >= count) {
-            reject("high surrogate at end of input");
+            throw_invalid_unicode("high surrogate at end of input");
         }
 
         const char16_t low = utf16_string[i + 1];
         if (low < kFirstLowSurrogate || low > kLastLowSurrogate) {
-            reject("high surrogate not followed by a low surrogate");
+            throw_invalid_unicode("high surrogate not followed by a low surrogate");
         }
 
         const char32_t high_bits = static_cast<char32_t>(unit - kFirstHighSurrogate) << 10;
