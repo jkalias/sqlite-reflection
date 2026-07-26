@@ -1,0 +1,125 @@
+// MIT License
+//
+// Copyright (c) 2026 Ioannis Kaliakatsos
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#include <gtest/gtest.h>
+
+#include <string>
+
+#include "internal/string_utilities.h"
+
+using namespace sqlite_reflection;
+
+// Every wide literal in this file is written with universal-character escapes rather than
+// literal non-ASCII source bytes. MSVC is not passed /utf-8, so it decodes non-ASCII source
+// bytes in the system codepage; a test written with literal characters would compare a
+// mangled literal against the same mangled literal and pass while proving nothing. Escapes
+// are charset-independent, and the expected UTF-8 is asserted as exact bytes rather than by
+// round-tripping, so a conversion that is wrong in both directions cannot pass either.
+
+namespace {
+// A code point is encoded as a surrogate pair in a 16-bit wchar_t (Windows) and as a single
+// code unit in a 32-bit wchar_t (Linux, macOS). The expected UTF-8 is identical on both.
+const char* const kEmojiUtf8 = "\xF0\x9F\x98\x80";               // U+1F600 GRINNING FACE
+const char* const kFirstSupplementaryUtf8 = "\xF0\x90\x80\x80";  // U+10000, first non-BMP
+const char* const kLastCodePointUtf8 = "\xF4\x8F\xBF\xBF";       // U+10FFFF, highest valid
+const char* const kLastBmpUtf8 = "\xEF\xBF\xBF";                 // U+FFFF, last BMP code point
+
+std::wstring FromUtf8(const std::string& utf8) {
+    return StringUtilities::FromUtf8(utf8.data(), utf8.size());
+}
+}  // namespace
+
+TEST(Utf8Test, EncodesAsciiToExactBytes) {
+    EXPECT_EQ(std::string("Appleseed"), StringUtilities::ToUtf8(L"Appleseed"));
+}
+
+TEST(Utf8Test, EncodesEmptyString) {
+    EXPECT_EQ(std::string(), StringUtilities::ToUtf8(std::wstring()));
+}
+
+TEST(Utf8Test, EncodesBmpToExactBytes) {
+    // U+03C0 GREEK SMALL LETTER PI, U+03B1 GREEK SMALL LETTER ALPHA: two-byte sequences.
+    EXPECT_EQ(std::string("\xCF\x80\xCE\xB1"), StringUtilities::ToUtf8(L"\u03C0\u03B1"));
+}
+
+TEST(Utf8Test, EncodesLastBmpCodePointToExactBytes) {
+    EXPECT_EQ(std::string(kLastBmpUtf8), StringUtilities::ToUtf8(L"\uFFFF"));
+}
+
+TEST(Utf8Test, EncodesFirstSupplementaryCodePointToExactBytes) {
+    // U+10000 is the low side of the surrogate boundary: the first code point that needs a
+    // surrogate pair in UTF-16 and a four-byte UTF-8 sequence.
+    EXPECT_EQ(std::string(kFirstSupplementaryUtf8), StringUtilities::ToUtf8(L"\U00010000"));
+}
+
+TEST(Utf8Test, EncodesEmojiToExactBytes) {
+    EXPECT_EQ(std::string(kEmojiUtf8), StringUtilities::ToUtf8(L"\U0001F600"));
+}
+
+TEST(Utf8Test, EncodesLastValidCodePointToExactBytes) {
+    EXPECT_EQ(std::string(kLastCodePointUtf8), StringUtilities::ToUtf8(L"\U0010FFFF"));
+}
+
+TEST(Utf8Test, EncodesSupplementaryCodePointMixedWithAscii) {
+    EXPECT_EQ(std::string("a") + kEmojiUtf8 + "b", StringUtilities::ToUtf8(L"a\U0001F600b"));
+}
+
+TEST(Utf8Test, DecodesAscii) {
+    EXPECT_EQ(std::wstring(L"Appleseed"), FromUtf8("Appleseed"));
+}
+
+TEST(Utf8Test, DecodesEmptyString) {
+    EXPECT_EQ(std::wstring(), FromUtf8(std::string()));
+}
+
+TEST(Utf8Test, DecodesBmp) {
+    EXPECT_EQ(std::wstring(L"\u03C0\u03B1"), FromUtf8("\xCF\x80\xCE\xB1"));
+}
+
+TEST(Utf8Test, DecodesLastBmpCodePoint) {
+    EXPECT_EQ(std::wstring(L"\uFFFF"), FromUtf8(kLastBmpUtf8));
+}
+
+TEST(Utf8Test, DecodesFirstSupplementaryCodePoint) {
+    EXPECT_EQ(std::wstring(L"\U00010000"), FromUtf8(kFirstSupplementaryUtf8));
+}
+
+TEST(Utf8Test, DecodesEmoji) {
+    EXPECT_EQ(std::wstring(L"\U0001F600"), FromUtf8(kEmojiUtf8));
+}
+
+TEST(Utf8Test, DecodesLastValidCodePoint) {
+    EXPECT_EQ(std::wstring(L"\U0010FFFF"), FromUtf8(kLastCodePointUtf8));
+}
+
+TEST(Utf8Test, RoundTripsSupplementaryCodePoints) {
+    const std::wstring original = L"\U0001F600\U00010000\U0010FFFF";
+    EXPECT_EQ(original, FromUtf8(StringUtilities::ToUtf8(original)));
+}
+
+TEST(Utf8Test, SupplementaryCodePointSurvivesLengthAndContent) {
+    // Guards against a conversion that silently drops or truncates the pair rather than
+    // producing a wrong-but-present result.
+    const std::wstring decoded = FromUtf8(kEmojiUtf8);
+    EXPECT_FALSE(decoded.empty());
+    EXPECT_EQ(std::wstring(L"\U0001F600"), decoded);
+}

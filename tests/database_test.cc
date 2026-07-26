@@ -874,3 +874,26 @@ TEST_F(DatabaseTest, RawSqlQueryForPersistedRecord) {
     EXPECT_EQ(52, fetched_persons[0].id);
     EXPECT_EQ(L"johnie", fetched_persons[0].first_name);
 }
+
+TEST_F(DatabaseTest, TextOutsideTheBasicMultilingualPlaneSurvivesSaveAndFetch) {
+    const auto db = Database::Instance();
+
+    // Code points above U+FFFF need a surrogate pair where wchar_t is 16 bits (Windows) and a
+    // single code unit where it is 32 bits (Linux, macOS). The stored UTF-8 and the fetched
+    // wstring must be identical on every platform. Written with universal-character escapes
+    // so the test does not depend on how the compiler decodes this file's source bytes.
+    const std::wstring name = L"\U0001F600";
+    const std::wstring address = L"\U00010000\U0010FFFF";
+
+    db->Save(Company{name, 30, address, 50000.0, 1});
+
+    const auto fetched = db->Fetch<Company>(1);
+    EXPECT_EQ(name, fetched.name);
+    EXPECT_EQ(address, fetched.address);
+
+    // The comparisons above are self-consistent: a conversion wrong in both directions would
+    // satisfy them. Match on the stored bytes instead - U+1F600 is F0 9F 98 80 in UTF-8 - so
+    // the row only disappears if what SQLite actually holds is correct UTF-8.
+    db->UnsafeSql("DELETE FROM Company WHERE hex(name) = 'F09F9880'");
+    EXPECT_EQ(0, db->FetchAll<Company>().size());
+}

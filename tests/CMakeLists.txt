@@ -8,6 +8,10 @@ include(GoogleTest)
 include_directories ("${PROJECT_SOURCE_DIR}/include")
 include_directories ("./include")
 
+# Internal headers (src/internal/...) so the UTF-8 conversion helpers can be tested directly
+# rather than only through the public wstring API
+include_directories ("${PROJECT_SOURCE_DIR}/src")
+
 # Collect test sources into the variable TEST_SOURCES
 file (GLOB TEST_SOURCES
       "*.cpp"
