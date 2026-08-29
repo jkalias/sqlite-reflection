@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #40 — Unicode conversion, step by step</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f6f7f9;
+    --panel-2: #eef0f4;
+    --ink: #16181d;
+    --ink-dim: #5c626e;
+    --line: #dfe2e8;
+    --accent: #2f6fed;
+    --ok: #1a7f4b;
+    --bad: #c0392b;
+    --warn: #a2680a;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101216;
+      --panel: #181b21;
+      --panel-2: #1f232b;
+      --ink: #e7e9ee;
+      --ink-dim: #9aa2b1;
+      --line: #2b313b;
+      --accent: #6f9bff;
+      --ok: #4ec98a;
+      --bad: #ff7d6e;
+      --warn: #e2b45e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 80px;
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-dim); margin: 34px 0 10px; }
+  .sub { color: var(--ink-dim); margin: 0 0 28px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 14px;
+  }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card h3 .fn { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+  .card .why { color: var(--ink-dim); font-size: 13.5px; margin: 0 0 12px; }
+  input[type=text] {
+    width: 100%; padding: 11px 13px; font-family: var(--mono); font-size: 15px;
+    background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+  }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  label.fld { display: block; font-size: 13px; color: var(--ink-dim); margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip {
+    font: 12.5px/1 var(--mono); padding: 7px 10px; border-radius: 999px; cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    font: 13px/1 inherit; padding: 9px 14px; background: var(--bg); color: var(--ink-dim);
+    border: 0; cursor: pointer; border-right: 1px solid var(--line);
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed=true] { background: var(--accent); color: #fff; }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; margin-top: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .scroll { overflow-x: auto; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
+  th { color: var(--ink-dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td.m, th.m { font-family: var(--mono); }
+  code, .mono { font-family: var(--mono); }
+  .bits { font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.5px; }
+  .pfx { color: var(--ink-dim); }
+  .pay { color: var(--accent); font-weight: 600; }
+  .bytes { font-family: var(--mono); font-size: 14px; letter-spacing: 1px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  .verdict { border-left: 3px solid var(--line); padding-left: 12px; margin: 10px 0; }
+  .verdict.good { border-color: var(--ok); }
+  .verdict.fail { border-color: var(--bad); }
+  ul.steps { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; }
+  ul.steps li { margin-bottom: 3px; }
+  .err { color: var(--bad); font-family: var(--mono); font-size: 13.5px; }
+  .note { font-size: 13px; color: var(--ink-dim); margin-top: 10px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 780px) { .grid2 { grid-template-columns: 1fr; } }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13.5px; }
+  .kv dt { color: var(--ink-dim); }
+  .kv dd { margin: 0; font-family: var(--mono); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 34px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>PR #40 — what the Unicode change actually does</h1>
+<p class="sub">
+  Type text below and watch it travel the exact path the C++ takes:
+  <code>std::wstring</code> → code points → UTF-8 bytes stored in SQLite → back again.
+  Every step mirrors a real function in <code>src/unicode.cc</code> and <code>src/string_utilities.cc</code>,
+  including the validation rules and the pre-fix behaviour it replaced.
+</p>
+
+<div class="card">
+  <label class="fld" for="in">Test string — literal text, or <code>\uXXXX</code> / <code>\UXXXXXXXX</code> escapes (as the tests use)</label>
+  <input type="text" id="in" value="Hi 😀" spellcheck="false" autocomplete="off">
+  <div class="chips" id="chips"></div>
+  <div class="row">
+    <div>
+      <label class="fld">Platform — how wide is <code>wchar_t</code>?</label>
+      <div class="seg" id="plat">
+        <button data-w="2" aria-pressed="true">16-bit (Windows)</button>
+        <button data-w="4" aria-pressed="false">32-bit (Linux / macOS)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="out"></div>
+
+<hr>
+<h2>Validator playground — decode raw bytes</h2>
+<div class="card">
+  <label class="fld" for="hex">UTF-8 bytes in hex (this is what <code>Fetch</code> receives from SQLite)</label>
+  <input type="text" id="hex" value="ED A0 BD ED B8 80" spellcheck="false" autocomplete="off">
+  <div class="chips" id="hexchips"></div>
+</div>
+<div id="hexout"></div>
+
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ * Faithful ports of src/unicode.cc. Each returns {ok, value, steps[]} *
+ * instead of throwing, so the page can show where it stopped.         *
+ * ------------------------------------------------------------------ */
+
+const MAX_CP = 0x10FFFF;
+const FIRST_SUPP = 0x10000;
+const HI_FIRST = 0xD800, HI_LAST = 0xDBFF, LO_FIRST = 0xDC00, LO_LAST = 0xDFFF;
+
+class UnicodeError extends Error {}
+function fail(reason) { throw new UnicodeError("invalid Unicode input: " + reason); }
+
+const isSurrogate = cp => cp >= HI_FIRST && cp <= LO_LAST;
+const isContinuation = b => (b & 0xC0) === 0x80;
+
+function rejectIfNotScalarValue(cp) {
+  if (isSurrogate(cp)) fail("surrogate code point");
+  if (cp > MAX_CP) fail("code point above U+10FFFF");
+}
+
+function sequenceLength(lead) {
+  if (lead <= 0x7F) return 1;
+  if (lead >= 0xC2 && lead <= 0xDF) return 2;
+  if (lead >= 0xE0 && lead <= 0xEF) return 3;
+  if (lead >= 0xF0 && lead <= 0xF4) return 4;
+  return 0;
+}
+
+function rejectIfInvalidSecondByte(lead, second) {
+  if (lead === 0xE0 && second < 0xA0) fail("overlong three-byte sequence");
+  if (lead === 0xED && second > 0x9F) fail("surrogate code point encoded in UTF-8 (CESU-8), as written by a pre-fix build of this library where wchar_t is 16 bits");
+  if (lead === 0xF0 && second < 0x90) fail("overlong four-byte sequence");
+  if (lead === 0xF4 && second > 0x8F) fail("code point above U+10FFFF");
+}
+
+/* --- formatting helpers ------------------------------------------- */
+const hex = (n, w = 2) => n.toString(16).toUpperCase().padStart(w, "0");
+const bin = (n, w) => n.toString(2).padStart(w, "0");
+const U = cp => "U+" + hex(cp, cp > 0xFFFF ? 5 : 4);
+const bytesStr = bs => bs.map(b => hex(b)).join(" ");
+const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+function glyph(cp) {
+  if (isSurrogate(cp)) return "<span class='warn'>lone surrogate</span>";
+  if (cp === 0) return "<span class='warn'>NUL</span>";
+  if (cp < 0x20) return "<span class='warn'>ctrl</span>";
+  if (cp === 0x20) return "<span class='pfx'>space</span>";
+  return esc(String.fromCodePoint(cp));
+}
+
+/* --- 1. code points -> UTF-8 (Unicode::Utf8FromCodePoints) --------- */
+function utf8FromCodePoints(cps) {
+  const out = [], rows = [];
+  for (const cp of cps) {
+    rejectIfNotScalarValue(cp);
+    let bytes, layout, branch;
+    if (cp <= 0x7F) {
+      branch = "cp ≤ 0x7F → 1 byte";
+      bytes = [cp];
+      layout = [["0", bin(cp, 7)]];
+    } else if (cp <= 0x7FF) {
+      branch = "cp ≤ 0x7FF → 2 bytes";
+      bytes = [0xC0 | (cp >> 6), 0x80 | (cp & 0x3F)];
+      const b = bin(cp, 11);
+      layout = [["110", b.slice(0, 5)], ["10", b.slice(5)]];
+    } else if (cp <= 0xFFFF) {
+      branch = "cp ≤ 0xFFFF → 3 bytes";
+      bytes = [0xE0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3F), 0x80 | (cp & 0x3F)];
+      const b = bin(cp, 16);
+      layout = [["1110", b.slice(0, 4)], ["10", b.slice(4, 10)], ["10", b.slice(10)]];
+    } else {
+      branch = "else → 4 bytes";
+      bytes = [0xF0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3F), 0x80 | ((cp >> 6) & 0x3F), 0x80 | (cp & 0x3F)];
+      const b = bin(cp, 21);
+      layout = [["11110", b.slice(0, 3)], ["10", b.slice(3, 9)], ["10", b.slice(9, 15)], ["10", b.slice(15)]];
+    }
+    out.push(...bytes);
+    rows.push({ cp, branch, layout, bytes });
+  }
+  return { bytes: out, rows };
+}
+
+/* --- 2. UTF-8 -> code points (Unicode::CodePointsFromUtf8) --------- */
+function codePointsFromUtf8(bytes) {
+  const cps = [], log = [];
+  let i = 0;
+  while (i < bytes.length) {
+    const entry = { at: i, checks: [] };
+    log.push(entry);
+    const lead = bytes[i];
+    const len = sequenceLength(lead);
+    entry.lead = lead;
+    entry.checks.push(`sequence_length(0x${hex(lead)}) = ${len}` + (len ? ` → ${len}-byte sequence` : ""));
+    if (len === 0) { entry.error = "byte cannot start a UTF-8 sequence"; fail(entry.error); }
+    if (i + len > bytes.length) {
+      entry.error = "truncated UTF-8 sequence";
+      entry.checks.push(`needs ${len} bytes, only ${bytes.length - i} left`);
+      fail(entry.error);
+    }
+    if (len === 1) {
+      entry.checks.push("ASCII, taken verbatim");
+      entry.cp = lead; entry.seq = [lead];
+      cps.push(lead); i += 1; continue;
+    }
+    const second = bytes[i + 1];
+    if (!isContinuation(second)) {
+      entry.error = "missing UTF-8 continuation byte";
+      entry.checks.push(`0x${hex(second)} & 0xC0 = 0x${hex(second & 0xC0)}, expected 0x80`);
+      fail(entry.error);
+    }
+    entry.checks.push(`second byte 0x${hex(second)} is a continuation byte (10xxxxxx)`);
+    try {
+      rejectIfInvalidSecondByte(lead, second);
+      entry.checks.push("Table 3-7 range check on the second byte: passes");
+    } catch (e) { entry.error = e.message.replace("invalid Unicode input: ", ""); throw e; }
+
+    let cp = len === 2 ? (lead & 0x1F) : len === 3 ? (lead & 0x0F) : (lead & 0x07);
+    entry.checks.push(`payload bits from lead: 0x${hex(lead)} & 0x${hex(len === 2 ? 0x1F : len === 3 ? 0x0F : 0x07)} = ${bin(cp, 8)}b`);
+    for (let j = 1; j < len; ++j) {
+      const b = bytes[i + j];
+      if (!isContinuation(b)) { entry.error = "missing UTF-8 continuation byte"; fail(entry.error); }
+      cp = (cp << 6) | (b & 0x3F);
+      entry.checks.push(`(cp << 6) | (0x${hex(b)} & 0x3F) → 0x${hex(cp, 2)}`);
+    }
+    try { rejectIfNotScalarValue(cp); }
+    catch (e) { entry.error = e.message.replace("invalid Unicode input: ", ""); throw e; }
+    entry.checks.push(`scalar-value check on ${U(cp)}: passes`);
+    entry.cp = cp; entry.seq = bytes.slice(i, i + len);
+    cps.push(cp); i += len;
+  }
+  return { cps, log };
+}
+
+/* --- 3. code points -> UTF-16 (Unicode::Utf16FromCodePoints) ------- */
+function utf16FromCodePoints(cps) {
+  const units = [], rows = [];
+  for (const cp of cps) {
+    rejectIfNotScalarValue(cp);
+    if (cp < FIRST_SUPP) {
+      units.push(cp);
+      rows.push({ cp, units: [cp], note: "below U+10000 — one code unit, unchanged" });
+    } else {
+      const off = cp - FIRST_SUPP;
+      const hi = HI_FIRST + (off >> 10), lo = LO_FIRST + (off & 0x3FF);
+      units.push(hi, lo);
+      rows.push({ cp, units: [hi, lo],
+        note: `offset = ${U(cp)} − 0x10000 = 0x${hex(off, 5)}; high = 0xD800 + (offset >> 10) = 0x${hex(hi, 4)}; low = 0xDC00 + (offset & 0x3FF) = 0x${hex(lo, 4)}` });
+    }
+  }
+  return { units, rows };
+}
+
+/* --- 4. UTF-16 -> code points (Unicode::CodePointsFromUtf16) ------- */
+function codePointsFromUtf16(units) {
+  const cps = [], rows = [];
+  let i = 0;
+  while (i < units.length) {
+    const u = units[i];
+    if (u >= LO_FIRST && u <= LO_LAST) {
+      rows.push({ units: [u], error: "unpaired low surrogate" });
+      fail("unpaired low surrogate");
+    }
+    if (u < HI_FIRST || u > HI_LAST) {
+      cps.push(u);
+      rows.push({ units: [u], cp: u, note: "not a surrogate — the unit is the code point" });
+      i += 1; continue;
+    }
+    if (i + 1 >= units.length) {
+      rows.push({ units: [u], error: "high surrogate at end of input" });
+      fail("high surrogate at end of input");
+    }
+    const lo = units[i + 1];
+    if (lo < LO_FIRST || lo > LO_LAST) {
+      rows.push({ units: [u, lo], error: "high surrogate not followed by a low surrogate" });
+      fail("high surrogate not followed by a low surrogate");
+    }
+    const cp = FIRST_SUPP + ((u - HI_FIRST) << 10) + (lo - LO_FIRST);
+    cps.push(cp);
+    rows.push({ units: [u, lo], cp,
+      note: `0x10000 + ((0x${hex(u, 4)} − 0xD800) << 10) + (0x${hex(lo, 4)} − 0xDC00) = ${U(cp)}` });
+    i += 2;
+  }
+  return { cps, rows };
+}
+
+/* ------------------------------------------------------------------ *
+ * The pre-fix implementation: std::wstring_convert<codecvt_utf8>      *
+ * — one wchar_t code unit per code point, in both directions.         *
+ * ------------------------------------------------------------------ */
+function legacyEncode(units) {
+  // Every wchar_t unit is treated as a whole code point, surrogates included.
+  const out = [];
+  for (const u of units) {
+    if (u <= 0x7F) out.push(u);
+    else if (u <= 0x7FF) out.push(0xC0 | (u >> 6), 0x80 | (u & 0x3F));
+    else if (u <= 0xFFFF) out.push(0xE0 | (u >> 12), 0x80 | ((u >> 6) & 0x3F), 0x80 | (u & 0x3F));
+    else out.push(0xF0 | (u >> 18), 0x80 | ((u >> 12) & 0x3F), 0x80 | ((u >> 6) & 0x3F), 0x80 | (u & 0x3F));
+  }
+  return out;
+}
+function legacyDecode(bytes, wcharSize) {
+  // Parses UTF-8 leniently, then stores each code point in one wchar_t — truncating on 16 bits.
+  const units = [];
+  let i = 0;
+  while (i < bytes.length) {
+    const lead = bytes[i];
+    let len = lead <= 0x7F ? 1 : lead < 0xE0 ? 2 : lead < 0xF0 ? 3 : 4;
+    if (i + len > bytes.length) break;
+    let cp = len === 1 ? lead : len === 2 ? (lead & 0x1F) : len === 3 ? (lead & 0x0F) : (lead & 0x07);
+    for (let j = 1; j < len; ++j) cp = (cp << 6) | (bytes[i + j] & 0x3F);
+    units.push(wcharSize === 2 ? (cp & 0xFFFF) : cp);
+    i += len;
+  }
+  return units;
+}
+
+/* ------------------------------------------------------------------ *
+ * Input parsing                                                       *
+ * ------------------------------------------------------------------ */
+function parseInput(text) {
+  const cps = [];
+  let i = 0;
+  while (i < text.length) {
+    const m4 = /^\\u([0-9a-fA-F]{4})/.exec(text.slice(i));
+    const m8 = /^\\U([0-9a-fA-F]{8})/.exec(text.slice(i));
+    if (m8) { cps.push(parseInt(m8[1], 16)); i += 10; continue; }
+    if (m4) { cps.push(parseInt(m4[1], 16)); i += 6; continue; }
+    const cp = text.codePointAt(i);
+    cps.push(cp);
+    i += cp > 0xFFFF ? 2 : 1;
+  }
+  return cps;
+}
+
+// A wstring holds code units; which units depends on the platform.
+function toWstring(cps, wcharSize) {
+  if (wcharSize === 4) return cps.slice();
+  const units = [];
+  for (const cp of cps) {
+    if (cp < FIRST_SUPP) units.push(cp);
+    else {
+      const off = cp - FIRST_SUPP;
+      units.push(HI_FIRST + (off >> 10), LO_FIRST + (off & 0x3FF));
+    }
+  }
+  return units;
+}
+
+/* ------------------------------------------------------------------ *
+ * Rendering                                                           *
+ * ------------------------------------------------------------------ */
+function card(title, fn, why, body) {
+  return `<div class="card"><h3>${title} ${fn ? `<span class="fn">${esc(fn)}</span>` : ""}</h3>
+    ${why ? `<p class="why">${why}</p>` : ""}${body}</div>`;
+}
+function errCard(title, fn, msg) {
+  return `<div class="card"><h3>${title} ${fn ? `<span class="fn">${esc(fn)}</span>` : ""}</h3>
+    <p class="err">throw std::range_error("${esc(msg)}")</p>
+    <p class="note">In the library this propagates out of <code>Save</code> or <code>Fetch</code>. Nothing is written, and no altered text is returned.</p></div>`;
+}
+function unitsTable(units, size) {
+  const w = size === 2 ? 4 : 8;
+  return `<div class="scroll"><table><tr><th>#</th><th class="m">value</th><th>what it is</th><th>char</th></tr>` +
+    units.map((u, i) => {
+      let kind = "code " + (size === 2 ? "unit" : "point");
+      if (size === 2 && u >= HI_FIRST && u <= HI_LAST) kind = "<span class='warn'>high surrogate</span>";
+      else if (size === 2 && u >= LO_FIRST && u <= LO_LAST) kind = "<span class='warn'>low surrogate</span>";
+      return `<tr><td>${i}</td><td class="m">0x${hex(u, w)}</td><td>${kind}</td><td>${glyph(u)}</td></tr>`;
+    }).join("") + `</table></div>`;
+}
+
+function render() {
+  const wcharSize = +document.querySelector("#plat button[aria-pressed=true]").dataset.w;
+  const text = document.getElementById("in").value;
+  const cps = parseInput(text);
+  const wstr = toWstring(cps, wcharSize);
+  const out = [];
+
+  const platName = wcharSize === 2 ? "Windows (wchar_t = 16 bits)" : "Linux / macOS (wchar_t = 32 bits)";
+
+  out.push(card(`The <code>std::wstring</code> in memory`, "",
+    `On ${platName}, <code>sizeof(wchar_t) == ${wcharSize}</code>, so the string holds
+     <strong>${wstr.length}</strong> code unit${wstr.length === 1 ? "" : "s"} for
+     <strong>${cps.length}</strong> code point${cps.length === 1 ? "" : "s"}.
+     ${wcharSize === 2 && wstr.length !== cps.length
+       ? `This is why <code>size()</code> differs across platforms — the README calls this out: the text round-trips identically, the unit count does not.`
+       : ``}`,
+    unitsTable(wstr, wcharSize)));
+
+  /* ---- write path ---- */
+  let encCps, utf8;
+  try {
+    if (wcharSize === 2) {
+      const r = codePointsFromUtf16(wstr);
+      encCps = r.cps;
+      out.push(card("Step 1 — wstring → code points", "Unicode::CodePointsFromUtf16",
+        `<code>WideCodec&lt;2&gt;</code> is selected by <code>sizeof(wchar_t)</code>. The 16-bit units are UTF-16, so surrogate pairs must be recombined into one code point <em>before</em> anything is encoded. <strong>This recombination is the entire bug fix.</strong>`,
+        `<div class="scroll"><table><tr><th class="m">units</th><th class="m">code point</th><th>arithmetic</th></tr>` +
+        r.rows.map(x => `<tr><td class="m">${x.units.map(u => "0x" + hex(u, 4)).join(" ")}</td>
+          <td class="m">${x.cp !== undefined ? U(x.cp) : "—"}</td><td>${x.note || ""}</td></tr>`).join("") +
+        `</table></div>`));
+    } else {
+      encCps = wstr.slice();
+      out.push(card("Step 1 — wstring → code points", "cast_each<std::u32string>",
+        `<code>WideCodec&lt;4&gt;</code> is selected. A 32-bit <code>wchar_t</code> already holds one code point per unit, so this is a straight per-unit cast — no surrogate logic needed. (A negative <code>wchar_t</code> would widen to a value above U+10FFFF and be rejected downstream.)`,
+        unitsTable(encCps, 4)));
+    }
+    const e = utf8FromCodePoints(encCps);
+    utf8 = e.bytes;
+    out.push(card("Step 2 — code points → UTF-8", "Unicode::Utf8FromCodePoints",
+      `Each code point picks its length by magnitude and its bits are spread over the continuation bytes. <span class="pfx">Grey</span> = fixed marker bits, <span class="pay">blue</span> = payload bits of the code point.`,
+      `<div class="scroll"><table><tr><th class="m">code point</th><th>branch</th><th>bit layout</th><th class="m">bytes</th></tr>` +
+      e.rows.map(x => `<tr><td class="m">${U(x.cp)} ${glyph(x.cp)}</td><td>${esc(x.branch)}</td>
+        <td class="bits">${x.layout.map(([p, b]) => `<span class="pfx">${p}</span><span class="pay">${b}</span>`).join(" ")}</td>
+        <td class="m">${bytesStr(x.bytes)}</td></tr>`).join("") +
+      `</table></div>`));
+  } catch (err) {
+    out.push(errCard("Conversion rejected on the write path", "StringUtilities::ToUtf8", err.message));
+    document.getElementById("out").innerHTML = out.join("");
+    return;
+  }
+
+  const legacyBytes = legacyEncode(wstr);
+  const sameAsLegacy = bytesStr(legacyBytes) === bytesStr(utf8);
+  out.push(card("What gets stored in SQLite", "sqlite3_bind_text",
+    "",
+    `<dl class="kv">
+      <dt>This PR</dt><dd class="ok">${bytesStr(utf8) || "(empty)"}</dd>
+      <dt>Before the PR</dt><dd class="${sameAsLegacy ? "" : "bad"}">${bytesStr(legacyBytes) || "(empty)"}</dd>
+     </dl>
+     <p class="note">${sameAsLegacy
+        ? "Identical here — the old code was only wrong for text above U+FFFF on a 16-bit <code>wchar_t</code>."
+        : "<strong>Different.</strong> The old code encoded each 16-bit unit as its own code point, so each surrogate half became a separate three-byte sequence. That is CESU-8, not UTF-8 — other tools reading the database see mojibake, and it is exactly what the new decoder now refuses."}</p>`));
+
+  /* ---- read path ---- */
+  let decCps, decUnits;
+  try {
+    const d = codePointsFromUtf8(utf8);
+    decCps = d.cps;
+    out.push(card("Step 3 — UTF-8 bytes → code points", "Unicode::CodePointsFromUtf8",
+      `Reading back. Every sequence is validated before it is accepted — this is where malformed data throws instead of being silently repaired.`,
+      d.log.map(x => `<div class="verdict ${x.error ? "fail" : "good"}">
+        <div class="mono">byte ${x.at}: ${x.seq ? bytesStr(x.seq) : "0x" + hex(x.lead)} ${x.cp !== undefined ? "→ " + U(x.cp) + " " + glyph(x.cp) : ""}</div>
+        <ul class="steps">${x.checks.map(c => `<li>${esc(c)}</li>`).join("")}</ul></div>`).join("") || "<p class='note'>Empty input — nothing to decode.</p>"));
+
+    if (wcharSize === 2) {
+      const r = utf16FromCodePoints(decCps);
+      decUnits = r.units;
+      out.push(card("Step 4 — code points → wstring", "Unicode::Utf16FromCodePoints",
+        `Back through <code>WideCodec&lt;2&gt;</code>: anything above U+FFFF is split into a surrogate pair, the inverse of step 1.`,
+        `<div class="scroll"><table><tr><th class="m">code point</th><th class="m">units</th><th>arithmetic</th></tr>` +
+        r.rows.map(x => `<tr><td class="m">${U(x.cp)}</td><td class="m">${x.units.map(u => "0x" + hex(u, 4)).join(" ")}</td><td>${x.note}</td></tr>`).join("") +
+        `</table></div>`));
+    } else {
+      decUnits = decCps.slice();
+      out.push(card("Step 4 — code points → wstring", "cast_each<std::wstring>",
+        `<code>WideCodec&lt;4&gt;</code>: one code point per <code>wchar_t</code>, straight cast.`,
+        unitsTable(decUnits, 4)));
+    }
+  } catch (err) {
+    out.push(errCard("Conversion rejected on the read path", "StringUtilities::FromUtf8", err.message));
+    document.getElementById("out").innerHTML = out.join("");
+    return;
+  }
+
+  /* ---- verdict ---- */
+  const same = decUnits.length === wstr.length && decUnits.every((u, i) => u === wstr[i]);
+  const legacyUnits = legacyDecode(legacyBytes, wcharSize);
+  const legacySame = legacyUnits.length === wstr.length && legacyUnits.every((u, i) => u === wstr[i]);
+  const legacyText = legacyUnits.map(u => `0x${hex(u, wcharSize === 2 ? 4 : 8)}`).join(" ");
+
+  out.push(card("Round trip", "", "",
+    `<div class="verdict ${same ? "good" : "fail"}">
+       <strong class="${same ? "ok" : "bad"}">This PR: ${same ? "identical" : "CHANGED"}</strong><br>
+       <span class="mono">${decUnits.map(u => "0x" + hex(u, wcharSize === 2 ? 4 : 8)).join(" ") || "(empty)"}</span>
+     </div>
+     <div class="verdict ${legacySame ? "good" : "fail"}">
+       <strong class="${legacySame ? "ok" : "bad"}">Before the PR: ${legacySame ? "identical" : "CORRUPTED"}</strong><br>
+       <span class="mono">${legacyText || "(empty)"}</span>
+       ${legacySame ? "" : `<div class="note">The old decoder truncated each code point to the low 16 bits of a <code>wchar_t</code> — U+1F600 came back as U+F600, U+10000 came back as NUL. No exception was raised; the caller just got different text.</div>`}
+     </div>
+     ${legacySame && !sameAsLegacy ? `<p class="note warn">Note the trap: the old round trip <em>appears</em> to succeed here, because encode and decode were wrong in the same way. The bytes on disk were still ill-formed — which is what makes reading those old files throw now.</p>` : ""}`));
+
+  document.getElementById("out").innerHTML = out.join("");
+}
+
+/* ---- validator playground ---------------------------------------- */
+function renderHex() {
+  const raw = document.getElementById("hex").value.trim();
+  const bytes = raw.length ? raw.split(/[\s,]+/).filter(Boolean).map(t => parseInt(t.replace(/^0x/i, ""), 16)) : [];
+  const bad = bytes.some(b => Number.isNaN(b) || b < 0 || b > 0xFF);
+  const target = document.getElementById("hexout");
+  if (bad) { target.innerHTML = card("Input", "", "", `<p class="err">Not a list of hex bytes.</p>`); return; }
+  let html;
+  try {
+    const d = codePointsFromUtf8(bytes);
+    html = card("Accepted", "Unicode::CodePointsFromUtf8",
+      `Decoded to ${d.cps.length} code point${d.cps.length === 1 ? "" : "s"}: <span class="mono">${d.cps.map(U).join(" ")}</span> &nbsp; ${d.cps.map(glyph).join("")}`,
+      d.log.map(x => `<div class="verdict good"><div class="mono">${bytesStr(x.seq)} → ${U(x.cp)}</div>
+        <ul class="steps">${x.checks.map(c => `<li>${esc(c)}</li>`).join("")}</ul></div>`).join(""));
+  } catch (err) {
+    html = errCard("Rejected", "Unicode::CodePointsFromUtf8", err.message);
+  }
+  target.innerHTML = html;
+}
+
+/* ---- wiring ------------------------------------------------------- */
+const examples = [
+  ["Hi 😀", "Hi 😀"],
+  ["ASCII", "abc"],
+  ["Greek (BMP)", "\\u039A\\u03B1\\u03BB\\u03B7"],
+  ["Emoji U+1F600", "\\U0001F600"],
+  ["First supplementary U+10000", "\\U00010000"],
+  ["Musical clef U+1D11E", "\\U0001D11E"],
+  ["CJK ext B U+2000B", "\\U0002000B"],
+  ["Unpaired high surrogate", "\\uD83D"],
+  ["Unpaired low surrogate", "\\uDE00"],
+  ["Mixed", "a\\u00E9\\u4E2D\\U0001F600"],
+];
+document.getElementById("chips").innerHTML =
+  examples.map(([l, v]) => `<button class="chip" data-v="${esc(v)}">${esc(l)}</button>`).join("");
+document.getElementById("chips").addEventListener("click", e => {
+  if (!e.target.dataset.v) return;
+  document.getElementById("in").value = e.target.dataset.v;
+  render();
+});
+
+const hexExamples = [
+  ["valid 😀", "F0 9F 98 80"],
+  ["CESU-8 😀 (old Windows build)", "ED A0 BD ED B8 80"],
+  ["overlong '/'", "C0 AF"],
+  ["overlong 3-byte", "E0 80 AF"],
+  ["truncated", "F0 9F"],
+  ["above U+10FFFF", "F4 90 80 80"],
+  ["stray continuation", "80"],
+  ["ASCII", "68 69"],
+];
+document.getElementById("hexchips").innerHTML =
+  hexExamples.map(([l, v]) => `<button class="chip" data-v="${v}">${esc(l)}</button>`).join("");
+document.getElementById("hexchips").addEventListener("click", e => {
+  if (!e.target.dataset.v) return;
+  document.getElementById("hex").value = e.target.dataset.v;
+  renderHex();
+});
+
+document.getElementById("plat").addEventListener("click", e => {
+  if (e.target.tagName !== "BUTTON") return;
+  for (const b of document.querySelectorAll("#plat button")) b.setAttribute("aria-pressed", String(b === e.target));
+  render();
+});
+document.getElementById("in").addEventListener("input", render);
+document.getElementById("hex").addEventListener("input", renderHex);
+render();
+renderHex();
+</script>
+</body>
+</html>
