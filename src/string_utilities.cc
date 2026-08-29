@@ -24,7 +24,7 @@
 
 #include <numeric>
 
-#include "internal/unicode.h"
+#include "internal/unicode_transcoder.h"
 
 using namespace sqlite_reflection;
 
@@ -46,7 +46,7 @@ To cast_each(const From& source) {
 // wchar_t holds UTF-16 code units where it is 16 bits wide (Windows) and Unicode code points
 // where it is 32 bits wide (Linux, macOS). Selecting the path by width is what keeps text above
 // U+FFFF identical across platforms; a single facet cannot serve both, which is the defect this
-// replaced. See internal/unicode.h.
+// replaced. See internal/unicode_transcoder.h.
 template <size_t WideCharSize>
 struct WideCodec;
 

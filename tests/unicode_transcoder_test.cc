@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "internal/unicode.h"
+#include "internal/unicode_transcoder.h"
 
 #include <gtest/gtest.h>
 
