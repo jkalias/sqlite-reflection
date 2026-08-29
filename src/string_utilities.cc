@@ -32,7 +32,7 @@ namespace {
 // Copies a string of code units into a string of a different unit type, one unit at a time. The
 // casts are value-preserving in the directions used below, except for a negative wchar_t on a
 // platform where it is signed, which widens to a value above U+10FFFF and is then rejected by
-// the validation in Unicode.
+// the validation in UnicodeTranscoder.
 template <typename To, typename From>
 To cast_each(const From& source) {
     To result;
@@ -54,11 +54,11 @@ template <>
 struct WideCodec<2> {
     static std::u32string ToCodePoints(const std::wstring& wide_string) {
         const auto code_units = cast_each<std::u16string>(wide_string);
-        return Unicode::CodePointsFromUtf16(code_units.data(), code_units.size());
+        return UnicodeTranscoder::CodePointsFromUtf16(code_units.data(), code_units.size());
     }
 
     static std::wstring FromCodePoints(const std::u32string& code_points) {
-        const auto code_units = Unicode::Utf16FromCodePoints(code_points.data(), code_points.size());
+        const auto code_units = UnicodeTranscoder::Utf16FromCodePoints(code_points.data(), code_points.size());
         return cast_each<std::wstring>(code_units);
     }
 };
@@ -97,11 +97,11 @@ std::string StringUtilities::FromDouble(double value) {
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
     const auto code_points = PlatformWideCodec::ToCodePoints(wide_string);
-    return Unicode::Utf8FromCodePoints(code_points.data(), code_points.size());
+    return UnicodeTranscoder::Utf8FromCodePoints(code_points.data(), code_points.size());
 }
 
 std::wstring StringUtilities::FromUtf8(const char* utf8_string, size_t byte_count) {
-    const auto code_points = Unicode::CodePointsFromUtf8(utf8_string, byte_count);
+    const auto code_points = UnicodeTranscoder::CodePointsFromUtf8(utf8_string, byte_count);
     return PlatformWideCodec::FromCodePoints(code_points);
 }
 

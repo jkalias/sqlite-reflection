@@ -136,19 +136,19 @@ TEST(UnicodeTest, SupplementaryCodePointSurvivesLengthAndContent) {
 
 namespace {
 std::u32string CodePoints(const std::string& utf8) {
-    return Unicode::CodePointsFromUtf8(utf8.data(), utf8.size());
+    return UnicodeTranscoder::CodePointsFromUtf8(utf8.data(), utf8.size());
 }
 
 std::string Utf8From(const std::u32string& code_points) {
-    return Unicode::Utf8FromCodePoints(code_points.data(), code_points.size());
+    return UnicodeTranscoder::Utf8FromCodePoints(code_points.data(), code_points.size());
 }
 
 std::u16string Utf16From(const std::u32string& code_points) {
-    return Unicode::Utf16FromCodePoints(code_points.data(), code_points.size());
+    return UnicodeTranscoder::Utf16FromCodePoints(code_points.data(), code_points.size());
 }
 
 std::u32string FromUtf16(const std::u16string& code_units) {
-    return Unicode::CodePointsFromUtf16(code_units.data(), code_units.size());
+    return UnicodeTranscoder::CodePointsFromUtf16(code_units.data(), code_units.size());
 }
 }  // namespace
 

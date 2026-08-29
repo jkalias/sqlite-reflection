@@ -99,7 +99,7 @@ void reject_if_invalid_second_byte(unsigned char lead, unsigned char second) {
 }
 }  // namespace
 
-std::string Unicode::Utf8FromCodePoints(const char32_t* code_points, size_t count) {
+std::string UnicodeTranscoder::Utf8FromCodePoints(const char32_t* code_points, size_t count) {
     std::string utf8_string;
     utf8_string.reserve(count);
 
@@ -127,7 +127,7 @@ std::string Unicode::Utf8FromCodePoints(const char32_t* code_points, size_t coun
     return utf8_string;
 }
 
-std::u32string Unicode::CodePointsFromUtf8(const char* utf8_string, size_t byte_count) {
+std::u32string UnicodeTranscoder::CodePointsFromUtf8(const char* utf8_string, size_t byte_count) {
     std::u32string code_points;
     code_points.reserve(byte_count);
 
@@ -179,7 +179,7 @@ std::u32string Unicode::CodePointsFromUtf8(const char* utf8_string, size_t byte_
     return code_points;
 }
 
-std::u16string Unicode::Utf16FromCodePoints(const char32_t* code_points, size_t count) {
+std::u16string UnicodeTranscoder::Utf16FromCodePoints(const char32_t* code_points, size_t count) {
     std::u16string utf16_string;
     utf16_string.reserve(count);
 
@@ -200,7 +200,7 @@ std::u16string Unicode::Utf16FromCodePoints(const char32_t* code_points, size_t 
     return utf16_string;
 }
 
-std::u32string Unicode::CodePointsFromUtf16(const char16_t* utf16_string, size_t count) {
+std::u32string UnicodeTranscoder::CodePointsFromUtf16(const char16_t* utf16_string, size_t count) {
     std::u32string code_points;
     code_points.reserve(count);
 

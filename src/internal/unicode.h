@@ -51,7 +51,7 @@ namespace sqlite_reflection {
 /// wchar_t is 16 bits, no longer reads back. That data was stored ill-formed; because encoding
 /// and decoding were wrong in the same way it used to survive a round trip on Windows, so the
 /// break surfaces only now. See the text encoding section of README.md.
-class REFLECTION_EXPORT Unicode {
+class REFLECTION_EXPORT UnicodeTranscoder {
 public:
     /// Encodes Unicode code points as UTF-8
     static std::string Utf8FromCodePoints(const char32_t* code_points, size_t count);
