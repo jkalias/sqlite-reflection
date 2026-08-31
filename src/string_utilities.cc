@@ -22,13 +22,64 @@
 
 #include "internal/string_utilities.h"
 
-#include <codecvt>
 #include <numeric>
-#ifndef _WIN32
-#include <locale>
-#endif
+
+#include "internal/unicode_transcoder.h"
 
 using namespace sqlite_reflection;
+
+namespace {
+// Copies a string of code units into a string of a different unit type, one unit at a time. The
+// casts are value-preserving in the directions used below, except for a negative wchar_t on a
+// platform where it is signed, which widens to a value above U+10FFFF and is then rejected by
+// the validation in UnicodeTranscoder.
+template <typename To, typename From>
+To cast_each(const From& source) {
+    To result;
+    result.reserve(source.size());
+    for (size_t i = 0; i < source.size(); ++i) {
+        result.push_back(static_cast<typename To::value_type>(source[i]));
+    }
+    return result;
+}
+
+// wchar_t holds UTF-16 code units where it is 16 bits wide (Windows) and Unicode code points
+// where it is 32 bits wide (Linux, macOS). Selecting the path by width is what keeps text above
+// U+FFFF identical across platforms; a single facet cannot serve both, which is the defect this
+// replaced. See internal/unicode_transcoder.h.
+template <size_t WideCharSize>
+struct WideCodec;
+
+template <>
+struct WideCodec<2> {
+    static std::u32string ToCodePoints(const std::wstring& wide_string) {
+        const auto code_units = cast_each<std::u16string>(wide_string);
+        return UnicodeTranscoder::CodePointsFromUtf16(code_units.data(), code_units.size());
+    }
+
+    static std::wstring FromCodePoints(const std::u32string& code_points) {
+        const auto code_units = UnicodeTranscoder::Utf16FromCodePoints(code_points.data(), code_points.size());
+        return cast_each<std::wstring>(code_units);
+    }
+};
+
+template <>
+struct WideCodec<4> {
+    static std::u32string ToCodePoints(const std::wstring& wide_string) {
+        return cast_each<std::u32string>(wide_string);
+    }
+
+    static std::wstring FromCodePoints(const std::u32string& code_points) {
+        return cast_each<std::wstring>(code_points);
+    }
+};
+
+// Only the two widths above are implemented; without this the failure is an incomplete-type
+// error inside the typedef rather than a statement about portability.
+static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4, "sqlite_reflection supports wchar_t of 16 or 32 bits only");
+
+typedef WideCodec<sizeof(wchar_t)> PlatformWideCodec;
+}  // namespace
 
 std::string StringUtilities::FromInt(int64_t value) {
     return std::to_string(value);
@@ -45,15 +96,13 @@ std::string StringUtilities::FromDouble(double value) {
 }
 
 std::string StringUtilities::ToUtf8(const std::wstring& wide_string) {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    auto utf8_string = converter.to_bytes(wide_string.data(), wide_string.data() + wide_string.size());
-    return utf8_string;
+    const auto code_points = PlatformWideCodec::ToCodePoints(wide_string);
+    return UnicodeTranscoder::Utf8FromCodePoints(code_points.data(), code_points.size());
 }
 
 std::wstring StringUtilities::FromUtf8(const char* utf8_string, size_t byte_count) {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    auto wide_string = converter.from_bytes(utf8_string, utf8_string + byte_count);
-    return wide_string;
+    const auto code_points = UnicodeTranscoder::CodePointsFromUtf8(utf8_string, byte_count);
+    return PlatformWideCodec::FromCodePoints(code_points);
 }
 
 std::string StringUtilities::Join(const std::vector<std::string>& list, const std::string& separator) {

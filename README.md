@@ -136,6 +136,31 @@ Supported field macros:
 | `sqlite_reflection::TimePoint` | `MEMBER_DATETIME(name)` |
 | member function declaration | `FUNC(signature)` |
 
+### Text encoding
+
+`MEMBER_TEXT` fields are `std::wstring` in C++ and are stored as UTF-8 in SQLite. The full
+Unicode range is supported, including code points above U+FFFF such as emoji and the CJK
+extension blocks, and text round-trips unchanged on every supported platform regardless of
+whether `wchar_t` is 16 bits (Windows) or 32 bits (Linux, macOS).
+
+Text that is not valid Unicode is rejected rather than silently altered: converting a
+`std::wstring` containing unpaired UTF-16 surrogates, or reading a TEXT value whose bytes are
+not well-formed UTF-8, throws `std::range_error`. A column holding a BLOB where a
+`MEMBER_TEXT` field is declared is skipped like a `NULL`, leaving the member untouched, so its
+bytes are never decoded.
+
+Note that a `std::wstring` still counts code *units*, not code points, so `size()` and indexing
+differ across platforms for text above U+FFFF: `L"\U0001F600".size()` is 2 where `wchar_t` is 16
+bits and 1 where it is 32 bits. What round-trips identically is the text itself.
+
+#### Reading databases written before this fix
+
+Earlier versions stored text above U+FFFF as CESU-8 when built where `wchar_t` is 16 bits
+(Windows), encoding each surrogate half separately. Reading such a value now throws
+`std::range_error` rather than returning it. Because the old encode and decode were wrong in the
+same way, that data appeared to round-trip on Windows and was written ill-formed to the file;
+databases written on Linux or macOS, and any text within the BMP, are unaffected.
+
 ### Nullable fields
 
 Each field macro has a `_NULLABLE` variant (`MEMBER_INT_NULLABLE`, `MEMBER_REAL_NULLABLE`,
